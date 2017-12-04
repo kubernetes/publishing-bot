@@ -661,8 +661,13 @@ func (p *PublisherMunger) publish() error {
 
 // Run constructs the repos and pushes them.
 func (p *PublisherMunger) Run() error {
+	token, err := p.config.Token()
+	if err != nil {
+		return fmt.Errorf("failed to get github token: %v", err)
+	}
+
 	buf := bytes.NewBuffer(nil)
-	p.plog = NewPublisherLog(buf)
+	p.plog = NewPublisherLog(buf, token)
 
 	if err := p.updateKubernetes(); err != nil {
 		p.plog.Errorf("%v", err)
