@@ -13,7 +13,7 @@ build:
 .PHONY: build
 
 build-image: build
-	docker build -t $(REPO)
+	docker build -t $(REPO) .
 .PHONY: build-image
 
 push-image:
