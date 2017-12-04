@@ -23,7 +23,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 
-	"k8s.io/test-infra/mungegithub/publisher/pkg/cache"
+	"k8s.io/publishing-bot/pkg/cache"
 )
 
 // FirstParent returns the first parent of a commit. For a merge commit this

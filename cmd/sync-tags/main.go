@@ -29,8 +29,8 @@ import (
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 
-	"k8s.io/test-infra/mungegithub/publisher/pkg/cache"
-	"k8s.io/test-infra/mungegithub/publisher/pkg/git"
+	"k8s.io/publishing-bot/pkg/cache"
+	"k8s.io/publishing-bot/pkg/git"
 )
 
 func Usage() {
