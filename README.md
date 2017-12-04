@@ -1,5 +1,7 @@
 # Kubernetes Publishing Bot
 
+## THIS IS AN INTIAL PORT FROM http://github.com/kubernetes/test-infra TO THE NEW REPO. IT'S UNTESTED.
+
 ## Overview
 
 The publishing bot publishes the code in `k8s.io/kubernetes/staging` to their own repositories. It guarantees that the master branches of the published repositories are compatible, i.e., if a user `go get` a published repository in a clean GOPATH, the repo is guaranteed to work.
