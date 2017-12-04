@@ -33,13 +33,20 @@ Currently we don't have tests for the bot. It relies on manual tests:
 * Fork the repos you are going the publish.
 * Run [hack/fetch-all-latest-and-push.sh](hack/fetch-all-latest-and-push.sh) from the bot root directory to update the branches of your repos. This will sync your forks with upstream. **CAUTION:** this might delete data in your forks.
 
-* Change `config.organization` to your github username in [artifacts/manifests/configmap.yaml](artifacts/manifests/configmap.yaml)
+* Change `target-org` to your github username in [artifacts/manifests/configmap.yaml](artifacts/manifests/configmap.yaml)
 
-* Deploy the publishing robot by running make from the bot root directory, e.g.
+* Deploy the publishing bot by running make from the bot root directory, e.g.
 
 ```shell
 $ make build-image push-image REPO=<your-docker-name>/k8s-publishing-bot TOKEN=<github-token>
 ```
+
+### Running in Production
+
+* Change `target-org` to `kubernetes` in [artifacts/manifests/configmap.yaml](artifacts/manifests/configmap.yaml)
+* and disable `dry-run` mode.
+* **Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will closed them triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
+* Deploy the publishing bot as above.
 
 ## Known issues
 
