@@ -1,4 +1,4 @@
-# Copyright 2017 Google Inc. All rights reserved.
+# Copyright 2017 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ RUN apt-get update \
  && apt-get install -y -qq git=1:2.1.4-2.1+deb8u4 \
  && apt-get install -y -qq mercurial \
  && apt-get install -y -qq ca-certificates wget jq vim tmux bsdmainutils tig \
- && wget https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz \
- && tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz \
+ && wget https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz \
+ && tar -C /usr/local -xzf go1.9.2.linux-amd64.tar.gz \
  && rm -rf /var/lib/apt/lists/*
 
 ENV GOPATH="/go-workspace"
@@ -29,10 +29,9 @@ ENV GIT_COMMITTER_EMAIL="k8s-publish-robot@users.noreply.github.com"
 
 WORKDIR "/"
 
-ADD mungers/publish_scripts/initialize_repos.sh /publish_scripts/initialize_repos.sh
-ADD mungegithub /mungegithub
-ADD collapsed-kube-commit-mapper /collapsed-kube-commit-mapper
-ADD sync-tags /sync-tags
-ADD mungers/publish_scripts/ /publish_scripts
+ADD _output/publisher-bot /publisher-bot
+ADD _output/collapsed-kube-commit-mapper /collapsed-kube-commit-mapper
+ADD _output/sync-tags /sync-tags
+ADD artifacts/scripts/ /publish_scripts
 
-CMD ["/mungegithub", "--dry-run", "--token-file=/token"]
+CMD ["/publisher-bot", "--dry-run", "--token-file=/token"]

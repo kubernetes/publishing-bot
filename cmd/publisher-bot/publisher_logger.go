@@ -18,7 +18,7 @@ limitations under the License.
 // is parsed after the first invocation of glog, so the log file ends up in the
 // temporary directory. Hence, we manually duplicates glog ouptut.
 
-package mungers
+package main
 
 import (
 	"bytes"
