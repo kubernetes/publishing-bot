@@ -1,0 +1,73 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kubernetes-publisher
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: publisher
+        readonly: "false"
+        target-repo: kubernetes
+    spec:
+      initContainers:
+      - name: initialize-repos
+        command:
+        - /bin/bash
+        - -xc
+        - "ORG=$(grep organization: /etc/munge-config/config | cut -d' ' -f2) /publish_scripts/initialize_repos.sh"
+        - 2>&1
+        image: sttts/publisher:2017-11-29-c9e490bf0
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 500m
+          limits:
+            cpu: 2000m
+        volumeMounts:
+        - mountPath: /etc/munge-config
+          name: munge-config
+        - mountPath: /go-workspace
+          name: publisher-gopath
+      containers:
+      - name: publisher
+        command:
+        - /mungegithub
+        - --dry-run=false
+        - --alsologtostderr
+        - --config-path=/etc/munge-config/config
+        - 2>&1
+        image: sttts/publisher:2017-11-29-c9e490bf0
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 500m
+          limits:
+            cpu: 2000m
+        volumeMounts:
+        - mountPath: /etc/munge-config
+          name: munge-config
+        - mountPath: /etc/secret-volume
+          name: secret-volume
+        - mountPath: /netrc
+          name: netrc
+        - mountPath: /gitrepos
+          name: repo
+        - mountPath: /go-workspace
+          name: publisher-gopath
+      volumes:
+      - name: munge-config
+        configMap:
+          name: kubernetes-publisher-config
+      - name: secret-volume
+        secret:
+          secretName: kubernetes-github-token
+      - name: repo
+        emptyDir: {}
+      - name: netrc
+        emptyDir:
+          medium: Memory
+      - name: publisher-gopath
+        persistentVolumeClaim:
+          claimName: kubernetes-publisher-gopath
