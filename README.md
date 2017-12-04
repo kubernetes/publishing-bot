@@ -47,7 +47,7 @@ $ make build-image push-image REPO=<your-docker-name>/k8s-publishing-bot TOKEN=<
 
 * Change `target-org` to `kubernetes` in [artifacts/manifests/configmap.yaml](artifacts/manifests/configmap.yaml)
 * and disable `dry-run` mode.
-* **Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will closed them triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
+* **Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will close, them triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
 * Deploy the publishing bot as above.
 
 ## Known issues
