@@ -1,14 +1,17 @@
 all: build
 .PHONY: all
 
-REPO ?= k8s-publisher-bot
+-include $(CONFIG)
+
+DOCKER_REPO ?= k8s-publisher-bot
 NAMESPACE ?=
 TOKEN ?=
 KUBECTL ?= kubectl
 DRYRUN ?= true
+TARGET_ORG ?= $(whoami)
 
 build_cmd = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
-prepare_job = sed 's,DOCKER_IMAGE,$(REPO),g;s/dry-run=true/$(DRYRUN)/g'
+prepare_job = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s/-dry-run=true/-dry-run=$(DRYRUN)/g;s/TARGET_ORG/$(TARGET_ORG)/g'
 
 build:
 	$(call build_cmd,collapsed-kube-commit-mapper)
@@ -17,11 +20,11 @@ build:
 .PHONY: build
 
 build-image: build
-	docker build -t $(REPO) .
+	docker build -t $(DOCKER_REPO) .
 .PHONY: build-image
 
 push-image:
-	docker push $(REPO):latest
+	docker push $(DOCKER_REPO):latest
 
 clean:
 	rm -rf _output
