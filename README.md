@@ -40,15 +40,26 @@ Currently we don't have tests for the bot. It relies on manual tests:
 * Deploy the publishing bot by running make from the bot root directory, e.g.
 
 ```shell
-$ make build-image push-image REPO=<your-docker-name>/k8s-publishing-bot TOKEN=<github-token>
+$ make build-image push-image REPO=<your-docker-name>/k8s-publishing-bot
+$ make run REPO=<your-docker-name>/k8s-publishing-bot TOKEN=<github-token>
 ```
+
+  for a fire-and-forget job. Or use
+
+```shell
+$ make deploy REPO=<your-docker-name>/k8s-publishing-bot TOKEN=<github-token>
+```
+
+  to run a nightly (5:00am UTC) cronjob.
+
+This will not push to your org, but runs in dry-run mode. To run with a push, add `DRYRUN=false` to your `make` command line.
 
 ### Running in Production
 
-* Change `target-org` to `kubernetes` in [artifacts/manifests/configmap.yaml](artifacts/manifests/configmap.yaml)
-* and disable `dry-run` mode.
-* **Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will close, them triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
-* Deploy the publishing bot as above.
+* Use one of the existing [configs](configs) and
+* launch `make deploy CONFIG=configs/kubernetes-nightly`
+
+**Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will close, them triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
 
 ## Known issues
 
