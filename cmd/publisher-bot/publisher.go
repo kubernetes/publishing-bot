@@ -67,6 +67,8 @@ type PublisherMunger struct {
 	plog *plog
 	// absolute path to the k8s repos.
 	k8sIOPath string
+	// src branch names that are skipped
+	skippedSourceBranches []string
 }
 
 // New will create a new munger.
@@ -531,6 +533,14 @@ func New(config *github.Config) (*PublisherMunger, error) {
 	p.reposRules = []repoRules{apimachinery, api, clientGo, apiserver, kubeAggregator, sampleAPIServer, sampleController, apiExtensionsAPIServer, metrics, codeGenerator}
 	glog.Infof("publisher munger rules: %#v\n", p.reposRules)
 	p.config = config
+
+	// TODO: re-enable 1.5, 1.6, 1.7 after enforcing every repo branch to update once to pick up new'ish Godep targets
+	// background: when we still had sync commits, we could not correlate upstream commits correctly
+	p.skippedSourceBranches = []string{
+		"release-1.5",
+		"release-1.6",
+		"release-1.7",
+	}
 	return p, nil
 }
 
@@ -541,12 +551,14 @@ func (p *PublisherMunger) updateKubernetes() error {
 	if err := p.plog.Run(cmd); err != nil {
 		return err
 	}
+
 	// update kubernetes branches that are needed by other k8s.io repos.
 	for _, repoRules := range p.reposRules {
-		if repoRules.skipped {
-			continue
-		}
 		for _, branchRule := range repoRules.srcToDst {
+			if p.skippedBranch(branchRule.src.branch) {
+				continue
+			}
+
 			src := branchRule.src
 			// we assume src.repo is always kubernetes
 			cmd := exec.Command("git", "branch", "-f", src.branch, fmt.Sprintf("origin/%s", src.branch))
@@ -564,6 +576,15 @@ func (p *PublisherMunger) updateKubernetes() error {
 		}
 	}
 	return nil
+}
+
+func (p *PublisherMunger) skippedBranch(b string) bool {
+	for _, skipped := range p.skippedSourceBranches {
+		if b == skipped {
+			return true
+		}
+	}
+	return false
 }
 
 // git clone dstURL to dst if dst doesn't exist yet.
@@ -616,6 +637,10 @@ func (p *PublisherMunger) construct() error {
 		}
 
 		for _, branchRule := range repoRules.srcToDst {
+			if p.skippedBranch(branchRule.src.branch) {
+				continue
+			}
+
 			cmd := exec.Command(repoRules.publishScript, branchRule.src.branch, branchRule.dst.branch, formatDeps(branchRule.deps), kubernetesRemote)
 			if err := p.plog.Run(cmd); err != nil {
 				return err
@@ -645,11 +670,19 @@ func (p *PublisherMunger) publish() error {
 	// apimachinery, they should be published atomically, but it's not supported
 	// by github.
 	for _, repoRules := range p.reposRules {
+		if repoRules.skipped {
+			continue
+		}
+
 		dstDir := filepath.Join(p.k8sIOPath, repoRules.dstRepo, "")
 		if err := os.Chdir(dstDir); err != nil {
 			return err
 		}
 		for _, branchRule := range repoRules.srcToDst {
+			if p.skippedBranch(branchRule.src.branch) {
+				continue
+			}
+
 			cmd := exec.Command("/publish_scripts/push.sh", token, branchRule.dst.branch)
 			if err := p.plog.Run(cmd); err != nil {
 				return err
