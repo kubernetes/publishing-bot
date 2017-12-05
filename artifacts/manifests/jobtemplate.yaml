@@ -1,0 +1,62 @@
+spec:
+  restartPolicy: OnFailure
+  initContainers:
+  - name: initialize-repos
+    command:
+    - /bin/bash
+    - -xc
+    - "ORG=$(grep organization: /etc/munge-config/config | cut -d' ' -f2) /publish_scripts/initialize_repos.sh"
+    - 2>&1
+    image: DOCKER_IMAGE
+    imagePullPolicy: Always
+    resources:
+      requests:
+        cpu: 2000m
+      limits:
+        cpu: 2000m
+    volumeMounts:
+    - mountPath: /etc/munge-config
+      name: munge-config
+    - mountPath: /go-workspace
+      name: publisher-gopath
+  containers:
+  - name: publisher
+    command:
+    - /publisher-bot
+    - --dry-run=true
+    - --alsologtostderr
+    - --config=/etc/munge-config/config
+    - 2>&1
+    image: DOCKER_IMAGE
+    imagePullPolicy: Always
+    resources:
+      requests:
+        cpu: 2000m
+      limits:
+        cpu: 2000m
+    volumeMounts:
+    - mountPath: /etc/munge-config
+      name: munge-config
+    - mountPath: /etc/secret-volume
+      name: secret-volume
+    - mountPath: /netrc
+      name: netrc
+    - mountPath: /gitrepos
+      name: repo
+    - mountPath: /go-workspace
+      name: publisher-gopath
+  volumes:
+  - name: munge-config
+    configMap:
+      name: publisher-config
+  - name: secret-volume
+    secret:
+      secretName: github-token
+  - name: repo
+    emptyDir: {}
+  - name: netrc
+    emptyDir:
+      medium: Memory
+  - name: publisher-gopath
+    persistentVolumeClaim:
+      claimName: publisher-gopath
