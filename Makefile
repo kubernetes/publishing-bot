@@ -2,15 +2,18 @@ all: build
 .PHONY: all
 
 REPO ?= k8s-publisher-bot
-BUILD_CMD = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
 NAMESPACE ?=
 TOKEN ?=
 KUBECTL ?= kubectl
+DRYRUN ?= true
+
+build_cmd = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
+prepare_job = sed 's,DOCKER_IMAGE,$(REPO),g;s/dry-run=true/$(DRYRUN)/g'
 
 build:
-	$(call BUILD_CMD,collapsed-kube-commit-mapper)
-	$(call BUILD_CMD,publisher-bot)
-	$(call BUILD_CMD,sync-tags)
+	$(call build_cmd,collapsed-kube-commit-mapper)
+	$(call build_cmd,publisher-bot)
+	$(call build_cmd,sync-tags)
 .PHONY: build
 
 build-image: build
@@ -39,8 +42,10 @@ init-deploy:
 
 run: init-deploy
 	{ cat artifacts/manifests/job.yaml && sed 's/^/    /' artifacts/manifests/jobtemplate.yaml; } | \
-	sed 's,DOCKER_IMAGE,$(REPO),g' | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
+	$(call prepare_job) | \
+	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
 
 deploy: init-deploy
 	{ cat artifacts/manifests/cronjob.yaml && sed 's/^/      /' artifacts/manifests/jobtemplate.yaml; } | \
-	sed 's,DOCKER_IMAGE,$(REPO),g' | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
+	$(call prepare_job) | \
+	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
