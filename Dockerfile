@@ -15,7 +15,7 @@
 FROM google/debian:jessie
 MAINTAINER Chao Xu <xuchao@google.com>
 RUN apt-get update \
- && apt-get install -y -qq git=1:2.1.4-2.1+deb8u4 \
+ && apt-get install -y -qq git=1:2.1.4-2.1+deb8u5 \
  && apt-get install -y -qq mercurial \
  && apt-get install -y -qq ca-certificates wget jq vim tmux bsdmainutils tig \
  && wget https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz \

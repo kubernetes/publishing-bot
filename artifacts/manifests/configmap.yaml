@@ -1,6 +1,6 @@
 kind: ConfigMap
 metadata:
-  name: kubernetes-publisher-config
+  name: publisher-config
 data:
   config: |
     target-org: k8s-publishing-bot

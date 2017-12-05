@@ -3,8 +3,9 @@ all: build
 
 REPO ?= k8s-publisher-bot
 BUILD_CMD = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
-NAMESPACE ?= k8s-publisher-bot
+NAMESPACE ?=
 TOKEN ?=
+KUBECTL ?= kubectl
 
 build:
 	$(call BUILD_CMD,collapsed-kube-commit-mapper)
@@ -27,11 +28,19 @@ update-deps:
 	glide update --strip-vendor
 .PHONY: update-deps
 
-deploy:
-	kubectl delete -namespace $(NAMESPACE) -f cronjob
-	kubectl apply -namespace $(NAMESPACE) -f artifacts/manifests/storage-class.yaml || true
-	kubectl get StorageClass ssd
-	sed 's/TOKEN/$(TOKEN)/g' artifacts/manifests/secret.yaml | kubectl apply -namespace $(NAMESPACE) -f -
-	kubectl apply -namespace $(NAMESPACE) -f artifacts/manifests/configmap.yaml
-	kubectl apply -namespace $(NAMESPACE) -f artifacts/manifests/pvc.yaml
-	sed 's/DOCKER_IMAGE/$(REPO)/g' artifacts/manifests/cronjob.yaml | kubectl apply -namespace $(NAMESPACE) -f -
+init-deploy:
+	$(KUBECTL) delete -n "$(NAMESPACE)" cronjob publisher || true
+	$(KUBECTL) delete -n "$(NAMESPACE)" job publisher || true
+	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/storage-class.yaml || true
+	$(KUBECTL) get StorageClass ssd
+	sed 's/TOKEN/$(TOKEN)/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
+	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/configmap.yaml
+	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/pvc.yaml
+
+run: init-deploy
+	{ cat artifacts/manifests/job.yaml && sed 's/^/    /' artifacts/manifests/jobtemplate.yaml; } | \
+	sed 's,DOCKER_IMAGE,$(REPO),g' | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
+
+deploy: init-deploy
+	{ cat artifacts/manifests/cronjob.yaml && sed 's/^/      /' artifacts/manifests/jobtemplate.yaml; } | \
+	sed 's,DOCKER_IMAGE,$(REPO),g' | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
