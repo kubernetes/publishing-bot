@@ -3,6 +3,4 @@ metadata:
   name: publisher-config
 data:
   config: |
-    target-org: k8s-publishing-bot
-    token-file: /etc/secret-volume/token
-
+    target-org: TARGET_ORG

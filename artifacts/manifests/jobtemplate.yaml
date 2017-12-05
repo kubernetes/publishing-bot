@@ -26,6 +26,7 @@ spec:
     - --dry-run=true
     - --alsologtostderr
     - --config=/etc/munge-config/config
+    - --token-file=/etc/secret-volume/token
     - 2>&1
     image: DOCKER_IMAGE
     imagePullPolicy: Always
