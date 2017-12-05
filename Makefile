@@ -40,7 +40,7 @@ init-deploy:
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/storage-class.yaml || true
 	$(KUBECTL) get StorageClass ssd
 	sed 's/TOKEN/$(TOKEN)/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
-	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/configmap.yaml
+	sed 's,TARGET_ORG,$(TARGET_ORG),g' artifacts/manifests/configmap.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/pvc.yaml
 
 run: init-deploy
