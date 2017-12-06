@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: publisher
 spec:
-  schedule: "0 5 * *"
+  schedule: "SCHEDULE"
   startingDeadlineSeconds: 36000
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
