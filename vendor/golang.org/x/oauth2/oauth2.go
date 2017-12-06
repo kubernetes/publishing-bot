@@ -5,7 +5,7 @@
 // Package oauth2 provides support for making
 // OAuth2 authorized and authenticated HTTP requests.
 // It can additionally grant authorization with Bearer JWT.
-package oauth2
+package oauth2 // import "golang.org/x/oauth2"
 
 import (
 	"bytes"
@@ -180,7 +180,6 @@ func (c *Config) Exchange(ctx context.Context, code string) (*Token, error) {
 		"grant_type":   {"authorization_code"},
 		"code":         {code},
 		"redirect_uri": internal.CondVal(c.RedirectURL),
-		"scope":        internal.CondVal(strings.Join(c.Scopes, " ")),
 	})
 }
 
@@ -291,6 +290,10 @@ var HTTPClient internal.ContextKey
 
 // NewClient creates an *http.Client from a Context and TokenSource.
 // The returned client is not valid beyond the lifetime of the context.
+//
+// Note that if a custom *http.Client is provided via the Context it
+// is used only for token acquisition and is not used to configure the
+// *http.Client returned from NewClient.
 //
 // As a special case, if src is nil, a non-OAuth2 client is returned
 // using the provided context. This exists to support related OAuth2

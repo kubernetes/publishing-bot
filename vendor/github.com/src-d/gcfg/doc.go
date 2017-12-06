@@ -142,4 +142,4 @@
 //    - make error context accessible programmatically?
 //    - limit input size?
 //
-package gcfg
+package gcfg // import "github.com/src-d/gcfg"

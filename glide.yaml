@@ -1,0 +1,14 @@
+package: k8s.io/publishing-bot
+import:
+- package: github.com/golang/glog
+- package: github.com/renstrom/dedent
+  version: ^1.0.0
+- package: github.com/shurcooL/go
+  subpackages:
+  - indentwriter
+- package: gopkg.in/src-d/go-git.v4
+  version: ^4.0.0-rc9
+  subpackages:
+  - plumbing
+  - plumbing/object
+- package: gopkg.in/yaml.v2

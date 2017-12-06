@@ -224,7 +224,7 @@ func remoteTags(r *gogit.Repository, remote string) (map[string]plumbing.Hash, e
 	defer refs.Close()
 	tagCommits := map[string]plumbing.Hash{}
 	err = refs.ForEach(func(ref *plumbing.Reference) error {
-		if !ref.IsTag() {
+		if ref.Type() == plumbing.SymbolicReference && ref.Name().IsTag() {
 			return nil
 		}
 		n := ref.Name().String()
@@ -243,7 +243,7 @@ func removeRemoteTags(r *gogit.Repository, remotes []string) error {
 	}
 	defer refs.Close()
 	return refs.ForEach(func(ref *plumbing.Reference) error {
-		if !ref.IsTag() {
+		if ref.Type() == plumbing.SymbolicReference && ref.Name().IsTag() {
 			return nil
 		}
 		n := ref.Name().String()

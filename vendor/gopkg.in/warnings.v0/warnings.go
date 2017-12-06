@@ -57,6 +57,9 @@
 //      return c.Done()
 //  }
 //
+// For an example of a non-trivial code base using this library, see
+// gopkg.in/gcfg.v1
+//
 // Rules for using warnings
 //
 //  - ensure that warnings are programmatically distinguishable from fatal
@@ -75,7 +78,7 @@
 //  - go vet-style invocations verifier
 //  - semi-automatic code converter
 //
-package warnings
+package warnings // import "gopkg.in/warnings.v0"
 
 import (
 	"bytes"
