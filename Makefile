@@ -3,7 +3,7 @@ all: build
 
 -include $(CONFIG)
 
-DOCKER_REPO ?= k8s-publisher-bot
+DOCKER_REPO ?= k8s-publishing-bot
 NAMESPACE ?=
 TOKEN ?=
 KUBECTL ?= kubectl
@@ -15,7 +15,7 @@ prepare_job = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s/-dry-run=true/-dry-run=$(DR
 
 build:
 	$(call build_cmd,collapsed-kube-commit-mapper)
-	$(call build_cmd,publisher-bot)
+	$(call build_cmd,publishing-bot)
 	$(call build_cmd,sync-tags)
 .PHONY: build
 

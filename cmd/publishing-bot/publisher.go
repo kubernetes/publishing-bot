@@ -26,7 +26,7 @@ import (
 
 	"github.com/golang/glog"
 
-	github "k8s.io/publishing-bot/cmd/publisher-bot/config"
+	github "k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
 // coordinate of a piece of code
