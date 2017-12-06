@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/google/go-github/github"
@@ -39,6 +40,9 @@ func githubClient(token string) *github.Client {
 func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	ctx := context.Background()
 	client := githubClient(token)
+
+	// filter out token, if it happens to be in the log (it shouldn't!)
+	logs = strings.Replace(logs, logs, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", -1)
 
 	// who am I?
 	myself, resp, err := client.Users.Get(ctx, "")
