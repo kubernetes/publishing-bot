@@ -1,4 +1,4 @@
-# Kubernetes Publishing Bot
+# Kubernetes Publishing Bot [![Build Status](https://travis-ci.org/tombell/travis-ci-status.svg)](https://travis-ci.org/kubernetes-nightly/publishing-bot.png)
 
 ## Overview
 
