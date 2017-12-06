@@ -35,18 +35,14 @@ import (
 
 type plog struct {
 	buf         *bytes.Buffer
-	tokenToHide string
 }
 
-func NewPublisherLog(buf *bytes.Buffer, tokenToHide string) *plog {
-	return &plog{buf, tokenToHide}
+func NewPublisherLog(buf *bytes.Buffer) *plog {
+	return &plog{buf}
 }
 
 func (p *plog) write(s string) {
 	p.buf.WriteString("[" + time.Now().Format(time.RFC822) + "]: ")
-	if p.tokenToHide != "" {
-		s = strings.Replace(s, p.tokenToHide, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", -1)
-	}
 	p.buf.WriteString(s)
 	p.buf.WriteString("\n")
 }

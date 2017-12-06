@@ -27,7 +27,7 @@ if [ ! $# -eq 2 ]; then
     exit 1
 fi
 
-TOKEN="${1}"
+TOKEN="$(cat ${1})"
 BRANCH="${2}"
 readonly TOKEN BRANCH
 

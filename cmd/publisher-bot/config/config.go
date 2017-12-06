@@ -32,20 +32,7 @@ type Config struct {
 
 	// the file with the clear-text github token
 	TokenFile string `yaml:"token-file"`
-	token     string
 
 	// If true, don't make any mutating API calls
 	DryRun bool
-}
-
-// Token returns the token.
-func (config *Config) Token() (string, error) {
-	if config.token == "" {
-		bs, err := ioutil.ReadFile(config.TokenFile)
-		if err != nil {
-			return "", err
-		}
-		config.token = strings.Trim(string(bs), " \t\n")
-	}
-	return config.token, nil
 }

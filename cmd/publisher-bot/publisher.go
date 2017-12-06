@@ -658,11 +658,7 @@ func (p *PublisherMunger) publish() error {
 		return nil
 	}
 
-	token, err := p.config.Token()
-	if err != nil {
-		return err
-	}
-	if token == "" {
+	if p.config.TokenFile == "" {
 		return fmt.Errorf("token cannot be empty in non-dry-run mode")
 	}
 
@@ -683,7 +679,7 @@ func (p *PublisherMunger) publish() error {
 				continue
 			}
 
-			cmd := exec.Command("/publish_scripts/push.sh", token, branchRule.dst.branch)
+			cmd := exec.Command("/publish_scripts/push.sh", p.config.TokenFile, branchRule.dst.branch)
 			if err := p.plog.Run(cmd); err != nil {
 				return err
 			}
@@ -694,13 +690,8 @@ func (p *PublisherMunger) publish() error {
 
 // Run constructs the repos and pushes them.
 func (p *PublisherMunger) Run() error {
-	token, err := p.config.Token()
-	if err != nil {
-		return fmt.Errorf("failed to get github token: %v", err)
-	}
-
 	buf := bytes.NewBuffer(nil)
-	p.plog = NewPublisherLog(buf, token)
+	p.plog = NewPublisherLog(buf)
 
 	if err := p.updateKubernetes(); err != nil {
 		p.plog.Errorf("%v", err)
