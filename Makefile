@@ -9,7 +9,8 @@ TOKEN ?=
 KUBECTL ?= kubectl
 DRYRUN ?= true
 TARGET_ORG ?= $(whoami)
-SCHEDULE ?= 0 5 * * *
+# SCHEDULE ?= 0 5 * * *
+INTERVAL ?= 86400
 
 build_cmd = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
 prepare_job = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s/-dry-run=true/-dry-run=$(DRYRUN)/g;s/TARGET_ORG/$(TARGET_ORG)/g;s,SCHEDULE,$(SCHEDULE),g'
@@ -36,8 +37,8 @@ update-deps:
 .PHONY: update-deps
 
 init-deploy:
-	$(KUBECTL) delete -n "$(NAMESPACE)" cronjob publisher || true
-	$(KUBECTL) delete -n "$(NAMESPACE)" job publisher || true
+	$(KUBECTL) delete -n "$(NAMESPACE)" rc publisher || true
+	$(KUBECTL) delete -n "$(NAMESPACE)" pod publisher || true
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/storage-class.yaml || true
 	$(KUBECTL) get StorageClass ssd
 	sed 's/TOKEN/$(shell echo "$(TOKEN)" | base64 | tr -d '\n')/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
@@ -45,11 +46,11 @@ init-deploy:
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/pvc.yaml
 
 run: init-deploy
-	{ cat artifacts/manifests/job.yaml && sed 's/^/      /' artifacts/manifests/jobtemplate.yaml; } | \
+	{ cat artifacts/manifests/pod.yaml && sed 's/^/  /' artifacts/manifests/podspec.yaml; } | \
 	$(call prepare_job) | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
 
 deploy: init-deploy
-	{ cat artifacts/manifests/cronjob.yaml && sed 's/^/        /' artifacts/manifests/jobtemplate.yaml; } | \
-	$(call prepare_job) | \
+	{ cat artifacts/manifests/rc.yaml && sed 's/^/      /' artifacts/manifests/podspec.yaml; } | \
+	$(call prepare_job) | sed 's/-interval=0/-interval=$(INTERVAL)/g' | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -

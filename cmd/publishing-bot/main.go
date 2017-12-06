@@ -27,12 +27,14 @@ import (
 
 	"strings"
 
+	"time"
+
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
 func Usage() {
 	fmt.Fprintf(os.Stderr, `
-Usage: %s [-config <config-yaml-file>] [-dry-run] [-token-file <token-file>]
+Usage: %s [-config <config-yaml-file>] [-dry-run] [-token-file <token-file>] [-interval <sec>]
           [-source-repo <repo>] [-target-org <org>]
 
 Command line flags override config values.
@@ -47,6 +49,7 @@ func main() {
 	// TODO: make absolute
 	sourceRepo := flag.String("source-repo", "", `the source repo (defaults to "kubernetes")`)
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
+	interval := flag.Uint("interval", 0, "loop with the given seconds of wait in between")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -81,38 +84,50 @@ func main() {
 		cfg.SourceRepo = "kubernetes"
 	}
 
-	publisher, err := New(&cfg)
-	if err != nil {
-		glog.Fatalf("Failed initialize publisher: %v", err)
-	}
+	for {
+		last := time.Now()
 
-	if cfg.TokenFile != "" && cfg.GithubIssue != nil && !cfg.DryRun {
-		// load token
-		bs, err := ioutil.ReadFile(cfg.TokenFile)
+		publisher, err := New(&cfg)
 		if err != nil {
-			glog.Fatalf("Failed to load token file from %q: %v", cfg.TokenFile, err)
+			glog.Fatalf("Failed initialize publisher: %v", err)
 		}
-		token := strings.Trim(string(bs), " \t\n")
 
-		// run
-		logs, err := publisher.Run()
-		if err != nil {
-			glog.Infof("Failed to run publisher: %v", err)
-			// TODO: support other orgs
-			if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
-				glog.Fatalf("Failed to report logs on github issue: %v", err)
+		if cfg.TokenFile != "" && cfg.GithubIssue != nil && !cfg.DryRun {
+			// load token
+			bs, err := ioutil.ReadFile(cfg.TokenFile)
+			if err != nil {
+				glog.Fatalf("Failed to load token file from %q: %v", cfg.TokenFile, err)
 			}
-			os.Exit(1)
+			token := strings.Trim(string(bs), " \t\n")
+
+			// run
+			logs, err := publisher.Run()
+			if err != nil {
+				glog.Infof("Failed to run publisher: %v", err)
+				// TODO: support other orgs
+				if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+					glog.Fatalf("Failed to report logs on github issue: %v", err)
+				}
+				os.Exit(1)
+			}
+
+			if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+				glog.Fatalf("Failed to close issue: %v", err)
+			}
+		} else {
+			// run
+			if _, err := publisher.Run(); err != nil {
+				glog.Infof("Failed to run publisher: %v", err)
+				os.Exit(1)
+			}
 		}
 
-		if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
-			glog.Fatalf("Failed to close issue: %v", err)
+		if *interval == 0 {
+			break
 		}
-	} else {
-		// run
-		if _, err := publisher.Run(); err != nil {
-			glog.Infof("Failed to run publisher: %v", err)
-			os.Exit(1)
-		}
+
+		timeToSleep := time.Duration(int(*interval)-int(time.Since(last).Seconds())) * time.Second
+		glog.Infof("Sleeping %v until next run", timeToSleep)
+		time.Sleep(timeToSleep)
 	}
 }
