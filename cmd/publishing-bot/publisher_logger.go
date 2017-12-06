@@ -85,7 +85,7 @@ func (p *plog) Run(c *exec.Cmd) error {
 	return err
 }
 
-func (p *plog) ReadLog() string {
+func (p *plog) Logs() string {
 	return p.buf.String()
 }
 
