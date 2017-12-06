@@ -39,16 +39,16 @@ init-deploy:
 	$(KUBECTL) delete -n "$(NAMESPACE)" job publisher || true
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/storage-class.yaml || true
 	$(KUBECTL) get StorageClass ssd
-	sed 's/TOKEN/$(TOKEN)/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
+	sed 's/TOKEN/$(shell echo "$(TOKEN)" | base64 | tr -d '\n')/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
 	sed 's,TARGET_ORG,$(TARGET_ORG),g' artifacts/manifests/configmap.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/pvc.yaml
 
 run: init-deploy
-	{ cat artifacts/manifests/job.yaml && sed 's/^/    /' artifacts/manifests/jobtemplate.yaml; } | \
+	{ cat artifacts/manifests/job.yaml && sed 's/^/      /' artifacts/manifests/jobtemplate.yaml; } | \
 	$(call prepare_job) | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
 
 deploy: init-deploy
-	{ cat artifacts/manifests/cronjob.yaml && sed 's/^/      /' artifacts/manifests/jobtemplate.yaml; } | \
+	{ cat artifacts/manifests/cronjob.yaml && sed 's/^/        /' artifacts/manifests/jobtemplate.yaml; } | \
 	$(call prepare_job) | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
