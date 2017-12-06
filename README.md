@@ -1,14 +1,12 @@
 # Kubernetes Publishing Bot
 
-## THIS IS AN INTIAL PORT FROM http://github.com/kubernetes/test-infra TO THE NEW REPO. IT'S UNTESTED.
-
 ## Overview
 
 The publishing bot publishes the code in `k8s.io/kubernetes/staging` to their own repositories. It guarantees that the master branches of the published repositories are compatible, i.e., if a user `go get` a published repository in a clean GOPATH, the repo is guaranteed to work.
 
 It pulls the latest k8s.io/kubernetes changes and runs `git filter-branch` to distill the commits that affect a staging repo. Then it cherry-picks merged PRs with their feature branch commits to the target repo. It records the SHA1 of the last cherrypicked commits in `Kubernetes-sha: <sha>` lines in the commit messages.
 
-The robot is also responsible to update the `Godeps/Godeps.json` and the `vendor/` directory for the target repos. 
+The robot is also responsible to update the `Godeps/Godeps.json` and the `vendor/` directory for the target repos.
 
 ## Playbook
 
@@ -63,6 +61,6 @@ This will not push to your org, but runs in dry-run mode. To run with a push, ad
 
 ## Known issues
 
-1. Reporting issues: the publishing robot should file an issue and attach its logs if it meets bugs during publishing. 
+1. Reporting issues: the publishing robot should file an issue and attach its logs if it meets bugs during publishing.
 2. Testing: currently we rely on manual testing. We should set up CI for it.
 3. Automate release process (tracked at https://github.com/kubernetes/kubernetes/issues/49011): when kubernetes release, automatic update the configuration of the publishing robot. This probably means that the config must move into the Kubernetes repo, e.g. as a `.publishing.yaml` file.
