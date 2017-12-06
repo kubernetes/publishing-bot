@@ -31,6 +31,7 @@ import (
 func Usage() {
 	fmt.Fprintf(os.Stderr, `
 Usage: %s [-config <config-yaml-file>] [-dry-run] [-token-file <token-file>]
+          [-source-repo <repo>] [-target-org <org>]
 
 Command line flags override config values.
 `, os.Args[0])
