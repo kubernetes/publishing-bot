@@ -9,9 +9,10 @@ TOKEN ?=
 KUBECTL ?= kubectl
 DRYRUN ?= true
 TARGET_ORG ?= $(whoami)
+SCHEDULE ?= 0 5 * * *
 
 build_cmd = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
-prepare_job = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s/-dry-run=true/-dry-run=$(DRYRUN)/g;s/TARGET_ORG/$(TARGET_ORG)/g'
+prepare_job = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s/-dry-run=true/-dry-run=$(DRYRUN)/g;s/TARGET_ORG/$(TARGET_ORG)/g;s,SCHEDULE,$(SCHEDULE),g'
 
 build:
 	$(call build_cmd,collapsed-kube-commit-mapper)
