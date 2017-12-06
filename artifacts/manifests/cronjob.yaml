@@ -13,3 +13,5 @@ spec:
       labels:
         app: publisher
     template:
+      spec:
+        restartPolicy: Never

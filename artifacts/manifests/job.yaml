@@ -4,3 +4,5 @@ metadata:
   name: publisher
 spec:
   template:
+    spec:
+      restartPolicy: Never
