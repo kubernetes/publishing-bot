@@ -689,24 +689,24 @@ func (p *PublisherMunger) publish() error {
 }
 
 // Run constructs the repos and pushes them.
-func (p *PublisherMunger) Run() error {
+func (p *PublisherMunger) Run() (string, error) {
 	buf := bytes.NewBuffer(nil)
 	p.plog = NewPublisherLog(buf)
 
 	if err := p.updateKubernetes(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return err
+		return p.plog.Logs(), err
 	}
 	if err := p.construct(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return err
+		return p.plog.Logs(), err
 	}
 	if err := p.publish(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return err
+		return p.plog.Logs(), err
 	}
-	return nil
+	return p.plog.Logs(), nil
 }

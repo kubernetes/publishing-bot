@@ -25,6 +25,8 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
 
+	"strings"
+
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
@@ -84,7 +86,33 @@ func main() {
 		glog.Fatalf("Failed initialize publisher: %v", err)
 	}
 
-	if err := publisher.Run(); err != nil {
-		glog.Fatalf("Failed to run publisher: %v", err)
+	if cfg.TokenFile != "" && cfg.GithubIssue != nil && !cfg.DryRun {
+		// load token
+		bs, err := ioutil.ReadFile(cfg.TokenFile)
+		if err != nil {
+			glog.Fatalf("Failed to load token file from %q: %v", cfg.TokenFile, err)
+		}
+		token := strings.Trim(string(bs), " \t\n")
+
+		// run
+		logs, err := publisher.Run()
+		if err != nil {
+			glog.Infof("Failed to run publisher: %v", err)
+			// TODO: support other orgs
+			if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+				glog.Fatalf("Failed to report logs on github issue: %v", err)
+			}
+			os.Exit(1)
+		}
+
+		if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+			glog.Fatalf("Failed to close issue: %v", err)
+		}
+	} else {
+		// run
+		if _, err := publisher.Run(); err != nil {
+			glog.Infof("Failed to run publisher: %v", err)
+			os.Exit(1)
+		}
 	}
 }

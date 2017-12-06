@@ -16,11 +16,6 @@ limitations under the License.
 
 package config
 
-import (
-	"io/ioutil"
-	"strings"
-)
-
 // Config is how we are configured to talk to github.
 type Config struct {
 	// the organization to publish into, e.g. k8s-publishing-bot or kubernetes-nightly
@@ -28,11 +23,14 @@ type Config struct {
 
 	// the source repo, e.g. "kubernetes"
 	// TODO: make this absolute
-	SourceRepo string `yaml:"source-repo"`
+	SourceRepo string `yaml:"source-repo,omitempty"`
 
 	// the file with the clear-text github token
-	TokenFile string `yaml:"token-file"`
+	TokenFile string `yaml:"token-file,omitempty"`
 
 	// If true, don't make any mutating API calls
 	DryRun bool
+
+	// A github issue number to report errors
+	GithubIssue *int `yaml:"github-issue,omitempty"`
 }

@@ -4,3 +4,4 @@ metadata:
 data:
   config: |
     target-org: TARGET_ORG
+    github-issue: 56876
