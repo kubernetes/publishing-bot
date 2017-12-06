@@ -25,7 +25,7 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
 
-	"k8s.io/publishing-bot/cmd/publisher-bot/config"
+	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
 func Usage() {

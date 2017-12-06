@@ -29,9 +29,9 @@ ENV GIT_COMMITTER_EMAIL="k8s-publish-robot@users.noreply.github.com"
 
 WORKDIR "/"
 
-ADD _output/publisher-bot /publisher-bot
+ADD _output/publishing-bot /publishing-bot
 ADD _output/collapsed-kube-commit-mapper /collapsed-kube-commit-mapper
 ADD _output/sync-tags /sync-tags
 ADD artifacts/scripts/ /publish_scripts
 
-CMD ["/publisher-bot", "--dry-run", "--token-file=/token"]
+CMD ["/publishing-bot", "--dry-run", "--token-file=/token"]

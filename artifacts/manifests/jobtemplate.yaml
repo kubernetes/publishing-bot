@@ -20,7 +20,7 @@ initContainers:
 containers:
 - name: publisher
   command:
-  - /publisher-bot
+  - /publishing-bot
   - --dry-run=true
   - --alsologtostderr
   - --config=/etc/munge-config/config
