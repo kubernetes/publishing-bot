@@ -21,7 +21,6 @@ containers:
 - name: publisher
   command:
   - /publishing-bot
-  - --dry-run=true
   - --alsologtostderr
   - --config=/etc/munge-config/config
   - --token-file=/etc/secret-volume/token

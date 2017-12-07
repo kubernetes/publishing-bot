@@ -7,13 +7,11 @@ DOCKER_REPO ?= k8s-publishing-bot
 NAMESPACE ?=
 TOKEN ?=
 KUBECTL ?= kubectl
-DRYRUN ?= true
-TARGET_ORG ?= $(whoami)
-# SCHEDULE ?= 0 5 * * *
+SCHEDULE ?= 0 5 * * *
 INTERVAL ?= 86400
 
 build_cmd = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
-prepare_job = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s/-dry-run=true/-dry-run=$(DRYRUN)/g;s/TARGET_ORG/$(TARGET_ORG)/g;s,SCHEDULE,$(SCHEDULE),g'
+prepare_spec = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g'
 
 build:
 	$(call build_cmd,collapsed-kube-commit-mapper)
@@ -42,15 +40,14 @@ init-deploy:
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/storage-class.yaml || true
 	$(KUBECTL) get StorageClass ssd
 	sed 's/TOKEN/$(shell echo "$(TOKEN)" | base64 | tr -d '\n')/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
-	sed 's,TARGET_ORG,$(TARGET_ORG),g' artifacts/manifests/configmap.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
+	$(KUBECTL) apply -n "$(NAMESPACE)" -f $(CONFIG)-configmap.yaml
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/pvc.yaml
 
 run: init-deploy
 	{ cat artifacts/manifests/pod.yaml && sed 's/^/  /' artifacts/manifests/podspec.yaml; } | \
-	$(call prepare_job) | \
-	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
+	$(call prepare_spec) | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
 
 deploy: init-deploy
 	{ cat artifacts/manifests/rc.yaml && sed 's/^/      /' artifacts/manifests/podspec.yaml; } | \
-	$(call prepare_job) | sed 's/-interval=0/-interval=$(INTERVAL)/g' | \
+	$(call prepare_spec) | sed 's/-interval=0/-interval=$(INTERVAL)/g' | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
