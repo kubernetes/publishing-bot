@@ -42,7 +42,7 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	client := githubClient(token)
 
 	// filter out token, if it happens to be in the log (it shouldn't!)
-	logs = strings.Replace(logs, logs, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", -1)
+	logs = strings.Replace(logs, token, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", -1)
 
 	// who am I?
 	myself, resp, err := client.Users.Get(ctx, "")

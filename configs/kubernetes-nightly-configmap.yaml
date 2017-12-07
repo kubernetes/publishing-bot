@@ -3,5 +3,6 @@ metadata:
   name: publisher-config
 data:
   config: |
-    target-org: TARGET_ORG
+    target-org: kubernetes-nightly
     github-issue: 56876
+    dry-run: false
