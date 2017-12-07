@@ -467,8 +467,12 @@ sync_repo() {
     # get consistent and complete godeps on each sync. Skip if nothing changed.
     # NOTE: we cannot skip collapsed-kube-commit-mapper below because its
     #       output depends on upstream's HEAD.
+    echo "Fixing up godeps after a complete sync"
     if [ $(git rev-parse HEAD) != "${dst_old_head}" ] || [ "${new_branch}" = "true" ]; then
         fix-godeps "${deps}" "${is_library}" true
+    else
+        # update godeps without squashing because it would mutate a published commit
+        fix-godeps "${deps}" "${is_library}" true false
     fi
 
     # create look-up file for collapsed upstream commits
@@ -595,6 +599,7 @@ function fix-godeps() {
     local deps="${1:-""}"
     local is_library="${2}"
     local needs_godeps_update="${3}"
+    local squash="${4:-true}"
     local dst_old_commit=$(git rev-parse HEAD)
     if [ "${needs_godeps_update}" = true ]; then
         # run godeps restore+save
@@ -617,7 +622,7 @@ function fix-godeps() {
     fi
 
     # amend godep commit to ${dst_old_commit}
-    if ! git diff --exit-code ${dst_old_commit} &>/dev/null; then
+    if ! git diff --exit-code ${dst_old_commit} &>/dev/null && [ "${squash}" = true ]; then
         echo "Amending last merge with godep changes."
         git reset --soft -q ${dst_old_commit}
         git commit -q --amend -C ${dst_old_commit}

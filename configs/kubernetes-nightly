@@ -1,6 +1,4 @@
 DOCKER_REPO = sttts/k8s-publishing-bot-nightly
 NAMESPACE = k8s-publishing-bot-nightly
-DRYRUN = false
-TARGET_ORG = kubernetes-nightly
 SCHEDULE = * */4 * * *
 INTERVAL = 14400
