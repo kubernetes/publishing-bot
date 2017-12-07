@@ -1,3 +1,4 @@
 language: go
 go:
-- 1.9.2
+  - 1.9.x
+go_import_path: k8s.io/publishing-bot
