@@ -1,0 +1,9 @@
+# the Docker repo for the bot image. Should be writable for you.
+DOCKER_REPO = <your-docker-user>/k8s-publishing-bot
+
+# the Kubernetes namespace to deploy all bot manifest to. You can leave this empty
+# to use the current context namespace.
+NAMESPACE = <your-docker-namespace>
+
+# time in seconds between publisher runs in seconds
+INTERVAL = 86400
