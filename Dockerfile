@@ -25,7 +25,7 @@ RUN apt-get update \
 ENV GOPATH="/go-workspace"
 ENV PATH="${GOPATH}/bin:/usr/local/go/bin:${PATH}"
 ENV GIT_COMMITTER_NAME="Kubernetes Publisher"
-ENV GIT_COMMITTER_EMAIL="k8s-publish-robot@users.noreply.github.com"
+ENV GIT_COMMITTER_EMAIL="k8s-publishing-bot@users.noreply.github.com"
 
 WORKDIR "/"
 
