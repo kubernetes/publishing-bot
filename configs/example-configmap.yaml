@@ -1,0 +1,21 @@
+kind: ConfigMap
+metadata:
+  name: publisher-config
+data:
+  config: |
+    # the github org or user to publish the new repos to
+    target-org: <your-github-org-or-user>
+
+    # the github issue number in the source repo to publish logs to on errors. You must be
+    # able to write to that issue. So you probably should create it with the bot user.
+    # REMEMBER: do not run the bot with a user that can close arbitrary issues in the
+    #           source repo as that will trigger unwanted close events on push.
+    # github-issue: 56916
+
+    # if true, no push will be done. The bot will stop just before.
+    dry-run: true
+
+    # the github application token to use
+    # CAUTION: do not check this into Github. You can also and probably should pass that as
+    #          TOKEN=<yourtoken> to the "make deploy" command.
+    # token: <yourtoken>
