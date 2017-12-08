@@ -33,22 +33,25 @@ Currently we don't have tests for the bot. It relies on manual tests:
 * Fork the repos you are going the publish.
 * Run [hack/fetch-all-latest-and-push.sh](hack/fetch-all-latest-and-push.sh) from the bot root directory to update the branches of your repos. This will sync your forks with upstream. **CAUTION:** this might delete data in your forks.
 
-* Change `target-org` to your github username in [artifacts/manifests/configmap.yaml](artifacts/manifests/configmap.yaml)
+* Create a config and a corresponding ConfigMap in [configs](configs),
+  - by copying [configs/example](config/example) and [configs/example-configmap.yaml](configs/example-configmap.yaml),
+  - and by changing the Makefile constants in `configs/<yourconfig>`
+  - and the ConfigMap values in  `configs/<yourconfig>-configmap.yaml.
 
 * Deploy the publishing bot by running make from the bot root directory, e.g.
 
 ```shell
-$ make build-image push-image REPO=<your-docker-name>/k8s-publishing-bot
-$ make run REPO=<your-docker-name>/k8s-publishing-bot TOKEN=<github-token>
+$ make build-image push-image CONFIG=configs/<yourconfig>
+$ make run configs/<yourconfig> TOKEN=<github-token>
 ```
 
-  for a fire-and-forget job. Or use
+  for a fire-and-forget pod. Or use
 
 ```shell
-$ make deploy REPO=<your-docker-name>/k8s-publishing-bot TOKEN=<github-token>
+$ make deploy configs/<yourconfig> TOKEN=<github-token>
 ```
 
-  to run a nightly (5:00am UTC) cronjob.
+  to run a ReplicationController that publishes every 24h (you can change the `INTERVAL` config value for different intervals).
 
 This will not push to your org, but runs in dry-run mode. To run with a push, add `DRYRUN=false` to your `make` command line.
 
