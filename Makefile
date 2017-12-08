@@ -2,6 +2,7 @@ all: build
 .PHONY: all
 
 -include $(CONFIG)
+-include $(CONFIG)-token
 
 DOCKER_REPO ?= k8s-publishing-bot
 NAMESPACE ?=
