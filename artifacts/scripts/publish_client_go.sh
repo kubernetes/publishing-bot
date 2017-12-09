@@ -43,13 +43,13 @@ fi
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 "${SCRIPT_DIR}"/publish_template.sh "client-go" "${1}" "${2}" "${3}" "${4}" "true"
 
-basic_tests() {
-    go build ./...
-    go test $(go list ./... | grep -v /vendor/)
-}
-
-# Smoke test client-go
 if [ "$(git rev-parse origin/${2} || true)" != $(git rev-parse HEAD) ]; then
     godep restore
-    basic_tests
+
+    go build ./...
+    go test $(go list ./... | grep -v /vendor/)
+
+    # cleanup
+    git reset --hard
+    git clean -f -f -d
 fi

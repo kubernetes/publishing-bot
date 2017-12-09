@@ -41,3 +41,18 @@ fi
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 "${SCRIPT_DIR}"/publish_template.sh "sample-apiserver" "${1}" "${2}" "${3}" "${4}" "false"
+
+if [ "$(git rev-parse origin/${2} || true)" != $(git rev-parse HEAD) ]; then
+    # vendor/ should have all dependencies as a non-library
+    go build .
+
+    # re-create vendor/ and try again
+    godep restore
+    rm -rf vendor/ Godeps/
+    godep save ./...
+    go build .
+
+    # cleanup
+    git reset --hard
+    git clean -f -f -d
+fi
