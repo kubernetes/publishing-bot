@@ -42,13 +42,13 @@ Currently we don't have tests for the bot. It relies on manual tests:
 
 ```shell
 $ make build-image push-image CONFIG=configs/<yourconfig>
-$ make run configs/<yourconfig> TOKEN=<github-token>
+$ make run CONFIG=configs/<yourconfig> TOKEN=<github-token>
 ```
 
   for a fire-and-forget pod. Or use
 
 ```shell
-$ make deploy configs/<yourconfig> TOKEN=<github-token>
+$ make deploy CONFIG=configs/<yourconfig> TOKEN=<github-token>
 ```
 
   to run a ReplicationController that publishes every 24h (you can change the `INTERVAL` config value for different intervals).
