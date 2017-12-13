@@ -50,6 +50,7 @@ func main() {
 	sourceRepo := flag.String("source-repo", "", `the source repo (defaults to "kubernetes")`)
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
 	interval := flag.Uint("interval", 0, "loop with the given seconds of wait in between")
+	healthzPort := flag.Int("healthz-port", 0, "start healthz webserver on the given port listening on 0.0.0.0")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -84,6 +85,16 @@ func main() {
 		cfg.SourceRepo = "kubernetes"
 	}
 
+	// start healthz server
+	healthz := Healthz{
+		Issue: *cfg.GithubIssue,
+	}
+	if *healthzPort != 0 {
+		if err := healthz.Run(*healthzPort); err != nil {
+			glog.Fatalf("Failed to run healthz server: %v", err)
+		}
+	}
+
 	for {
 		last := time.Now()
 
@@ -102,23 +113,22 @@ func main() {
 
 			// run
 			logs, err := publisher.Run()
+			healthz.SetHealth(err == nil)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 				// TODO: support other orgs
 				if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
 					glog.Fatalf("Failed to report logs on github issue: %v", err)
 				}
-				os.Exit(1)
-			}
-
-			if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+			} else if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
 				glog.Fatalf("Failed to close issue: %v", err)
 			}
 		} else {
 			// run
-			if _, err := publisher.Run(); err != nil {
+			_, err := publisher.Run()
+			healthz.SetHealth(err == nil)
+			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
-				os.Exit(1)
 			}
 		}
 
