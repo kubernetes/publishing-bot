@@ -736,7 +736,12 @@ update_full_godeps() {
             # GOPATH.
             # Godeps.json has a complete, up-to-date list of dependencies, so
             # Godeps.json will be the ground truth for users using godep/glide/dep.
-            rm -rf ./vendor/k8s.io
+            local deps_array=()
+            IFS=',' read -a deps_array <<< "${deps}"
+            for dep in "${deps_array[@]}"; do
+                rm -rf "./vendor/k8s.io/${dep}"
+            done
+
             # see https://github.com/kubernetes/kubernetes/issues/45693
             rm -rf ./vendor/github.com/google/gofuzz
             # go-openapi is shared between apiserver and apimachinery
