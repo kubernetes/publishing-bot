@@ -112,8 +112,8 @@ func main() {
 			token := strings.Trim(string(bs), " \t\n")
 
 			// run
-			logs, err := publisher.Run()
-			healthz.SetHealth(err == nil)
+			logs, hash, err := publisher.Run()
+			healthz.SetHealth(err == nil, hash)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 				// TODO: support other orgs
@@ -125,8 +125,8 @@ func main() {
 			}
 		} else {
 			// run
-			_, err := publisher.Run()
-			healthz.SetHealth(err == nil)
+			_, hash, err := publisher.Run()
+			healthz.SetHealth(err == nil, hash)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 			}

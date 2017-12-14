@@ -21,37 +21,62 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
+
+	"github.com/golang/glog"
 )
 
 type Healthz struct {
 	Issue int
 
-	mutex   sync.RWMutex
-	healthy *bool
+	mutex    sync.RWMutex
+	response HealthResponse
 }
 
 type HealthResponse struct {
-	LastSuccessfull *bool  `json:"lastSuccessful,omitempty"`
-	Issue           string `json:"issue,omitempty"`
+	Successful   *bool      `json:"successful,omitempty"`
+	Time         *time.Time `json:"time,omitempty"`
+	UpstreamHash string     `json:"upstreamHash,omitempty"`
+
+	LastSuccessfulTime         *time.Time `json:"lastSuccessfulTime,omitempty"`
+	LastFailureTime            *time.Time `json:"lastFailureTime,omitempty"`
+	LastSuccessfulUpstreamHash string     `json:"lastSuccessfulUpstreamHash,omitempty"`
+
+	Issue string `json:"issue,omitempty"`
 }
 
-func (h *Healthz) SetHealth(healthy bool) {
+func (h *Healthz) SetHealth(healthy bool, hash string) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	h.healthy = &healthy
+
+	h.response.Successful = &healthy
+	now := time.Now()
+	h.response.Time = &now
+	h.response.UpstreamHash = hash
+
+	if healthy {
+		h.response.LastSuccessfulTime = h.response.Time
+		h.response.LastSuccessfulUpstreamHash = h.response.UpstreamHash
+	} else {
+		h.response.LastFailureTime = h.response.Time
+	}
 }
 
 func (h *Healthz) Run(port int) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.handler)
-	return http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), mux)
+	addr := fmt.Sprintf("0.0.0.0:%d", port)
+	glog.Infof("Listening on %v", addr)
+	go func() {
+		err := http.ListenAndServe(addr, mux)
+		glog.Fatalf("Failed ListenAndServer: %v", err)
+	}()
+	return nil
 }
 
 func (h *Healthz) handler(w http.ResponseWriter, r *http.Request) {
 	h.mutex.RLock()
-	resp := HealthResponse{
-		LastSuccessfull: h.healthy,
-	}
+	resp := h.response
 	if h.Issue != 0 {
 		resp.Issue = fmt.Sprintf("https://github.com/kubernetes/kubernetes/issues/%d", h.Issue)
 	}

@@ -545,11 +545,18 @@ func New(config *github.Config) (*PublisherMunger, error) {
 }
 
 // update the local checkout of k8s.io/kubernetes
-func (p *PublisherMunger) updateKubernetes() error {
+func (p *PublisherMunger) updateKubernetes() (string, error) {
 	cmd := exec.Command("git", "fetch", "origin")
 	cmd.Dir = filepath.Join(p.k8sIOPath, "kubernetes")
 	if err := p.plog.Run(cmd); err != nil {
-		return err
+		return "", err
+	}
+
+	cmd = exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = filepath.Join(p.k8sIOPath, "kubernetes")
+	hash, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed running %v on kube repo: %v", strings.Join(cmd.Args, " "), err)
 	}
 
 	// update kubernetes branches that are needed by other k8s.io repos.
@@ -571,11 +578,11 @@ func (p *PublisherMunger) updateKubernetes() error {
 			cmd = exec.Command("git", "reset", "--hard", fmt.Sprintf("origin/%s", src.branch))
 			cmd.Dir = filepath.Join(p.k8sIOPath, "kubernetes")
 			if err := p.plog.Run(cmd); err != nil {
-				return err
+				return "", err
 			}
 		}
 	}
-	return nil
+	return strings.Trim(string(hash), " \t\n"), nil
 }
 
 func (p *PublisherMunger) skippedBranch(b string) bool {
@@ -689,24 +696,25 @@ func (p *PublisherMunger) publish() error {
 }
 
 // Run constructs the repos and pushes them.
-func (p *PublisherMunger) Run() (string, error) {
+func (p *PublisherMunger) Run() (string, string, error) {
 	buf := bytes.NewBuffer(nil)
 	p.plog = NewPublisherLog(buf)
 
-	if err := p.updateKubernetes(); err != nil {
+	hash, err := p.updateKubernetes()
+	if err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), err
+		return p.plog.Logs(), hash, err
 	}
 	if err := p.construct(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), err
+		return p.plog.Logs(), hash, err
 	}
 	if err := p.publish(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), err
+		return p.plog.Logs(), hash, err
 	}
-	return p.plog.Logs(), nil
+	return p.plog.Logs(), hash, nil
 }
