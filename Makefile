@@ -49,6 +49,7 @@ run: init-deploy
 	$(call prepare_spec) | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
 
 deploy: init-deploy
+	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/service.yaml
 	{ cat artifacts/manifests/rc.yaml && sed 's/^/      /' artifacts/manifests/podspec.yaml; } | \
 	$(call prepare_spec) | sed 's/-interval=0/-interval=$(INTERVAL)/g' | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
