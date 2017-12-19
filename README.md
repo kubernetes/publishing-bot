@@ -1,6 +1,6 @@
 # Kubernetes Publishing Bot
 
-[![Build Status](https://travis-ci.org/kubernetes/publishing-bot.svg?branch=master)](https://travis-ci.org/kubernetes/publishing-bot) — Bot: [![](https://img.shields.io/uptimerobot/status/m779759348-04b1f4fd3bb5ce4a810670d2.svg)](https://stats.uptimerobot.com/wm4Dyt8kY) — Last publishing run: [![](https://img.shields.io/uptimerobot/status/m779759340-0a6b2cb6fee352e75f58ba16.svg)](https://github.com/kubernetes/kubernetes/issues/56876)
+[![Build Status](https://travis-ci.org/kubernetes/publishing-bot.svg?branch=master)](https://travis-ci.org/kubernetes/publishing-bot) [![](https://img.shields.io/uptimerobot/status/m779759348-04b1f4fd3bb5ce4a810670d2.svg?label=bot)](https://stats.uptimerobot.com/wm4Dyt8kY) [![](https://img.shields.io/uptimerobot/status/m779759340-0a6b2cb6fee352e75f58ba16.svg?label=last%20publishing%20run)](https://github.com/kubernetes/kubernetes/issues/56876)
 
 ## Overview
 
