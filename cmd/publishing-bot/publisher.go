@@ -73,8 +73,8 @@ func (p *PublisherMunger) updateSourceRepo() (string, error) {
 	glog.Infof("Loaded %d repository rules from %s", len(p.reposRules.Rules), p.config.RulesFile)
 
 	// update source repo branches that are needed by other repos.
-	for _, repoRules := range p.reposRules.Rules {
-		for _, branchRule := range repoRules.Branches {
+	for _, repoRule := range p.reposRules.Rules {
+		for _, branchRule := range repoRule.Branches {
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
 			}
@@ -124,14 +124,14 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 // constructs all the repos, but does not push the changes to remotes.
 func (p *PublisherMunger) construct() error {
 	sourceRemote := filepath.Join(p.baseRepoPath, p.config.SourceRepo, ".git")
-	for _, repoRules := range p.reposRules.Rules {
-		if repoRules.Skip {
+	for _, repoRule := range p.reposRules.Rules {
+		if repoRule.Skip {
 			continue
 		}
 
 		// clone the destination repo
-		dstDir := filepath.Join(p.baseRepoPath, repoRules.DestinationRepository, "")
-		dstURL := fmt.Sprintf("https://github.com/%s/%s.git", p.config.TargetOrg, repoRules.DestinationRepository)
+		dstDir := filepath.Join(p.baseRepoPath, repoRule.DestinationRepository, "")
+		dstURL := fmt.Sprintf("https://github.com/%s/%s.git", p.config.TargetOrg, repoRule.DestinationRepository)
 		if err := p.ensureCloned(dstDir, dstURL); err != nil {
 			p.plog.Errorf("%v", err)
 			return err
@@ -155,16 +155,16 @@ func (p *PublisherMunger) construct() error {
 			}
 			return strings.Join(depStrings, ",")
 		}
-		if len(repoRules.PublishScript) == 0 {
-			repoPublishScriptPath := filepath.Join(p.config.BasePublishScriptPath, "publish_"+repoRules.DestinationRepository+".sh")
+		if len(repoRule.PublishScript) == 0 {
+			repoPublishScriptPath := filepath.Join(p.config.BasePublishScriptPath, "publish_"+repoRule.DestinationRepository+".sh")
 			if _, err := os.Stat(repoPublishScriptPath); err == nil {
-				repoRules.PublishScript = repoPublishScriptPath
+				repoRule.PublishScript = repoPublishScriptPath
 			} else {
-				return fmt.Errorf("PublishScript cannot be empty: %#v", repoRules)
+				return fmt.Errorf("PublishScript cannot be empty: %#v", repoRule)
 			}
 		}
 
-		for _, branchRule := range repoRules.Branches {
+		for _, branchRule := range repoRule.Branches {
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
 			}
@@ -173,7 +173,12 @@ func (p *PublisherMunger) construct() error {
 				p.plog.Infof("%v: 'dir' cannot be empty, defaulting to '.'", branchRule)
 			}
 			// TODO: Refactor this to use environment variables instead
-			cmd := exec.Command(repoRules.PublishScript, branchRule.Source.Branch, branchRule.Name, formatDeps(branchRule.Dependencies), sourceRemote, branchRule.Source.Dir, p.config.SourceRepo, p.config.SourceRepo)
+			cmd := exec.Command(repoRule.PublishScript, branchRule.Source.Branch, branchRule.Name, formatDeps(branchRule.Dependencies), sourceRemote, branchRule.Source.Dir, p.config.SourceRepo, p.config.SourceRepo)
+
+			if p.reposRules.SkipGodeps {
+				cmd.Env = append(os.Environ(), "PUBLISHER_BOT_SKIP_GODEPS=true")
+			}
+
 			if err := p.plog.Run(cmd); err != nil {
 				return err
 			}
