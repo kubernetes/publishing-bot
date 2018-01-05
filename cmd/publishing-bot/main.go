@@ -47,7 +47,8 @@ func main() {
 	dryRun := flag.Bool("dry-run", false, "do not push anything to github")
 	tokenFile := flag.String("token-file", "", "the file with the github toke")
 	// TODO: make absolute
-	sourceRepo := flag.String("source-repo", "", `the source repo (defaults to "kubernetes")`)
+	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
+	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
 	interval := flag.Uint("interval", 0, "loop with the given seconds of wait in between")
 	healthzPort := flag.Int("healthz-port", 0, "start healthz webserver on the given port listening on 0.0.0.0")
@@ -73,21 +74,28 @@ func main() {
 	if *targetOrg != "" {
 		cfg.TargetOrg = *targetOrg
 	}
-	if *sourceRepo != "" {
-		cfg.SourceRepo = *sourceRepo
+	if *repoName != "" {
+		cfg.SourceRepo = *repoName
+	}
+	if *repoOrg != "" {
+		cfg.SourceOrg = *repoOrg
 	}
 	if *tokenFile != "" {
 		cfg.TokenFile = *tokenFile
 	}
 
-	// default
-	if cfg.SourceRepo == "" {
-		cfg.SourceRepo = "kubernetes"
+	if len(cfg.SourceRepo) == 0 || len(cfg.SourceOrg) == 0 {
+		glog.Fatalf("source-org and source-repo cannot be empty")
+	}
+
+	if len(cfg.TargetOrg) == 0 {
+		glog.Fatalf("Target organization cannot be empty")
 	}
 
 	// start healthz server
 	healthz := Healthz{
-		Issue: cfg.GithubIssue,
+		Issue:  cfg.GithubIssue,
+		config: cfg,
 	}
 	if *healthzPort != 0 {
 		if err := healthz.Run(*healthzPort); err != nil {
@@ -121,12 +129,11 @@ func main() {
 			healthz.SetHealth(err == nil, hash)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
-				// TODO: support other orgs
-				if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, cfg.GithubIssue); err != nil {
+				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 					githubIssueErrorf("Failed to report logs on github issue: %v", err)
 					healthz.SetHealth(false, hash)
 				}
-			} else if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, cfg.GithubIssue); err != nil {
+			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 				githubIssueErrorf("Failed to close issue: %v", err)
 				healthz.SetHealth(false, hash)
 			}

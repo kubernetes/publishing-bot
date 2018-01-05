@@ -3,6 +3,8 @@ metadata:
   name: publisher-config
 data:
   config: |
+    source-org: kubernetes
+    source-repo: kubernetes
     target-org: kubernetes
     github-issue: 56876
     dry-run: false
