@@ -14,6 +14,8 @@ INTERVAL ?= 86400
 build_cmd = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
 prepare_spec = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g'
 
+SHELL := /bin/bash
+
 build:
 	$(call build_cmd,collapsed-kube-commit-mapper)
 	$(call build_cmd,publishing-bot)
@@ -36,8 +38,9 @@ update-deps:
 .PHONY: update-deps
 
 init-deploy:
-	$(KUBECTL) delete -n "$(NAMESPACE)" rc publisher || true
-	$(KUBECTL) delete -n "$(NAMESPACE)" pod publisher || true
+	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true rc publisher
+	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true pod publisher
+	while $(KUBECTL) get pod publisher -a &>/dev/null; do echo -n .; sleep 1; done
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/storage-class.yaml || true
 	$(KUBECTL) get StorageClass ssd
 	sed 's/TOKEN/$(shell echo "$(TOKEN)" | base64 | tr -d '\n')/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
