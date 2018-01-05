@@ -50,8 +50,7 @@ type branchRule struct {
 
 // a collection of publishing rules for a single destination repo
 type repoRules struct {
-	dstRepo string
-	// publisher.go has assumption that src.repo is always kubernetes.
+	dstRepo  string
 	srcToDst []branchRule
 	// if empty (e.g., for client-go), publisher will use its default publish script
 	publishScript string
@@ -65,27 +64,24 @@ type PublisherMunger struct {
 	config     *github.Config
 	// plog duplicates the logs at glog and a file
 	plog *plog
-	// absolute path to the k8s repos.
-	k8sIOPath string
+	// absolute path to the repos.
+	baseRepoPath string
 	// src branch names that are skipped
 	skippedSourceBranches []string
 }
 
 // New will create a new munger.
 func New(config *github.Config) (*PublisherMunger, error) {
-	// validate config
-	if config.SourceRepo != "kubernetes" {
-		// TODO: externalize the rules below to make it generic
-		return nil, fmt.Errorf("only kubernetes as source repo supported right now")
-	}
-	if config.TargetOrg == "" {
-		return nil, fmt.Errorf("target organization cannot be empty")
-	}
-
 	// create munger
 	p := &PublisherMunger{}
+
+	// set the baseRepoPath
 	gopath := os.Getenv("GOPATH")
-	p.k8sIOPath = filepath.Join(gopath, "src", "k8s.io")
+	// if the SourceRepo is not kubernetes, use github.com as baseRepoPath
+	p.baseRepoPath = filepath.Join(gopath, "src", "github.com", config.TargetOrg)
+	if config.SourceRepo == "kubernetes" {
+		p.baseRepoPath = filepath.Join(gopath, "src", "k8s.io")
+	}
 
 	clientGo := repoRules{
 		skipped: false,
@@ -543,22 +539,24 @@ func New(config *github.Config) (*PublisherMunger, error) {
 	return p, nil
 }
 
-// update the local checkout of k8s.io/kubernetes
-func (p *PublisherMunger) updateKubernetes() (string, error) {
+// update the local checkout of the source repository
+func (p *PublisherMunger) updateSourceRepo() (string, error) {
+	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
+
 	cmd := exec.Command("git", "fetch", "origin")
-	cmd.Dir = filepath.Join(p.k8sIOPath, "kubernetes")
+	cmd.Dir = repoDir
 	if err := p.plog.Run(cmd); err != nil {
 		return "", err
 	}
 
 	cmd = exec.Command("git", "rev-parse", "HEAD")
-	cmd.Dir = filepath.Join(p.k8sIOPath, "kubernetes")
+	cmd.Dir = repoDir
 	hash, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("failed running %v on kube repo: %v", strings.Join(cmd.Args, " "), err)
+		return "", fmt.Errorf("failed running %v on %q repo: %v", strings.Join(cmd.Args, " "), p.config.SourceRepo, err)
 	}
 
-	// update kubernetes branches that are needed by other k8s.io repos.
+	// update source repo branches that are needed by other repos.
 	for _, repoRules := range p.reposRules {
 		for _, branchRule := range repoRules.srcToDst {
 			if p.skippedBranch(branchRule.src.branch) {
@@ -568,14 +566,14 @@ func (p *PublisherMunger) updateKubernetes() (string, error) {
 			src := branchRule.src
 			// we assume src.repo is always kubernetes
 			cmd := exec.Command("git", "branch", "-f", src.branch, fmt.Sprintf("origin/%s", src.branch))
-			cmd.Dir = filepath.Join(p.k8sIOPath, "kubernetes")
+			cmd.Dir = repoDir
 			if err := p.plog.Run(cmd); err == nil {
 				continue
 			}
 			// probably the error is because we cannot do `git branch -f` while
 			// current branch is src.branch, so try `git reset --hard` instead.
 			cmd = exec.Command("git", "reset", "--hard", fmt.Sprintf("origin/%s", src.branch))
-			cmd.Dir = filepath.Join(p.k8sIOPath, "kubernetes")
+			cmd.Dir = repoDir
 			if err := p.plog.Run(cmd); err != nil {
 				return "", err
 			}
@@ -609,14 +607,14 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 
 // constructs all the repos, but does not push the changes to remotes.
 func (p *PublisherMunger) construct() error {
-	kubernetesRemote := filepath.Join(p.k8sIOPath, "kubernetes", ".git")
+	sourceRemote := filepath.Join(p.baseRepoPath, p.config.SourceRepo, ".git")
 	for _, repoRules := range p.reposRules {
 		if repoRules.skipped {
 			continue
 		}
 
 		// clone the destination repo
-		dstDir := filepath.Join(p.k8sIOPath, repoRules.dstRepo, "")
+		dstDir := filepath.Join(p.baseRepoPath, repoRules.dstRepo, "")
 		dstURL := fmt.Sprintf("https://github.com/%s/%s.git", p.config.TargetOrg, repoRules.dstRepo)
 		if err := p.ensureCloned(dstDir, dstURL); err != nil {
 			p.plog.Errorf("%v", err)
@@ -647,7 +645,7 @@ func (p *PublisherMunger) construct() error {
 				continue
 			}
 
-			cmd := exec.Command(repoRules.publishScript, branchRule.src.branch, branchRule.dst.branch, formatDeps(branchRule.deps), kubernetesRemote)
+			cmd := exec.Command(repoRules.publishScript, branchRule.src.branch, branchRule.dst.branch, formatDeps(branchRule.deps), sourceRemote)
 			if err := p.plog.Run(cmd); err != nil {
 				return err
 			}
@@ -676,7 +674,7 @@ func (p *PublisherMunger) publish() error {
 			continue
 		}
 
-		dstDir := filepath.Join(p.k8sIOPath, repoRules.dstRepo, "")
+		dstDir := filepath.Join(p.baseRepoPath, repoRules.dstRepo, "")
 		if err := os.Chdir(dstDir); err != nil {
 			return err
 		}
@@ -699,7 +697,7 @@ func (p *PublisherMunger) Run() (string, string, error) {
 	buf := bytes.NewBuffer(nil)
 	p.plog = NewPublisherLog(buf)
 
-	hash, err := p.updateKubernetes()
+	hash, err := p.updateSourceRepo()
 	if err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()

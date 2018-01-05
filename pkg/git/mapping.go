@@ -24,7 +24,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
-// KubeCommitsToDstCommits returns a mapping from all kube mainline commits
+// SourceCommitToDstCommits returns a mapping from all kube mainline commits
 // to the corresponding dst commits after collapsing using "git filter-branch --sub-directory-filter":
 //
 // dst upstream
@@ -41,7 +41,7 @@ import (
 //       B
 //       A - initial commit
 //
-func KubeCommitsToDstCommits(r *gogit.Repository, dstFirstParents, kFirstParents []*object.Commit) (map[plumbing.Hash]plumbing.Hash, error) {
+func SourceCommitToDstCommits(r *gogit.Repository, repoOrg, repoName string, dstFirstParents, kFirstParents []*object.Commit) (map[plumbing.Hash]plumbing.Hash, error) {
 	// compute merge point table
 	kubeMergePoints, err := MergePoints(r, kFirstParents)
 	if err != nil {
@@ -52,7 +52,7 @@ func KubeCommitsToDstCommits(r *gogit.Repository, dstFirstParents, kFirstParents
 	directKubeHashToDstMainLineHash := map[plumbing.Hash]plumbing.Hash{}
 	for _, c := range dstFirstParents {
 		// kh might be a non-mainline-merge (because we had used branch commits as kube hashes long ago)
-		kh := KubeHash(c)
+		kh := SourceHash(c, repoOrg, repoName)
 		if kh == plumbing.ZeroHash {
 			continue
 		}

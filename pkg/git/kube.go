@@ -17,23 +17,22 @@ limitations under the License.
 package git
 
 import (
+	"fmt"
 	"strings"
 
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
-const (
-	KubernetesCommitPrefix         = "Kubernetes-commit: "
-	ancientSyncCommitSubjectPrefix = "sync(k8s.io/kubernetes)"
-)
-
-// kubeHash extracts kube commit from commit message
-func KubeHash(c *object.Commit) plumbing.Hash {
+// SourceHash extracts kube commit from commit message
+// The baseRepoName default to "kubernetes".
+func SourceHash(c *object.Commit, baseRepoOrg, baseRepoName string) plumbing.Hash {
 	lines := strings.Split(c.Message, "\n")
+	sourceCommitPrefix := strings.Title(baseRepoName) + "-commit: "
+	ancientSyncCommitSubjectPrefix := fmt.Sprintf("sync(%s/%s)", baseRepoOrg, baseRepoName)
 	for _, line := range lines {
-		if strings.HasPrefix(line, KubernetesCommitPrefix) {
-			return plumbing.NewHash(strings.TrimSpace(line[len(KubernetesCommitPrefix):]))
+		if strings.HasPrefix(line, sourceCommitPrefix) {
+			return plumbing.NewHash(strings.TrimSpace(line[len(sourceCommitPrefix):]))
 		}
 	}
 

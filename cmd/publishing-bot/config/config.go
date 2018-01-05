@@ -22,8 +22,7 @@ type Config struct {
 	TargetOrg string `yaml:"target-org"`
 
 	// the source repo, e.g. "kubernetes"
-	// TODO: make this absolute
-	SourceRepo string `yaml:"source-repo,omitempty"`
+	SourceRepo string `yaml:"source-repo"`
 
 	// the file with the clear-text github token
 	TokenFile string `yaml:"token-file,omitempty"`

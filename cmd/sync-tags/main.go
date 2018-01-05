@@ -57,8 +57,16 @@ func main() {
 	publishBranch := flag.String("branch", "", "a (not qualified) branch name")
 	prefix := flag.String("prefix", "kubernetes-", "a string to put in front of upstream tags")
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
+	// repository flags used when the repository is not k8s.io/kubernetes
+	repoName := flag.String("repo-name", "", "the name of the source repository (eg. kubernetes)")
+	repoOrg := flag.String("repo-org", "", "the name of the source repository organization, (eg. kubernetes)")
+
 	flag.Usage = Usage
 	flag.Parse()
+
+	if len(*repoName) == 0 || len(*repoOrg) == 0 {
+		glog.Fatalf("repo-org and repo-name cannot be empty")
+	}
 
 	if *upstreamRemote == "" {
 		glog.Fatalf("upstream-remote cannot be empty")
@@ -146,7 +154,7 @@ func main() {
 
 	// compute kube commit map
 	fmt.Printf("Computing mapping from kube commits to the local branch.\n")
-	kubeCommitsToDstCommits, err := git.KubeCommitsToDstCommits(r, bFirstParents, kFirstParents)
+	sourceCommitsToDstCommits, err := git.SourceCommitToDstCommits(r, *repoName, *repoOrg, bFirstParents, kFirstParents)
 	if err != nil {
 		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *upstreamBranch, err)
 	}
@@ -178,7 +186,7 @@ func main() {
 		}
 
 		// map kube commit to local branch
-		bh, found := kubeCommitsToDstCommits[tag.Target]
+		bh, found := sourceCommitsToDstCommits[tag.Target]
 		if !found {
 			continue
 		}

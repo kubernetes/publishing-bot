@@ -85,19 +85,19 @@ func main() {
 		cfg.SourceRepo = "kubernetes"
 	}
 
+	if len(cfg.TargetOrg) == 0 {
+		glog.Fatalf("Target organization cannot be empty")
+	}
+
 	// start healthz server
 	healthz := Healthz{
-		Issue: cfg.GithubIssue,
+		Issue:  cfg.GithubIssue,
+		config: cfg,
 	}
 	if *healthzPort != 0 {
 		if err := healthz.Run(*healthzPort); err != nil {
 			glog.Fatalf("Failed to run healthz server: %v", err)
 		}
-	}
-
-	githubIssueErrorf := glog.Fatalf
-	if *interval != 0 {
-		githubIssueErrorf = glog.Errorf
 	}
 
 	for {
@@ -121,14 +121,11 @@ func main() {
 			healthz.SetHealth(err == nil, hash)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
-				// TODO: support other orgs
-				if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, cfg.GithubIssue); err != nil {
-					githubIssueErrorf("Failed to report logs on github issue: %v", err)
-					healthz.SetHealth(false, hash)
+				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
+					glog.Fatalf("Failed to report logs on github issue: %v", err)
 				}
-			} else if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, cfg.GithubIssue); err != nil {
-				githubIssueErrorf("Failed to close issue: %v", err)
-				healthz.SetHealth(false, hash)
+			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+				glog.Fatalf("Failed to close issue: %v", err)
 			}
 		} else {
 			// run

@@ -479,7 +479,7 @@ sync_repo() {
     local repo=$(basename ${PWD})
     if [ -n "$(git log --oneline --first-parent --merges | head -n 1)" ]; then
         echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch}"
-        /collapsed-kube-commit-mapper --upstream-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
+        /collapsed-kube-commit-mapper --repo-name kubernetes --repo-org kubernetes --upstream-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
     else
         echo "No merge commit on ${dst_branch} branch, must be old. Skipping look-up table."
         echo > ../kube-commits-${repo}-${dst_branch}
