@@ -46,6 +46,7 @@ func main() {
 	configFilePath := flag.String("config", "", "the config file in yaml format")
 	dryRun := flag.Bool("dry-run", false, "do not push anything to github")
 	tokenFile := flag.String("token-file", "", "the file with the github toke")
+	rulesFile := flag.String("rules-file", "", "the file with repository rules")
 	// TODO: make absolute
 	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
 	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
@@ -83,6 +84,9 @@ func main() {
 	if *tokenFile != "" {
 		cfg.TokenFile = *tokenFile
 	}
+	if *rulesFile != "" {
+		cfg.RulesFile = *rulesFile
+	}
 
 	if len(cfg.SourceRepo) == 0 || len(cfg.SourceOrg) == 0 {
 		glog.Fatalf("source-org and source-repo cannot be empty")
@@ -90,6 +94,10 @@ func main() {
 
 	if len(cfg.TargetOrg) == 0 {
 		glog.Fatalf("Target organization cannot be empty")
+	}
+
+	if len(cfg.RulesFile) == 0 {
+		glog.Fatalf("No rules file provided")
 	}
 
 	// start healthz server

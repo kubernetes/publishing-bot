@@ -1,0 +1,467 @@
+kind: ConfigMap
+metadata:
+  name: publisher-rules
+data:
+  config: |
+    skip-source-branches: 
+    - release-1.5
+    - release-1.6
+    - release-1.7
+    rules:
+    - destination: apimachinery
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/apimachinery
+        name: master
+      - source:
+          repository: kubernetes
+          branch: release-1.6
+          dir: staging/src/k8s.io/apimachinery
+        name: release-1.6
+      - source:
+          repository: kubernetes
+          branch: release-1.7
+          dir: staging/src/k8s.io/apimachinery
+        name: release-1.7
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/apimachinery
+        name: release-1.8
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/apimachinery
+        name: relase-1.9
+      publish-script: /publish_scripts/publish_apimachinery.sh
+    - destination: api
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/api
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/api
+        name: release-1.8
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.8
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/api
+        name: release-1.9
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.9
+      publish-script: /publish_scripts/publish_api.sh
+    - destination: client-go
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/client-go
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+      - source:
+          repository: kubernetes
+          branch: release-1.5
+          dir: staging/src/k8s.io/client-go
+        name: release-2.0
+      - source:
+          repository: kubernetes
+          branch: release-1.6
+          dir: staging/src/k8s.io/client-go
+        name: release-3.0
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.6
+      - source:
+          repository: kubernetes
+          branch: release-1.7
+          dir: staging/src/k8s.io/client-go
+        name: release-4.0
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.7
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/client-go
+        name: release-5.0
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.8
+        - repository: api
+          branch: release-1.8
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/client-go
+        name: release-6.0
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.9
+        - repository: api
+          branch: release-1.9
+      publish-script: /publish_scripts/publish_client_go.sh
+    - destination: apiserver
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/apiserver
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+        - repository: client-go
+          branch: master
+      - source:
+          repository: kubernetes
+          branch: release-1.6
+          dir: staging/src/k8s.io/apiserver
+        name: release-1.6
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.6
+        - repository: client-go
+          branch: release-3.0
+      - source:
+          repository: kubernetes
+          branch: release-1.7
+          dir: staging/src/k8s.io/apiserver
+        name: release-1.7
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.7
+        - repository: client-go
+          branch: release-4.0
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/apiserver
+        name: release-1.8
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.8
+        - repository: api
+          branch: release-1.8
+        - repository: client-go
+          branch: release-5.0
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/apiserver
+        name: release-1.9
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.9
+        - repository: api
+          branch: release-1.9
+        - repository: client-go
+          branch: release-6.0
+      publish-script: /publish_scripts/publish_apiserver.sh
+    - destination: kube-aggregator
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/kube-aggregator
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+        - repository: client-go
+          branch: master
+        - repository: apiserver
+          branch: master
+      - source:
+          repository: kubernetes
+          branch: release-1.6
+          dir: staging/src/k8s.io/kube-aggregator
+        name: release-1.6
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.6
+        - repository: client-go
+          branch: release-3.0
+        - repository: apiserver
+          branch: release-1.6
+      - source:
+          repository: kubernetes
+          branch: release-1.7
+          dir: staging/src/k8s.io/kube-aggregator
+        nane: release-1.7
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.7
+        - repository: client-go
+          branch: release-4.0
+        - repository: apiserver
+          branch: release-1.7
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/kube-aggregator
+        name: release-1.8
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.8
+        - repository: api
+          branch: release-1.8
+        - repository: client-go
+          branch: release-5.0
+        - repository: apiserver
+          branch: release-1.8
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/kube-aggregator
+        name: release-1.9
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.9
+        - repository: api
+          branch: release-1.9
+        - repository: client-go
+          branch: release-6.0
+        - repository: apiserver
+          branch: release-1.9
+      publish-script: /publish_scripts/publish_kube_aggregator.sh
+    - destination: sample-apiserver
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/sample-apiserver
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+        - repository: client-go
+          branch: master
+        - repository: apiserver
+          branch: master
+      - source:
+          repository: kubernetes
+          branch: release-1.6
+          dir: staging/src/k8s.io/sample-apiserver
+        name: release-1.6
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.6
+        - repository: client-go
+          branch: release-3.0
+        - repository: apiserver
+          branch: release-1.6
+      - source:
+          repository: kubernetes
+          branch: release-1.7
+          dir: staging/src/k8s.io/sample-apiserver
+        name: release-1.7
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.7
+        - repository: client-go
+          branch: release-4.0
+        - repository: apiserver
+          branch: release-1.7
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/sample-apiserver
+        name: release-1.8
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.8
+        - repository: api
+          branch: release-1.8
+        - repository: client-go
+          branch: release-5.0
+        - repository: apiserver
+          branch: release-1.8
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/sample-apiserver
+        name: release-1.9
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.9
+        - repository: api
+          branch: release-1.9
+        - repository: client-go
+          branch: release-6.0
+        - repository: apiserver
+          branch: release-1.9
+      publish-script: /publish_scripts/publish_sample_apiserver.sh
+    - destination: sample-controller
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/sample-controller
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+        - repository: client-go
+          branch: master
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/sample-controller
+        name: release-1.9
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.9
+        - repository: api
+          branch: release-1.9
+        - repository: client-go
+          branch: release-6.0
+      publish-script: /publish_scripts/publish_sample_controller.sh
+    - destination: apiextensions-apiserver
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/apiextensions-apiserver
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+        - repository: client-go
+          branch: master
+        - repository: apiserver
+          branch: master
+      - source:
+          repository: kubernetes
+          branch: release-1.7
+          dir: staging/src/k8s.io/apiextensions-apiserver
+        name: release-1.7
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.7
+        - repository: client-go
+          branch: release-4.0
+        - repository: apiserver
+          branch: release-1.7
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/apiextensions-apiserver
+        name: release-1.8
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.8
+        - repository: api
+          branch: release-1.8
+        - repository: client-go
+          branch: release-5.0
+        - repository: apiserver
+          branch: release-1.8
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/apiextensions-apiserver
+        name: release-1.9
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.9
+        - repository: api
+          branch: release-1.9
+        - repository: client-go
+          branch: release-6.0
+        - repository: apiserver
+          branch: release-1.9
+      publish-script: /publish_scripts/publish_apiextensions_apiserver.sh
+    - destination: metrics
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/metrics
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+        - repository: client-go
+          branch: master
+      - source:
+          repository: kubernetes
+          branch: release-1.7
+          dir: staging/src/k8s.io/metrics
+        name: release-1.7
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.7
+        - repository: client-go
+          branch: release-4.0
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/metrics
+        name: release-1.8
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.8
+        - repository: api
+          branch: release-1.8
+        - repository: client-go
+          branch: release-5.0
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/metrics
+        name: release-1.9
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.9
+        - repository: api
+          branch: release-1.9
+        - repository: client-go
+          branch: release-6.0
+      publish-script: /publish_scripts/publish_metrics.sh
+    - destination: code-generator
+      branches:
+      - source:
+          repository: kubernetes
+          branch: master
+          dir: staging/src/k8s.io/code-generator
+        name: master
+      - source:
+          repository: kubernetes
+          branch: release-1.8
+          dir: staging/src/k8s.io/code-generator
+        name: release-1.8
+      - source:
+          repository: kubernetes
+          branch: release-1.9
+          dir: staging/src/k8s.io/code-generator
+        name: release-1.9
+      publish-script: /publish_scripts/publish_code_generator.sh
