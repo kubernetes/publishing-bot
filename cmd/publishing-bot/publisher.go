@@ -79,7 +79,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 	gopath := os.Getenv("GOPATH")
 	// if the SourceRepo is not kubernetes, use github.com as baseRepoPath
 	p.baseRepoPath = filepath.Join(gopath, "src", "github.com", config.TargetOrg)
-	if config.SourceRepo == "kubernetes" {
+	if config.SourceRepoName == "kubernetes" {
 		p.baseRepoPath = filepath.Join(gopath, "src", "k8s.io")
 	}
 
@@ -89,7 +89,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the client-go master branch
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/client-go"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/client-go"},
 				dst: coordinate{repo: "client-go", branch: "master", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "master"},
@@ -98,24 +98,24 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the client-go release-2.0 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.5", dir: "staging/src/k8s.io/client-go"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.5", dir: "staging/src/k8s.io/client-go"},
 				dst: coordinate{repo: "client-go", branch: "release-2.0", dir: "./"},
 			},
 			{
 				// rule for the client-go release-3.0 branch
-				src:  coordinate{repo: config.SourceRepo, branch: "release-1.6", dir: "staging/src/k8s.io/client-go"},
+				src:  coordinate{repo: config.SourceRepoName, branch: "release-1.6", dir: "staging/src/k8s.io/client-go"},
 				dst:  coordinate{repo: "client-go", branch: "release-3.0", dir: "./"},
 				deps: []coordinate{{repo: "apimachinery", branch: "release-1.6"}},
 			},
 			{
 				// rule for the client-go release-4.0 branch
-				src:  coordinate{repo: config.SourceRepo, branch: "release-1.7", dir: "staging/src/k8s.io/client-go"},
+				src:  coordinate{repo: config.SourceRepoName, branch: "release-1.7", dir: "staging/src/k8s.io/client-go"},
 				dst:  coordinate{repo: "client-go", branch: "release-4.0", dir: "./"},
 				deps: []coordinate{{repo: "apimachinery", branch: "release-1.7"}},
 			},
 			{
 				// rule for the client-go release-5.0 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/client-go"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/client-go"},
 				dst: coordinate{repo: "client-go", branch: "release-5.0", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.8"},
@@ -124,7 +124,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the client-go release-6.0 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/client-go"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/client-go"},
 				dst: coordinate{repo: "client-go", branch: "release-6.0", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.9"},
@@ -141,27 +141,27 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the apimachinery master branch
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/apimachinery"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/apimachinery"},
 				dst: coordinate{repo: "apimachinery", branch: "master", dir: "./"},
 			},
 			{
 				// rule for the apimachinery 1.6 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.6", dir: "staging/src/k8s.io/apimachinery"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.6", dir: "staging/src/k8s.io/apimachinery"},
 				dst: coordinate{repo: "apimachinery", branch: "release-1.6", dir: "./"},
 			},
 			{
 				// rule for the apimachinery 1.7 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.7", dir: "staging/src/k8s.io/apimachinery"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.7", dir: "staging/src/k8s.io/apimachinery"},
 				dst: coordinate{repo: "apimachinery", branch: "release-1.7", dir: "./"},
 			},
 			{
 				// rule for the apimachinery 1.8 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/apimachinery"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/apimachinery"},
 				dst: coordinate{repo: "apimachinery", branch: "release-1.8", dir: "./"},
 			},
 			{
 				// rule for the apimachinery 1.9 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/apimachinery"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/apimachinery"},
 				dst: coordinate{repo: "apimachinery", branch: "release-1.9", dir: "./"},
 			},
 		},
@@ -174,7 +174,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the apiserver master branch
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/apiserver"},
 				dst: coordinate{repo: "apiserver", branch: "master", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "master"},
@@ -184,7 +184,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the apiserver 1.6 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.6", dir: "staging/src/k8s.io/apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.6", dir: "staging/src/k8s.io/apiserver"},
 				dst: coordinate{repo: "apiserver", branch: "release-1.6", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.6"},
@@ -193,7 +193,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the apiserver 1.7 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.7", dir: "staging/src/k8s.io/apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.7", dir: "staging/src/k8s.io/apiserver"},
 				dst: coordinate{repo: "apiserver", branch: "release-1.7", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.7"},
@@ -202,7 +202,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the apiserver 1.8 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/apiserver"},
 				dst: coordinate{repo: "apiserver", branch: "release-1.8", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.8"},
@@ -212,7 +212,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the apiserver 1.9 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/apiserver"},
 				dst: coordinate{repo: "apiserver", branch: "release-1.9", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.9"},
@@ -230,7 +230,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the kube-aggregator master branch
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/kube-aggregator"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/kube-aggregator"},
 				dst: coordinate{repo: "kube-aggregator", branch: "master", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "master"},
@@ -241,7 +241,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the kube-aggregator 1.6 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.6", dir: "staging/src/k8s.io/kube-aggregator"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.6", dir: "staging/src/k8s.io/kube-aggregator"},
 				dst: coordinate{repo: "kube-aggregator", branch: "release-1.6", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.6"},
@@ -251,7 +251,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the kube-aggregator 1.7 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.7", dir: "staging/src/k8s.io/kube-aggregator"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.7", dir: "staging/src/k8s.io/kube-aggregator"},
 				dst: coordinate{repo: "kube-aggregator", branch: "release-1.7", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.7"},
@@ -261,7 +261,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the kube-aggregator 1.8 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/kube-aggregator"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/kube-aggregator"},
 				dst: coordinate{repo: "kube-aggregator", branch: "release-1.8", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.8"},
@@ -272,7 +272,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the kube-aggregator 1.9 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/kube-aggregator"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/kube-aggregator"},
 				dst: coordinate{repo: "kube-aggregator", branch: "release-1.9", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.9"},
@@ -291,7 +291,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the sample-apiserver master branch
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/sample-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/sample-apiserver"},
 				dst: coordinate{repo: "sample-apiserver", branch: "master", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "master"},
@@ -302,7 +302,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.6 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.6", dir: "staging/src/k8s.io/sample-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.6", dir: "staging/src/k8s.io/sample-apiserver"},
 				dst: coordinate{repo: "sample-apiserver", branch: "release-1.6", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.6"},
@@ -312,7 +312,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.7 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.7", dir: "staging/src/k8s.io/sample-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.7", dir: "staging/src/k8s.io/sample-apiserver"},
 				dst: coordinate{repo: "sample-apiserver", branch: "release-1.7", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.7"},
@@ -322,7 +322,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.8 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/sample-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/sample-apiserver"},
 				dst: coordinate{repo: "sample-apiserver", branch: "release-1.8", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.8"},
@@ -333,7 +333,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.9 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/sample-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/sample-apiserver"},
 				dst: coordinate{repo: "sample-apiserver", branch: "release-1.9", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.9"},
@@ -351,7 +351,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		dstRepo: "sample-controller",
 		srcToDst: []branchRule{
 			{
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/sample-controller"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/sample-controller"},
 				dst: coordinate{repo: "sample-controller", branch: "master", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "master"},
@@ -360,7 +360,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 				},
 			},
 			{
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/sample-controller"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/sample-controller"},
 				dst: coordinate{repo: "sample-controller", branch: "release-1.9", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.9"},
@@ -377,7 +377,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the sample-apiserver master branch
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/apiextensions-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/apiextensions-apiserver"},
 				dst: coordinate{repo: "apiextensions-apiserver", branch: "master", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "master"},
@@ -388,7 +388,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.7 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.7", dir: "staging/src/k8s.io/apiextensions-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.7", dir: "staging/src/k8s.io/apiextensions-apiserver"},
 				dst: coordinate{repo: "apiextensions-apiserver", branch: "release-1.7", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.7"},
@@ -398,7 +398,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.8 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/apiextensions-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/apiextensions-apiserver"},
 				dst: coordinate{repo: "apiextensions-apiserver", branch: "release-1.8", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.8"},
@@ -409,7 +409,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.8 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/apiextensions-apiserver"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/apiextensions-apiserver"},
 				dst: coordinate{repo: "apiextensions-apiserver", branch: "release-1.9", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.9"},
@@ -428,7 +428,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the api master branch
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/api"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/api"},
 				dst: coordinate{repo: "api", branch: "master", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "master"},
@@ -436,7 +436,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the api release-1.8 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/api"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/api"},
 				dst: coordinate{repo: "api", branch: "release-1.8", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.8"},
@@ -444,7 +444,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the api release-1.9 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/api"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/api"},
 				dst: coordinate{repo: "api", branch: "release-1.9", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.9"},
@@ -459,7 +459,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the metrics master branch
-				src: coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/metrics"},
+				src: coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/metrics"},
 				dst: coordinate{repo: "metrics", branch: "master", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "master"},
@@ -469,7 +469,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.7 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.7", dir: "staging/src/k8s.io/metrics"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.7", dir: "staging/src/k8s.io/metrics"},
 				dst: coordinate{repo: "metrics", branch: "release-1.7", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.7"},
@@ -478,7 +478,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.8 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/metrics"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/metrics"},
 				dst: coordinate{repo: "metrics", branch: "release-1.8", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.8"},
@@ -488,7 +488,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 			},
 			{
 				// rule for the sample-apiserver 1.9 branch
-				src: coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/metrics"},
+				src: coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/metrics"},
 				dst: coordinate{repo: "metrics", branch: "release-1.9", dir: "./"},
 				deps: []coordinate{
 					{repo: "apimachinery", branch: "release-1.9"},
@@ -505,19 +505,19 @@ func New(config *github.Config) (*PublisherMunger, error) {
 		srcToDst: []branchRule{
 			{
 				// rule for the metrics master branch
-				src:  coordinate{repo: config.SourceRepo, branch: "master", dir: "staging/src/k8s.io/code-generator"},
+				src:  coordinate{repo: config.SourceRepoName, branch: "master", dir: "staging/src/k8s.io/code-generator"},
 				dst:  coordinate{repo: "code-generator", branch: "master", dir: "./"},
 				deps: []coordinate{},
 			},
 			{
 				// rule for the metrics release-1.8 branch
-				src:  coordinate{repo: config.SourceRepo, branch: "release-1.8", dir: "staging/src/k8s.io/code-generator"},
+				src:  coordinate{repo: config.SourceRepoName, branch: "release-1.8", dir: "staging/src/k8s.io/code-generator"},
 				dst:  coordinate{repo: "code-generator", branch: "release-1.8", dir: "./"},
 				deps: []coordinate{},
 			},
 			{
 				// rule for the metrics release-1.9 branch
-				src:  coordinate{repo: config.SourceRepo, branch: "release-1.9", dir: "staging/src/k8s.io/code-generator"},
+				src:  coordinate{repo: config.SourceRepoName, branch: "release-1.9", dir: "staging/src/k8s.io/code-generator"},
 				dst:  coordinate{repo: "code-generator", branch: "release-1.9", dir: "./"},
 				deps: []coordinate{},
 			},
@@ -541,7 +541,7 @@ func New(config *github.Config) (*PublisherMunger, error) {
 
 // update the local checkout of the source repository
 func (p *PublisherMunger) updateSourceRepo() (string, error) {
-	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
+	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepoName)
 
 	cmd := exec.Command("git", "fetch", "origin")
 	cmd.Dir = repoDir
@@ -553,7 +553,7 @@ func (p *PublisherMunger) updateSourceRepo() (string, error) {
 	cmd.Dir = repoDir
 	hash, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("failed running %v on %q repo: %v", strings.Join(cmd.Args, " "), p.config.SourceRepo, err)
+		return "", fmt.Errorf("failed running %v on %q repo: %v", strings.Join(cmd.Args, " "), p.config.SourceRepoName, err)
 	}
 
 	// update source repo branches that are needed by other repos.
@@ -607,7 +607,7 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 
 // constructs all the repos, but does not push the changes to remotes.
 func (p *PublisherMunger) construct() error {
-	sourceRemote := filepath.Join(p.baseRepoPath, p.config.SourceRepo, ".git")
+	sourceRemote := filepath.Join(p.baseRepoPath, p.config.SourceRepoName, ".git")
 	for _, repoRules := range p.reposRules {
 		if repoRules.skipped {
 			continue
@@ -644,8 +644,12 @@ func (p *PublisherMunger) construct() error {
 			if p.skippedBranch(branchRule.src.branch) {
 				continue
 			}
-
-			cmd := exec.Command(repoRules.publishScript, branchRule.src.branch, branchRule.dst.branch, formatDeps(branchRule.deps), sourceRemote)
+			if len(branchRule.src.dir) == 0 {
+				p.plog.Errorf("invalid branch rule %v: 'dir' cannot be empty", branchRule)
+				continue
+			}
+			// TODO: Refactor this to use environment variables instead
+			cmd := exec.Command(repoRules.publishScript, branchRule.src.branch, branchRule.dst.branch, formatDeps(branchRule.deps), sourceRemote, branchRule.src.dir, p.config.SourceRepoOrg, p.config.SourceRepoName)
 			if err := p.plog.Run(cmd); err != nil {
 				return err
 			}

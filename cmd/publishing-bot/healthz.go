@@ -83,7 +83,7 @@ func (h *Healthz) handler(w http.ResponseWriter, r *http.Request) {
 	if h.Issue != 0 {
 		// We choosed target org so the issue can be opened in different org than
 		// a source repository.
-		resp.Issue = fmt.Sprintf("https://github.com/%s/%s/issues/%d", h.config.TargetOrg, h.config.SourceRepo, h.Issue)
+		resp.Issue = fmt.Sprintf("https://github.com/%s/%s/issues/%d", h.config.TargetOrg, h.config.SourceRepoName, h.Issue)
 	}
 	h.mutex.RUnlock()
 

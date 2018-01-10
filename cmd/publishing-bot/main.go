@@ -47,7 +47,8 @@ func main() {
 	dryRun := flag.Bool("dry-run", false, "do not push anything to github")
 	tokenFile := flag.String("token-file", "", "the file with the github toke")
 	// TODO: make absolute
-	sourceRepo := flag.String("source-repo", "", `the source repo (defaults to "kubernetes")`)
+	repoName := flag.String("repo-name", "", "the name of the source repository (eg. kubernetes)")
+	repoOrg := flag.String("repo-org", "", "the name of the source repository organization, (eg. kubernetes)")
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
 	interval := flag.Uint("interval", 0, "loop with the given seconds of wait in between")
 	healthzPort := flag.Int("healthz-port", 0, "start healthz webserver on the given port listening on 0.0.0.0")
@@ -66,6 +67,10 @@ func main() {
 		}
 	}
 
+	if len(*repoName) == 0 || len(*repoOrg) == 0 {
+		glog.Fatalf("repo-org and repo-name cannot be empty")
+	}
+
 	// override with flags
 	if *dryRun {
 		cfg.DryRun = true
@@ -73,16 +78,14 @@ func main() {
 	if *targetOrg != "" {
 		cfg.TargetOrg = *targetOrg
 	}
-	if *sourceRepo != "" {
-		cfg.SourceRepo = *sourceRepo
+	if *repoName != "" {
+		cfg.SourceRepoName = *repoName
+	}
+	if *repoOrg != "" {
+		cfg.SourceRepoOrg = *repoOrg
 	}
 	if *tokenFile != "" {
 		cfg.TokenFile = *tokenFile
-	}
-
-	// default
-	if cfg.SourceRepo == "" {
-		cfg.SourceRepo = "kubernetes"
 	}
 
 	if len(cfg.TargetOrg) == 0 {
@@ -121,10 +124,10 @@ func main() {
 			healthz.SetHealth(err == nil, hash)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
-				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
+				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepoName, cfg.GithubIssue); err != nil {
 					glog.Fatalf("Failed to report logs on github issue: %v", err)
 				}
-			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepoName, cfg.GithubIssue); err != nil {
 				glog.Fatalf("Failed to close issue: %v", err)
 			}
 		} else {
