@@ -539,7 +539,6 @@ func New(config *github.Config) (*PublisherMunger, error) {
 	p.skippedSourceBranches = []string{
 		"release-1.5",
 		"release-1.6",
-		"release-1.7",
 	}
 	return p, nil
 }
