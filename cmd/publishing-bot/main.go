@@ -67,10 +67,6 @@ func main() {
 		}
 	}
 
-	if len(*repoName) == 0 || len(*repoOrg) == 0 {
-		glog.Fatalf("repo-org and repo-name cannot be empty")
-	}
-
 	// override with flags
 	if *dryRun {
 		cfg.DryRun = true
@@ -88,6 +84,10 @@ func main() {
 		cfg.TokenFile = *tokenFile
 	}
 
+	if len(cfg.SourceRepoName) == 0 || len(cfg.SourceRepoOrg) == 0 {
+		glog.Fatalf("repo-org and repo-name cannot be empty")
+	}
+
 	if len(cfg.TargetOrg) == 0 {
 		glog.Fatalf("Target organization cannot be empty")
 	}
@@ -101,6 +101,11 @@ func main() {
 		if err := healthz.Run(*healthzPort); err != nil {
 			glog.Fatalf("Failed to run healthz server: %v", err)
 		}
+	}
+
+	githubIssueErrorf := glog.Fatalf
+	if *interval != 0 {
+		githubIssueErrorf = glog.Errorf
 	}
 
 	for {
@@ -125,10 +130,12 @@ func main() {
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepoName, cfg.GithubIssue); err != nil {
-					glog.Fatalf("Failed to report logs on github issue: %v", err)
+					githubIssueErrorf("Failed to report logs on github issue: %v", err)
+					healthz.SetHealth(false, hash)
 				}
 			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepoName, cfg.GithubIssue); err != nil {
-				glog.Fatalf("Failed to close issue: %v", err)
+				githubIssueErrorf("Failed to close issue: %v", err)
+				healthz.SetHealth(false, hash)
 			}
 		} else {
 			// run
