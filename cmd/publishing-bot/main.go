@@ -95,6 +95,11 @@ func main() {
 		}
 	}
 
+	githubIssueErrorf := glog.Fatalf
+	if *interval != 0 {
+		githubIssueErrorf = glog.Errorf
+	}
+
 	for {
 		last := time.Now()
 
@@ -118,10 +123,12 @@ func main() {
 				glog.Infof("Failed to run publisher: %v", err)
 				// TODO: support other orgs
 				if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, cfg.GithubIssue); err != nil {
-					glog.Fatalf("Failed to report logs on github issue: %v", err)
+					githubIssueErrorf("Failed to report logs on github issue: %v", err)
+					healthz.SetHealth(false, hash)
 				}
 			} else if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, cfg.GithubIssue); err != nil {
-				glog.Fatalf("Failed to close issue: %v", err)
+				githubIssueErrorf("Failed to close issue: %v", err)
+				healthz.SetHealth(false, hash)
 			}
 		} else {
 			// run
