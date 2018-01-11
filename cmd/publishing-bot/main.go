@@ -87,7 +87,7 @@ func main() {
 
 	// start healthz server
 	healthz := Healthz{
-		Issue: *cfg.GithubIssue,
+		Issue: cfg.GithubIssue,
 	}
 	if *healthzPort != 0 {
 		if err := healthz.Run(*healthzPort); err != nil {
@@ -103,7 +103,7 @@ func main() {
 			glog.Fatalf("Failed initialize publisher: %v", err)
 		}
 
-		if cfg.TokenFile != "" && cfg.GithubIssue != nil && !cfg.DryRun {
+		if cfg.TokenFile != "" && cfg.GithubIssue != 0 && !cfg.DryRun {
 			// load token
 			bs, err := ioutil.ReadFile(cfg.TokenFile)
 			if err != nil {
@@ -117,10 +117,10 @@ func main() {
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 				// TODO: support other orgs
-				if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+				if err := ReportOnIssue(err, logs, token, "kubernetes", cfg.SourceRepo, cfg.GithubIssue); err != nil {
 					glog.Fatalf("Failed to report logs on github issue: %v", err)
 				}
-			} else if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, *cfg.GithubIssue); err != nil {
+			} else if err := CloseIssue(token, "kubernetes", cfg.SourceRepo, cfg.GithubIssue); err != nil {
 				glog.Fatalf("Failed to close issue: %v", err)
 			}
 		} else {

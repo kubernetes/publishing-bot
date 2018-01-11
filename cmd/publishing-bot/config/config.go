@@ -32,5 +32,5 @@ type Config struct {
 	DryRun bool
 
 	// A github issue number to report errors
-	GithubIssue *int `yaml:"github-issue,omitempty"`
+	GithubIssue int `yaml:"github-issue,omitempty"`
 }
