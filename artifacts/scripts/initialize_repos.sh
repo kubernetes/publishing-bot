@@ -52,6 +52,7 @@ for repo in $(cd kubernetes/staging/src/k8s.io; ls -1); do
     if [ -d "${repo}" ]; then
 	pushd ${repo}
 	    git remote set-url origin "https://github.com/${ORG}/${repo}"
+	    rm -f .git/index.lock # in case git crashed before and left the lock file
 	popd
     else
 	git clone "https://github.com/${ORG}/${repo}"
