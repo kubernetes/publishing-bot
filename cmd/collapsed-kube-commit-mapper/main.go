@@ -65,23 +65,18 @@ The sorted output looks like this:
     <sha of H> <sha of H'>
     ...
 
-Usage: %s --source-branch <source-branch> [-l]
+Usage: %s --source-branch <source-branch> [-l] [--commit-message-tag <Commit-message-tag>]
 `, os.Args[0])
 	flag.PrintDefaults()
 }
 
 func main() {
-	sourceOrg := flag.String("source-org", "", "the name of the source repository organization")
-	sourceRepo := flag.String("source-repo", "", "the name of the source repository")
+	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
 	sourceBranch := flag.String("source-branch", "", "the source branch (fully qualified e.g. refs/remotes/origin/master) used as the filter-branch basis")
 	showMessage := flag.Bool("l", false, "list the commit message after the two hashes")
 
 	flag.Usage = Usage
 	flag.Parse()
-
-	if len(*sourceRepo) == 0 || len(*sourceOrg) == 0 {
-		glog.Fatalf("source-org and source-repo cannot be empty")
-	}
 
 	if *sourceBranch == "" {
 		glog.Fatalf("source-branch cannot be empty")
@@ -123,7 +118,7 @@ func main() {
 		glog.Fatalf("Failed to get first-parent commit list for %s: %v", dstHead.Hash, err)
 	}
 
-	sourceCommitToDstCommits, err := git.SourceCommitToDstCommits(r, *sourceOrg, *sourceRepo, dstFirstParents, kFirstParents)
+	sourceCommitToDstCommits, err := git.SourceCommitToDstCommits(r, *commitMsgTag, dstFirstParents, kFirstParents)
 	if err != nil {
 		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
 	}

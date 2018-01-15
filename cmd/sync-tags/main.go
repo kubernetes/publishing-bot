@@ -42,6 +42,7 @@ to origin (not done by this tool).
 Tags from the upstream remote are fetched as "refs/tags/<source-remote>/<tag-name>".
 
 Usage: %s --source-remote <remote> --source-branch <source-branch>
+          [--commit-message-tag <Commit-message-tag>]
           [--origin-branch <branch>]
           [--prefix <tag-prefix>]
           [--push-script <file-path>]
@@ -53,8 +54,7 @@ const rfc2822 = "Mon Jan 02 15:04:05 -0700 2006"
 
 func main() {
 	// repository flags used when the repository is not k8s.io/kubernetes
-	sourceOrg := flag.String("source-org", "", "the name of the source repository organization, (e.g. kubernetes)")
-	sourceRepo := flag.String("source-repo", "", "the name of the source repository (e.g. kubernetes)")
+	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
 	sourceRemote := flag.String("source-remote", "", "the source repo remote (e.g. upstream")
 	sourceBranch := flag.String("source-branch", "", "the source repo branch (not qualified, just the name; defaults to equal <branch>)")
 	publishBranch := flag.String("branch", "", "a (not qualified) branch name")
@@ -63,10 +63,6 @@ func main() {
 
 	flag.Usage = Usage
 	flag.Parse()
-
-	if len(*sourceRepo) == 0 || len(*sourceOrg) == 0 {
-		glog.Fatalf("source-org and source-repo cannot be empty")
-	}
 
 	if *sourceRemote == "" {
 		glog.Fatalf("source-remote cannot be empty")
@@ -154,7 +150,7 @@ func main() {
 
 	// compute kube commit map
 	fmt.Printf("Computing mapping from kube commits to the local branch.\n")
-	sourceCommitsToDstCommits, err := git.SourceCommitToDstCommits(r, *sourceOrg, *sourceRepo, bFirstParents, kFirstParents)
+	sourceCommitsToDstCommits, err := git.SourceCommitToDstCommits(r, *commitMsgTag, bFirstParents, kFirstParents)
 	if err != nil {
 		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
 	}
