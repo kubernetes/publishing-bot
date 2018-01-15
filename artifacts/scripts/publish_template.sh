@@ -96,6 +96,6 @@ PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH}.sh
 echo "#!/bin/bash" > ${PUSH_SCRIPT}
 chmod +x ${PUSH_SCRIPT}
 /sync-tags --source-org ${SOURCE_REPO_ORG} --source-repo ${SOURCE_REPO_NAME} \
-           --upstream-remote upstream --upstream-branch "${SRC_BRANCH}" \
+           --source-remote upstream --source-branch "${SRC_BRANCH}" \
            --push-script ${PUSH_SCRIPT} "${EXTRA_ARGS[@]-}" \
            -alsologtostderr

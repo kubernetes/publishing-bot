@@ -39,9 +39,9 @@ of an origin branch. Tags which do not exist in origin, but in upstream
 are prepended with the given prefix and then created locally to be pushed
 to origin (not done by this tool).
 
-Tags from the upstream remote are fetched as "refs/tags/<upstream-remote>/<tag-name>".
+Tags from the upstream remote are fetched as "refs/tags/<source-remote>/<tag-name>".
 
-Usage: %s --upstream-remote <remote> --upstream-branch <upstream-branch>
+Usage: %s --source-remote <remote> --source-branch <source-branch>
           [--origin-branch <branch>]
           [--prefix <tag-prefix>]
           [--push-script <file-path>]
@@ -52,28 +52,28 @@ Usage: %s --upstream-remote <remote> --upstream-branch <upstream-branch>
 const rfc2822 = "Mon Jan 02 15:04:05 -0700 2006"
 
 func main() {
-	upstreamRemote := flag.String("upstream-remote", "", "the k8s.io/kubernetes remote")
-	upstreamBranch := flag.String("upstream-branch", "", "the k8s.io/kubernetes branch (not qualified, just the name; defaults to equal <branch>)")
+	// repository flags used when the repository is not k8s.io/kubernetes
+	sourceOrg := flag.String("source-org", "", "the name of the source repository organization, (e.g. kubernetes)")
+	sourceRepo := flag.String("source-repo", "", "the name of the source repository (e.g. kubernetes)")
+	sourceRemote := flag.String("source-remote", "", "the source repo remote (e.g. upstream")
+	sourceBranch := flag.String("source-branch", "", "the source repo branch (not qualified, just the name; defaults to equal <branch>)")
 	publishBranch := flag.String("branch", "", "a (not qualified) branch name")
 	prefix := flag.String("prefix", "kubernetes-", "a string to put in front of upstream tags")
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
-	// repository flags used when the repository is not k8s.io/kubernetes
-	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
-	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
 
 	flag.Usage = Usage
 	flag.Parse()
 
-	if len(*repoName) == 0 || len(*repoOrg) == 0 {
+	if len(*sourceRepo) == 0 || len(*sourceOrg) == 0 {
 		glog.Fatalf("source-org and source-repo cannot be empty")
 	}
 
-	if *upstreamRemote == "" {
-		glog.Fatalf("upstream-remote cannot be empty")
+	if *sourceRemote == "" {
+		glog.Fatalf("source-remote cannot be empty")
 	}
 
-	if *upstreamBranch == "" {
-		glog.Fatalf("branch cannot be empty")
+	if *sourceBranch == "" {
+		glog.Fatalf("source-branch cannot be empty")
 	}
 
 	// open repo at "."
@@ -110,22 +110,22 @@ func main() {
 	}
 
 	// get first-parent commit list of upstream branch
-	kUpdateBranch, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/remotes/%s/%s", *upstreamRemote, *upstreamBranch)))
+	kUpdateBranch, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/remotes/%s/%s", *sourceRemote, *sourceBranch)))
 	if err != nil {
-		glog.Fatalf("Failed to open upstream branch %s: %v", *upstreamBranch, err)
+		glog.Fatalf("Failed to open upstream branch %s: %v", *sourceBranch, err)
 	}
 	kHead, err := cache.CommitObject(r, *kUpdateBranch)
 	if err != nil {
-		glog.Fatalf("Failed to open upstream branch %s head: %v", *upstreamBranch, err)
+		glog.Fatalf("Failed to open upstream branch %s head: %v", *sourceBranch, err)
 	}
 	kFirstParents, err := git.FirstParentList(r, kHead)
 	if err != nil {
-		glog.Fatalf("Failed to get upstream branch %s first-parent list: %v", *upstreamBranch, err)
+		glog.Fatalf("Failed to get upstream branch %s first-parent list: %v", *sourceBranch, err)
 	}
 
 	// delete annotated remote tags locally
-	fmt.Printf("Removing all local copies of origin and %s tags.\n", *upstreamRemote)
-	if err := removeRemoteTags(r, []string{"origin", *upstreamRemote}); err != nil {
+	fmt.Printf("Removing all local copies of origin and %s tags.\n", *sourceRemote)
+	if err := removeRemoteTags(r, []string{"origin", *sourceRemote}); err != nil {
 		glog.Fatalf("Failed to iterate through tags: %v", err)
 	}
 
@@ -135,10 +135,10 @@ func main() {
 	if err != nil {
 		glog.Fatalf("Failed to fetch tags for %q: %v", "origin", err)
 	}
-	fmt.Printf("Fetching tags from remote %q.\n", *upstreamRemote)
-	err = fetchTags(r, *upstreamRemote)
+	fmt.Printf("Fetching tags from remote %q.\n", *sourceRemote)
+	err = fetchTags(r, *sourceRemote)
 	if err != nil {
-		glog.Fatalf("Failed to fetch tags for %q: %v", *upstreamRemote, err)
+		glog.Fatalf("Failed to fetch tags for %q: %v", *sourceRemote, err)
 	}
 
 	// get all annotated tags
@@ -147,16 +147,16 @@ func main() {
 	if err != nil {
 		glog.Fatalf("Failed to iterate through tags: %v", err)
 	}
-	kTagCommits, err := remoteTags(r, *upstreamRemote)
+	kTagCommits, err := remoteTags(r, *sourceRemote)
 	if err != nil {
 		glog.Fatalf("Failed to iterate through tags: %v", err)
 	}
 
 	// compute kube commit map
 	fmt.Printf("Computing mapping from kube commits to the local branch.\n")
-	sourceCommitsToDstCommits, err := git.SourceCommitToDstCommits(r, *repoOrg, *repoName, bFirstParents, kFirstParents)
+	sourceCommitsToDstCommits, err := git.SourceCommitToDstCommits(r, *sourceOrg, *sourceRepo, bFirstParents, kFirstParents)
 	if err != nil {
-		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *upstreamBranch, err)
+		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
 	}
 
 	// create or update tags from kTagCommits as local tags with the given prefix
