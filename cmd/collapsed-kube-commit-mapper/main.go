@@ -74,8 +74,15 @@ func main() {
 	upstreamBranch := flag.String("upstream-branch", "", "the k8s.io/kubernetes branch (fully qualified e.g. refs/remotes/origin/master) used as the filter-branch basis")
 	showMessage := flag.Bool("l", false, "list the commit message after the two hashes")
 
+	repoName := flag.String("source-repo", "", "the name of the source repository")
+	repoOrg := flag.String("source-org", "", "the name of the source repository organization")
+
 	flag.Usage = Usage
 	flag.Parse()
+
+	if len(*repoName) == 0 || len(*repoOrg) == 0 {
+		glog.Fatalf("source-org and source-repo cannot be empty")
+	}
 
 	if *upstreamBranch == "" {
 		glog.Fatalf("upstream-branch cannot be empty")
@@ -117,7 +124,7 @@ func main() {
 		glog.Fatalf("Failed to get first-parent commit list for %s: %v", dstHead.Hash, err)
 	}
 
-	kubeCommitsToDstCommits, err := git.KubeCommitsToDstCommits(r, dstFirstParents, kFirstParents)
+	sourceCommitToDstCommits, err := git.SourceCommitToDstCommits(r, *repoOrg, *repoName, dstFirstParents, kFirstParents)
 	if err != nil {
 		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *upstreamBranch, err)
 	}
@@ -125,7 +132,7 @@ func main() {
 	// print out a look-up table
 	// <kube sha> <dst sha>
 	var lines []string
-	for kh, dh := range kubeCommitsToDstCommits {
+	for kh, dh := range sourceCommitToDstCommits {
 		if *showMessage {
 			c, err := cache.CommitObject(r, kh)
 			if err != nil {

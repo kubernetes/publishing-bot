@@ -3,6 +3,9 @@ metadata:
   name: publisher-config
 data:
   config: |
+    # this specifies the source repository coordinates (org/name)
+    source-org: <source-github-org-or-user>
+    source-repo: <source-repository-name-in-your-org>
     # the github org or user to publish the new repos to
     target-org: <your-github-org-or-user>
 

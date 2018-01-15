@@ -24,6 +24,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
+	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
 type Healthz struct {
@@ -31,6 +33,7 @@ type Healthz struct {
 
 	mutex    sync.RWMutex
 	response HealthResponse
+	config   config.Config
 }
 
 type HealthResponse struct {
@@ -78,7 +81,9 @@ func (h *Healthz) handler(w http.ResponseWriter, r *http.Request) {
 	h.mutex.RLock()
 	resp := h.response
 	if h.Issue != 0 {
-		resp.Issue = fmt.Sprintf("https://github.com/kubernetes/kubernetes/issues/%d", h.Issue)
+		// We chose target org so the issue can be opened in different org than
+		// a source repository.
+		resp.Issue = fmt.Sprintf("https://github.com/%s/%s/issues/%d", h.config.TargetOrg, h.config.SourceRepo, h.Issue)
 	}
 	h.mutex.RUnlock()
 

@@ -21,9 +21,11 @@ type Config struct {
 	// the organization to publish into, e.g. k8s-publishing-bot or kubernetes-nightly
 	TargetOrg string `yaml:"target-org"`
 
-	// the source repo, e.g. "kubernetes"
-	// TODO: make this absolute
-	SourceRepo string `yaml:"source-repo,omitempty"`
+	// the source repo name, e.g. "kubernetes"
+	SourceRepo string `yaml:"source-repo"`
+
+	// the source repo org name, e.g. "kubernetes"
+	SourceOrg string `yaml:"source-org"`
 
 	// the file with the clear-text github token
 	TokenFile string `yaml:"token-file,omitempty"`

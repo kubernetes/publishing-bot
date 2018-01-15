@@ -124,12 +124,15 @@ set -o xtrace
 #      (depending on the current branch or the second paramter if given.
 sync_repo() {
     # subdirectory in k8s.io/kubernetes, e.g., staging/src/k8s.io/apimachinery
-    local subdirectory="${1}"
-    local src_branch="${2}"
-    local dst_branch="${3}"
-    local kubernetes_remote="${4:-https://github.com/kubernetes/kubernetes.git}"
-    local deps="${5:-""}"
-    local is_library="${6}"
+    local source_repo_org="${1}"
+    local source_repo_name="${2}"
+    local subdirectory="${3}"
+    local src_branch="${4}"
+    local dst_branch="${5}"
+    local kubernetes_remote="${6}"
+    local deps="${7:-""}"
+    local is_library="${8}"
+    local commit_msg_tag="${source_repo_name^}-commit"
     readonly subdirectory src_branch dst_branch kubernetes_remote deps is_library
 
     local new_branch="false"
@@ -147,12 +150,12 @@ sync_repo() {
     fi
 
     # fetch upstream kube and checkout $src_branch, name it filtered-branch
-    git remote rm upstream-kube >/dev/null || true
-    git remote add upstream-kube "${kubernetes_remote}" >/dev/null
-    git fetch -q upstream-kube --no-tags
+    git remote rm upstream >/dev/null || true
+    git remote add upstream "${kubernetes_remote}" >/dev/null
+    git fetch -q upstream --no-tags
     git branch -D filtered-branch >/dev/null || true
-    git branch -f upstream-branch upstream-kube/"${src_branch}"
-    echo "Checked out k8s.io/kubernetes commit $(git rev-parse upstream-branch)."
+    git branch -f upstream-branch upstream/"${src_branch}"
+    echo "Checked out source commit $(git rev-parse upstream-branch)."
     git checkout -q upstream-branch -b filtered-branch
     git reset -q --hard upstream-branch
 
@@ -164,7 +167,7 @@ sync_repo() {
     local f_mainline_commits=""
     if [ "${new_branch}" = "true" ] && [ "${src_branch}" = master ]; then
         # new master branch
-        filter-branch "${subdirectory}" ${src_branch} filtered-branch
+        filter-branch "${commit_msg_tag}" "${subdirectory}" ${src_branch} filtered-branch
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
         # the corresponding fast-forward merge and left the feature branch commits)
@@ -183,21 +186,21 @@ sync_repo() {
         # - old branch which continue with the last old commit.
         if [ "${new_branch}" = "true" ]; then
             # new non-master branch
-            local k_branch_point_commit=$(git-fork-point upstream-kube/${src_branch} upstream-kube/master)
+            local k_branch_point_commit=$(git-fork-point upstream/${src_branch} upstream/master)
             if [ -z "${k_branch_point_commit}" ]; then
-                echo "Couldn't find a branch point of upstream-kube/${src_branch} and upstream-kube/master."
+                echo "Couldn't find a branch point of upstream/${src_branch} and upstream/master."
                 return 1
             fi
             echo "Using branch point ${k_branch_point_commit} as new starting point for new branch ${dst_branch}."
             git branch -f filtered-branch-base ${k_branch_point_commit} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
-            filter-branch "${subdirectory}" filtered-branch filtered-branch-base
+            filter-branch "${commit_msg_tag}" "${subdirectory}" filtered-branch filtered-branch-base
 
             # for a new branch that is not master: map filtered-branch-base to our ${dst_branch} as ${dst_branch_point_commit}
-            local k_branch_point_commit=$(kube-commit filtered-branch-base) # k_branch_point_commit will probably different thanthe k_branch_point_commit
+            local k_branch_point_commit=$(kube-commit ${commit_msg_tag} filtered-branch-base) # k_branch_point_commit will probably different thanthe k_branch_point_commit
                                                                             # above because filtered drops commits and maps to ancestors if necessary
-            local dst_branch_point_commit=$(branch-commit ${k_branch_point_commit} master)
+            local dst_branch_point_commit=$(branch-commit ${commit_msg_tag} ${k_branch_point_commit} master)
             if [ -z "${dst_branch_point_commit}" ]; then
                 echo "Couldn't find a corresponding branch point commit for ${k_branch_point_commit} as ascendent of origin/master."
                 return 1
@@ -206,20 +209,20 @@ sync_repo() {
             git branch -f ${dst_branch} ${dst_branch_point_commit} >/dev/null
         else
             # old branch
-            local k_base_commit="$(last-kube-commit ${dst_branch} || true)"
+            local k_base_commit="$(last-kube-commit ${commit_msg_tag} ${dst_branch} || true)"
             if [ -z "${k_base_commit}" ]; then
-                echo "Couldn't find a Kubernetes-commit sha in any commit on ${dst_branch}."
+                echo "Couldn't find a ${commit_msg_tag} commit SHA in any commit on ${dst_branch}."
                 return 1
             fi
-            local k_base_merge=$(git-find-merge ${k_base_commit} upstream-kube/${src_branch})
+            local k_base_merge=$(git-find-merge ${k_base_commit} upstream/${src_branch})
             if [ -z "${k_base_merge}" ]; then
-                echo "Didn't find merge commit of k8s.io/kubernetes commit ${k_base_commit}. Odd."
+                echo "Didn't find merge commit of source commit ${k_base_commit}. Odd."
                 return 1
             fi
             git branch -f filtered-branch-base ${k_base_merge} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
-            filter-branch "${subdirectory}" filtered-branch filtered-branch-base
+            filter-branch "${commit_msg_tag}" "${subdirectory}" filtered-branch filtered-branch-base
         fi
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
@@ -253,7 +256,7 @@ sync_repo() {
             # enforce that the pending merge commit is flushed
             k_new_pending_merge_commit=FLUSH_PENDING_MERGE_COMMIT
         else
-            k_mainline_commit=$(kube-commit ${f_mainline_commit})
+            k_mainline_commit=$(kube-commit ${commit_msg_tag} ${f_mainline_commit})
 
             # check under which merge with the mainline ${k_mainline_commit}) is
             k_new_pending_merge_commit=$(git-find-merge ${k_mainline_commit} upstream-branch)
@@ -278,13 +281,13 @@ sync_repo() {
                 local k_parent2="$(git rev-parse ${k_pending_merge_commit}^2)"
                 read k_parent2 dst_parent2 <<<$(look -b ${k_parent2} ../kube-commits-$(basename "${PWD}")-master)
                 if [ -z "${dst_parent2}" ]; then
-                    echo "Corresponding k8s.io/$(dirname ${PWD}) master branch commit not found for upstream master merge ${k_pending_merge_commit}. Odd."
+                    echo "Corresponding $(dirname ${PWD}) master branch commit not found for upstream master merge ${k_pending_merge_commit}. Odd."
                     return 1
                 fi
 
-                f_pending_merge_commit=$(branch-commit ${k_pending_merge_commit} filtered-branch)
+                f_pending_merge_commit=$(branch-commit ${commit_msg_tag} ${k_pending_merge_commit} filtered-branch)
                 if [ -n "${f_pending_merge_commit}" ]; then
-                    echo "Cherry-picking k8s.io/kubernetes master-merge  ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
+                    echo "Cherry-picking source master-merge  ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
 
                     # cherry-pick the difference on the filtered mainline
                     reset-godeps ${f_pending_merge_commit}^1 # unconditionally reset godeps
@@ -298,17 +301,17 @@ sync_repo() {
                 else
                     # the merge commit with master was dropped. This means it was a fast-forward merge,
                     # which means we can just re-use the tree on the dst master branch.
-                    echo "Cherry-picking k8s.io/kubernetes dropped-master-merge ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
+                    echo "Cherry-picking source dropped-master-merge ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
                     git reset -q --hard ${dst_parent2}
                 fi
             else
-                echo "Cherry-picking k8s.io/kubernetes dropped-merge ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
+                echo "Cherry-picking source dropped-merge ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
             fi
             local date=$(commit-date ${k_pending_merge_commit}) # author and committer date is equal for PR merges
-            local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "Kubernetes-commit: ${k_pending_merge_commit}")" HEAD^{tree})
+            local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "${commit_msg_tag}: ${k_pending_merge_commit}")" HEAD^{tree})
             # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. Godeps.json did not change.
             git reset -q --hard ${dst_new_merge}
-            fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update}
+            fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}"
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -353,7 +356,7 @@ sync_repo() {
 
             # if there is no pending merge commit, update Godeps.json because this could be a target of tag
             if [ -z "${k_pending_merge_commit}" ]; then
-                fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update}
+                fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
                 dst_needs_godeps_update=false
                 dst_merge_point_commit=$(git rev-parse HEAD)
             fi
@@ -389,7 +392,7 @@ sync_repo() {
             local f_first_pick_base=${f_latest_branch_point_commit}
             local f_latest_merge_commit=$(git log --merges --format='%H' --ancestry-path -1 ${f_latest_branch_point_commit}..${f_mainline_commit}^2)
             if [ -n "${f_latest_merge_commit}" ]; then
-                echo "Cherry-picking squashed k8s.io/kubernetes branch-commits $(kube-commit ${f_latest_branch_point_commit})..$(kube-commit ${f_latest_merge_commit}) because the last one is a merge: $(commit-subject ${f_latest_merge_commit})"
+                echo "Cherry-picking squashed k8s.io/kubernetes branch-commits $(kube-commit ${commit_msg_tag} ${f_latest_branch_point_commit})..$(kube-commit ${commit_msg_tag} ${f_latest_merge_commit}) because the last one is a merge: $(commit-subject ${f_latest_merge_commit})"
 
                 # reset Godeps.json?
                 local squash_commits=1
@@ -404,7 +407,7 @@ sync_repo() {
                     show-working-dir-status
                     return 1
                 fi
-                git commit -q -m "sync: squashed up to merge $(kube-commit ${f_latest_merge_commit}) in ${k_mainline_commit}" --date "$(commit-date ${f_latest_merge_commit})" --author "$(commit-author ${f_latest_merge_commit})"
+                git commit -q -m "sync: squashed up to merge $(kube-commit ${commit_msg_tag} ${f_latest_merge_commit}) in ${k_mainline_commit}" --date "$(commit-date ${f_latest_merge_commit})" --author "$(commit-author ${f_latest_merge_commit})"
                 ensure-clean-working-dir
 
                 # potentially squash godep reset commit
@@ -422,7 +425,7 @@ sync_repo() {
                     dst_needs_godeps_update=true
                 fi
 
-                echo "Cherry-picking k8s.io/kubernetes branch-commit $(kube-commit ${f_commit}): $(commit-subject ${f_commit})."
+                echo "Cherry-picking k8s.io/kubernetes branch-commit $(kube-commit ${commit_msg_tag} ${f_commit}): $(commit-subject ${f_commit})."
                 if ! GIT_COMMITTER_DATE="$(commit-date ${f_commit})" git cherry-pick --keep-redundant-commits ${f_commit} >/dev/null; then
                     echo
                     show-working-dir-status
@@ -456,7 +459,7 @@ sync_repo() {
             # we would end up with "base B + change B" which misses the change A changes.
             amend-godeps-at ${f_mainline_commit}
 
-            fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update}
+            fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -469,17 +472,17 @@ sync_repo() {
     #       output depends on upstream's HEAD.
     echo "Fixing up godeps after a complete sync"
     if [ $(git rev-parse HEAD) != "${dst_old_head}" ] || [ "${new_branch}" = "true" ]; then
-        fix-godeps "${deps}" "${is_library}" true
+        fix-godeps "${deps}" "${is_library}" true true ${commit_msg_tag}
     else
         # update godeps without squashing because it would mutate a published commit
-        fix-godeps "${deps}" "${is_library}" true false
+        fix-godeps "${deps}" "${is_library}" true false ${commit_msg_tag}
     fi
 
     # create look-up file for collapsed upstream commits
     local repo=$(basename ${PWD})
     if [ -n "$(git log --oneline --first-parent --merges | head -n 1)" ]; then
         echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch}"
-        /collapsed-kube-commit-mapper --upstream-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
+        /collapsed-kube-commit-mapper --source-repo ${source_repo_name} --source-org ${source_repo_org} --upstream-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
     else
         echo "No merge commit on ${dst_branch} branch, must be old. Skipping look-up table."
         echo > ../kube-commits-${repo}-${dst_branch}
@@ -523,9 +526,9 @@ function commit-subject() {
 
 # rewrites git history to *only* include $subdirectory
 function filter-branch() {
-    local subdirectory="${1}"
-    shift
-    git filter-branch -f --msg-filter 'awk 1 && echo && echo "Kubernetes-commit: ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- "$@"
+    local commit_msg_tag="${1}"
+    local subdirectory="${2}"
+    git filter-branch -f --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${3} ${4}
 }
 
 function is-merge-with-master() {
@@ -557,15 +560,18 @@ function godep-changes() {
 }
 
 function branch-commit() {
-    git log --grep "Kubernetes-commit: ${1}" --format='%H' ${2:-HEAD}
+    local commit_msg_tag="${1}"
+    git log --grep "${commit_msg_tag}: ${2}" --format='%H' ${3:-HEAD}
 }
 
 function last-kube-commit() {
-    git log --format="%B" ${1:-HEAD} | grep "^Kubernetes-commit: " | head -n 1 | sed "s/^Kubernetes-commit: //g"
+    local commit_msg_tag="${1}"
+    git log --format="%B" ${2:-HEAD} | grep "^${commit_msg_tag}: " | head -n 1 | sed "s/^${commit_msg_tag}: //g"
 }
 
 function kube-commit() {
-    commit-message ${1:-HEAD} | grep "^Kubernetes-commit: " | sed "s/^Kubernetes-commit: //g"
+    local commit_msg_tag="${1}"
+    commit-message ${2:-HEAD} | grep "^${commit_msg_tag}: " | sed "s/^${commit_msg_tag}: //g"
 }
 
 # find the rev when the given commit was merged into the branch
@@ -600,16 +606,17 @@ function fix-godeps() {
     local is_library="${2}"
     local needs_godeps_update="${3}"
     local squash="${4:-true}"
+    local commit_msg_tag="${5}"
     local dst_old_commit=$(git rev-parse HEAD)
     if [ "${needs_godeps_update}" = true ]; then
         # run godeps restore+save
-        update_full_godeps "${deps}" "${is_library}"
+        update_full_godeps "${deps}" "${is_library}" "${commit_msg_tag}"
     elif [ -f Godeps/Godeps.json ]; then
         # update the Godeps.json quickly by just updating the dependency hashes
         # Note: this is a compromise between correctness and completeness. It's neither 100%
         #       of these, but good enough for go get and vendoring tools.
-        checkout-deps-to-kube-commit "${deps}"
-        update-deps-in-godep-json "${deps}" "${is_library}"
+        checkout-deps-to-kube-commit "${commit_msg_tag}" "${deps}"
+        update-deps-in-godep-json "${deps}" "${is_library}" "${commit_msg_tag}"
     fi
 
     # remove vendor/ on non-master branches for libraries
@@ -674,6 +681,7 @@ function squash() {
 update_full_godeps() {
     local deps="${1:-""}"
     local is_library="${2}"
+    local commit_msg_tag="${3}"
 
     ensure-clean-working-dir
 
@@ -710,7 +718,7 @@ update_full_godeps() {
     godep restore
 
     # checkout k8s.io/* dependencies
-    checkout-deps-to-kube-commit "${deps}"
+    checkout-deps-to-kube-commit "${commit_msg_tag}" "${deps}"
 
     # recreate vendor/ and Godeps/Godeps.json
     rm -rf ./Godeps
@@ -767,6 +775,7 @@ update-deps-in-godep-json() {
 
     local is_library=${2}
     local deps=${1}
+    local commit_msg_tag="${3}"
     local deps_array=()
     IFS=',' read -a deps_array <<< "${1}"
     local dep_count=${#deps_array[@]}
@@ -790,7 +799,7 @@ update-deps-in-godep-json() {
             # revert changes and fall back to full vendoring
             echo "Found new dependency k8s.io/${dep}. Switching to full vendoring."
             git checkout -q HEAD Godeps/Godeps.json
-            update_full_godeps "${deps}" "${is_library}"
+            update_full_godeps "${deps}" "${is_library}" "${commit_msg_tag}"
             return $?
         else
             echo "Ignoring k8s.io/${dep} dependency because it seems not to be used."
@@ -817,11 +826,12 @@ update-deps-in-godep-json() {
 
 # checkout the dependencies to the versions corresponding to the kube commit of HEAD
 checkout-deps-to-kube-commit() {
+    local commit_msg_tag="${1}"
     local deps=()
-    IFS=',' read -a deps <<< "${1}"
+    IFS=',' read -a deps <<< "${2}"
 
     # get last k8s.io/kubernetes commit on HEAD ...
-    local k_last_kube_commit="$(last-kube-commit HEAD)"
+    local k_last_kube_commit="$(last-kube-commit ${commit_msg_tag} HEAD)"
     if [ -z "${k_last_kube_commit}" ]; then
         echo "No k8s.io/kubernetes commit found in the history of HEAD."
         return 1
