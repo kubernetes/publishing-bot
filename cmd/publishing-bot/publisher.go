@@ -37,37 +37,15 @@ type PublisherMunger struct {
 	plog *plog
 	// absolute path to the repos.
 	baseRepoPath string
-	// src branch names that are skipped
-	skippedSourceBranches []string
 }
 
 // New will create a new munger.
-func New(cfg *config.Config) (*PublisherMunger, error) {
+func New(cfg *config.Config, baseRepoPath string) *PublisherMunger {
 	// create munger
-	p := &PublisherMunger{}
-
-	// set the baseRepoPath
-	gopath := os.Getenv("GOPATH")
-	// if the SourceRepo is not kubernetes, use github.com as baseRepoPath
-	p.baseRepoPath = filepath.Join(gopath, "src", "github.com", cfg.TargetOrg)
-	if cfg.SourceRepo == "kubernetes" {
-		p.baseRepoPath = filepath.Join(gopath, "src", "k8s.io")
+	return &PublisherMunger{
+		baseRepoPath: baseRepoPath,
+		config:       cfg,
 	}
-
-	// NOTE: Order of the repos is sensitive!!!
-	// A dependent repo needs to be published first, so that other repos can vendor its latest revision.
-	rules, err := config.LoadRules(cfg)
-	if err != nil {
-		return nil, err
-	}
-	p.reposRules = *rules
-	glog.Infof("publisher munger rules: %#v\n", p.reposRules)
-	p.config = cfg
-
-	// TODO: re-enable 1.5, 1.6, 1.7 after enforcing every repo branch to update once to pick up new'ish Godep targets
-	// background: when we still had sync commits, we could not correlate upstream commits correctly
-	p.skippedSourceBranches = rules.SkippedSourceBranches
-	return p, nil
 }
 
 // update the local checkout of the source repository
@@ -86,6 +64,13 @@ func (p *PublisherMunger) updateSourceRepo() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed running %v on %q repo: %v", strings.Join(cmd.Args, " "), p.config.SourceRepo, err)
 	}
+
+	rules, err := config.LoadRules(p.config)
+	if err != nil {
+		return "", err
+	}
+	p.reposRules = *rules
+	glog.Infof("Loaded %d repository rules from %s", len(p.reposRules.Rules), p.config.RulesFile)
 
 	// update source repo branches that are needed by other repos.
 	for _, repoRules := range p.reposRules.Rules {
@@ -114,7 +99,7 @@ func (p *PublisherMunger) updateSourceRepo() (string, error) {
 }
 
 func (p *PublisherMunger) skippedBranch(b string) bool {
-	for _, skipped := range p.skippedSourceBranches {
+	for _, skipped := range p.reposRules.SkippedSourceBranches {
 		if b == skipped {
 			return true
 		}

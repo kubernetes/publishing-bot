@@ -11,7 +11,6 @@ data:
       branches:
       name: <rule-name> # eg. "master"
       - source:
-          repository: <source-repository> # eg. "kubernetes"
           branch: <source-repository-branch> # eg. "master"
           dir: <subdirectory> # eg. "staging/src/k8s.io/client-go"
       publish-script: <script-path> # eg. /publish.sh

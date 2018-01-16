@@ -16,7 +16,11 @@ type Dependency struct {
 }
 
 func (c Dependency) String() string {
-	return fmt.Sprintf("[repository %s, branch %s, subdir %s]", c.Repository, c.Branch, c.Dir)
+	repo := c.Repository
+	if len(repo) == 0 {
+		repo = "<source>"
+	}
+	return fmt.Sprintf("[repository %s, branch %s, subdir %s]", repo, c.Branch, c.Dir)
 }
 
 type BranchRule struct {
