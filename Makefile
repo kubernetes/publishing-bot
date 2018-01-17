@@ -20,6 +20,7 @@ build:
 	$(call build_cmd,collapsed-kube-commit-mapper)
 	$(call build_cmd,publishing-bot)
 	$(call build_cmd,sync-tags)
+	$(call build_cmd,init-repo)
 .PHONY: build
 
 build-image: build

@@ -1,9 +1,10 @@
 initContainers:
 - name: initialize-repos
   command:
-  - /bin/bash
-  - -xc
-  - "ORG=$(grep target-org: /etc/munge-config/config | cut -d' ' -f2) /publish_scripts/initialize_repos.sh"
+  - /init-repo
+  - --alsologtostderr
+  - --config=/etc/munge-config/config
+  - --rules-file=/etc/publisher-rules/config
   - 2>&1
   image: DOCKER_IMAGE
   imagePullPolicy: Always
@@ -17,6 +18,8 @@ initContainers:
     name: munge-config
   - mountPath: /go-workspace
     name: publisher-gopath
+  - mountPath: /etc/publisher-rules
+    name: publisher-rules
 containers:
 - name: publisher
   command:
