@@ -155,6 +155,14 @@ func (p *PublisherMunger) construct() error {
 			}
 			return strings.Join(depStrings, ",")
 		}
+		if len(repoRules.PublishScript) == 0 {
+			repoPublishScriptPath := filepath.Join(p.config.BasePublishScriptPath, "publish_"+repoRules.DestinationRepository+".sh")
+			if _, err := os.Stat(repoPublishScriptPath); err == nil {
+				repoRules.PublishScript = repoPublishScriptPath
+			} else {
+				return fmt.Errorf("PublishScript cannot be empty: %#v", repoRules)
+			}
+		}
 
 		for _, branchRule := range repoRules.Branches {
 			if p.skippedBranch(branchRule.Source.Branch) {
