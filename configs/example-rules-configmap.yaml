@@ -1,0 +1,16 @@
+kind: ConfigMap
+metadata:
+  name: publisher-rules
+data:
+  config: |
+    # Specify branches you want to skip
+    skip-source-branches: 
+    # - release-1.7
+    rules:
+    - destination: <destination-repository-name> # eg. "client-go"
+      branches:
+      name: <rule-name> # eg. "master"
+      - source:
+          branch: <source-repository-branch> # eg. "master"
+          dir: <subdirectory> # eg. "staging/src/k8s.io/client-go"
+      publish-script: <script-path> # eg. /publish.sh

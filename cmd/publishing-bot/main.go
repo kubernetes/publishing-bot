@@ -29,6 +29,8 @@ import (
 
 	"time"
 
+	"path/filepath"
+
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
@@ -46,6 +48,7 @@ func main() {
 	configFilePath := flag.String("config", "", "the config file in yaml format")
 	dryRun := flag.Bool("dry-run", false, "do not push anything to github")
 	tokenFile := flag.String("token-file", "", "the file with the github toke")
+	rulesFile := flag.String("rules-file", "", "the file with repository rules")
 	// TODO: make absolute
 	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
 	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
@@ -83,6 +86,9 @@ func main() {
 	if *tokenFile != "" {
 		cfg.TokenFile = *tokenFile
 	}
+	if *rulesFile != "" {
+		cfg.RulesFile = *rulesFile
+	}
 
 	if len(cfg.SourceRepo) == 0 || len(cfg.SourceOrg) == 0 {
 		glog.Fatalf("source-org and source-repo cannot be empty")
@@ -90,6 +96,23 @@ func main() {
 
 	if len(cfg.TargetOrg) == 0 {
 		glog.Fatalf("Target organization cannot be empty")
+	}
+
+	// set the baseRepoPath
+	gopath := os.Getenv("GOPATH")
+	// if the SourceRepo is not kubernetes, use github.com as baseRepoPath
+	baseRepoPath := filepath.Join(gopath, "src", "github.com", cfg.TargetOrg)
+	if cfg.SourceRepo == "kubernetes" {
+		baseRepoPath = filepath.Join(gopath, "src", "k8s.io")
+	}
+
+	// If RULE_FILE_PATH is detected, check if the source repository include rules files.
+	if len(os.Getenv("RULE_FILE_PATH")) > 0 {
+		cfg.RulesFile = filepath.Join(baseRepoPath, cfg.SourceRepo, os.Getenv("RULE_FILE_PATH"))
+	}
+
+	if len(cfg.RulesFile) == 0 {
+		glog.Fatalf("No rules file provided")
 	}
 
 	// start healthz server
@@ -110,11 +133,7 @@ func main() {
 
 	for {
 		last := time.Now()
-
-		publisher, err := New(&cfg)
-		if err != nil {
-			glog.Fatalf("Failed initialize publisher: %v", err)
-		}
+		publisher := New(&cfg, baseRepoPath)
 
 		if cfg.TokenFile != "" && cfg.GithubIssue != 0 && !cfg.DryRun {
 			// load token

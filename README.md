@@ -40,6 +40,11 @@ Currently we don't have tests for the bot. It relies on manual tests:
   - and by changing the Makefile constants in `configs/<yourconfig>`
   - and the ConfigMap values in  `configs/<yourconfig>-configmap.yaml.
 
+* Create a rules config and a corresponding ConfigMap in [configs](configs),
+  - by copying [configs/example-rules-configmap.yaml](configs/example-rules-configmap.yaml),
+  - and by changing the Makefile constants in `configs/<yourconfig>`
+  - and the ConfigMap values in  `configs/<yourconfig>-rules-configmap.yaml.
+
 * Deploy the publishing bot by running make from the bot root directory, e.g.
 
 ```shell

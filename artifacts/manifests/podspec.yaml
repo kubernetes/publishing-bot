@@ -23,6 +23,7 @@ containers:
   - /publishing-bot
   - --alsologtostderr
   - --config=/etc/munge-config/config
+  - --rules-file=/etc/publisher-rules/config
   - --token-file=/etc/secret-volume/token
   - --interval=0
   - --healthz-port=8080
@@ -37,6 +38,8 @@ containers:
   volumeMounts:
   - mountPath: /etc/munge-config
     name: munge-config
+  - mountPath: /etc/publisher-rules
+    name: publisher-rules
   - mountPath: /etc/secret-volume
     name: secret-volume
   - mountPath: /netrc
@@ -49,6 +52,9 @@ volumes:
 - name: munge-config
   configMap:
     name: publisher-config
+- name: publisher-rules
+  configMap:
+    name: publisher-rules
 - name: secret-volume
   secret:
     secretName: github-token

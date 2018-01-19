@@ -30,6 +30,9 @@ type Config struct {
 	// the file with the clear-text github token
 	TokenFile string `yaml:"token-file,omitempty"`
 
+	// the file that contain the repository rules
+	RulesFile string `yaml:"rules-file"`
+
 	// If true, don't make any mutating API calls
 	DryRun bool
 
