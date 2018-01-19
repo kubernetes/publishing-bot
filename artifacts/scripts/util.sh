@@ -628,6 +628,17 @@ function fix-godeps() {
         fi
     fi
 
+    # run golang dep
+    echo "Running dep init."
+    rm -rf vendor/
+    dep init -gopath
+    git add Gopkg.{toml,lock}
+    if ! git diff-index --quiet --cached HEAD -- ; then
+        git commit -q -m "sync: run golang/dep"
+    fi
+    rm -rf vendor/
+    git reset --hard
+
     # amend godep commit to ${dst_old_commit}
     if ! git diff --exit-code ${dst_old_commit} &>/dev/null && [ "${squash}" = true ]; then
         echo "Amending last merge with godep changes."

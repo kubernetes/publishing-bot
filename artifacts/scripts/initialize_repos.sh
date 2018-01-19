@@ -35,7 +35,7 @@ popd
 
 go get github.com/golang/dep
 pushd ${GOPATH}/src/github.com/golang/dep
-    git checkout 7c44971bbb9f0ed87db40b601f2d9fe4dffb750d
+    git checkout 3a59b68597c76c889b2ff2854b30bc29e902b555
     go install ./cmd/dep
 popd
 
