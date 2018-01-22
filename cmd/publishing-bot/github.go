@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
@@ -47,10 +46,10 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	// who am I?
 	myself, resp, err := client.Users.Get(ctx, "")
 	if err != nil {
-		glog.Fatalf("Failed to get own user: %v", err)
+		return fmt.Errorf("failed to get own user: %v", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		glog.Fatalf("Failed to get own user: HTTP code %d", resp.StatusCode)
+		return fmt.Errorf("failed to get own user: HTTP code %d", resp.StatusCode)
 	}
 
 	// create new newComment
@@ -59,10 +58,10 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 		Body: &body,
 	})
 	if err != nil {
-		glog.Fatalf("Failed to comment on issue #%d: %v", issue, err)
+		return fmt.Errorf("failed to comment on issue #%d: %v", issue, err)
 	}
 	if resp.StatusCode >= 300 {
-		glog.Fatalf("Failed to comment on issue #%d: HTTP code %d", issue, resp.StatusCode)
+		return fmt.Errorf("failed to comment on issue #%d: HTTP code %d", issue, resp.StatusCode)
 	}
 
 	// re-open issue in case it was closed
@@ -70,19 +69,19 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 		State: github.String("open"),
 	})
 	if err != nil {
-		glog.Fatalf("Failed to re-open issue #%d: %v", issue, err)
+		return fmt.Errorf("failed to re-open issue #%d: %v", issue, err)
 	}
 	if resp.StatusCode >= 300 {
-		glog.Fatalf("Failed to re-open issue #%d: HTTP code %d", issue, resp.StatusCode)
+		return fmt.Errorf("failed to re-open issue #%d: HTTP code %d", issue, resp.StatusCode)
 	}
 
 	// delete all other comments from this user
 	comments, resp, err := client.Issues.ListComments(ctx, org, repo, issue, &github.IssueListCommentsOptions{})
 	if err != nil {
-		glog.Fatalf("Failed to get github comments of issue #%d: %v", issue, err)
+		return fmt.Errorf("failed to get github comments of issue #%d: %v", issue, err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		glog.Fatalf("Failed to get github comments of issue #%d: HTTP code %d", issue, resp.StatusCode)
+		return fmt.Errorf("failed to get github comments of issue #%d: HTTP code %d", issue, resp.StatusCode)
 	}
 	for _, c := range comments {
 		if *c.User.ID == *myself.ID && *c.ID != *newComment.ID {
@@ -101,10 +100,10 @@ func CloseIssue(token, org, repo string, issue int) error {
 		State: github.String("closed"),
 	})
 	if err != nil {
-		glog.Fatalf("Failed to close issue #%d: %v", issue, err)
+		return fmt.Errorf("failed to close issue #%d: %v", issue, err)
 	}
 	if resp.StatusCode >= 300 {
-		glog.Fatalf("Failed to close issue #%d: HTTP code %d", issue, resp.StatusCode)
+		return fmt.Errorf("failed to close issue #%d: HTTP code %d", issue, resp.StatusCode)
 	}
 
 	return nil
