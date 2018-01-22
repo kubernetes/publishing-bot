@@ -53,6 +53,7 @@ func main() {
 	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
 	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
+	basePublishScriptPath := flag.String("base-publish-script-path", "./publish_scripts", `the base path in source repo where bot will look for publishing scripts`)
 	interval := flag.Uint("interval", 0, "loop with the given seconds of wait in between")
 	healthzPort := flag.Int("healthz-port", 0, "start healthz webserver on the given port listening on 0.0.0.0")
 
@@ -88,6 +89,9 @@ func main() {
 	}
 	if *rulesFile != "" {
 		cfg.RulesFile = *rulesFile
+	}
+	if *basePublishScriptPath != "" {
+		cfg.BasePublishScriptPath = *basePublishScriptPath
 	}
 
 	if len(cfg.SourceRepo) == 0 || len(cfg.SourceOrg) == 0 {

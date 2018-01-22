@@ -22,3 +22,7 @@ data:
     # CAUTION: do not check this into Github. You can also and probably should pass that as
     #          TOKEN=<yourtoken> to the "make deploy" command.
     # token: <yourtoken>
+
+    # the base path where the bot will look for a publish scripts in the source
+    # repository. Default value is "./publish_scripts".
+    # base-publish-script-path: <path>
