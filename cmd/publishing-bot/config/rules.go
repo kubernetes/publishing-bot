@@ -11,11 +11,25 @@ import (
 type Dependency struct {
 	Repository string `yaml:"repository"`
 	Branch     string `yaml:"branch"`
+}
+
+func (c Dependency) String() string {
+	repo := c.Repository
+	if len(repo) == 0 {
+		repo = "<source>"
+	}
+	return fmt.Sprintf("[repository %s, branch %s]", repo, c.Branch)
+}
+
+// Source of a piece of code
+type Source struct {
+	Repository string `yaml:"repository"`
+	Branch     string `yaml:"branch"`
 	// Dir from repo root
 	Dir string `yaml:"dir,omitempty"`
 }
 
-func (c Dependency) String() string {
+func (c Source) String() string {
 	repo := c.Repository
 	if len(repo) == 0 {
 		repo = "<source>"
@@ -27,7 +41,7 @@ type BranchRule struct {
 	Name string `yaml:"name"`
 	// k8s.io/* repos the branch rule depends on
 	Dependencies []Dependency `yaml:"dependencies,omitempty"`
-	Source       Dependency   `yaml:"source"`
+	Source       Source       `yaml:"source"`
 }
 
 // a collection of publishing rules for a single destination repo
