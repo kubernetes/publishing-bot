@@ -602,6 +602,10 @@ function git-index-clean() {
 }
 
 function fix-godeps() {
+    if [ "${PUBLISHER_BOT_SKIP_GODEPS:-}" = true ]; then
+        return 0
+    fi
+
     local deps="${1:-""}"
     local is_library="${2}"
     local needs_godeps_update="${3}"
@@ -642,6 +646,10 @@ function fix-godeps() {
 # commit, even an empty one.
 function reset-godeps() {
     local f_clean_commit=${1}
+
+    if [ "${PUBLISHER_BOT_SKIP_GODEPS:-}" = true ]; then
+        return 0
+    fi
 
     # checkout or delete Godeps/Godeps.json
     if [ -n "$(git ls-tree ${f_clean_commit}^{tree} Godeps)" ]; then
