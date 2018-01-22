@@ -17,7 +17,6 @@ limitations under the License.
 package git
 
 import (
-	"fmt"
 	"strings"
 
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -28,18 +27,13 @@ import (
 // The baseRepoName default to "kubernetes".
 // TODO: Refactor so we take the commitMsgTag as argument and don't need to
 // construct the ancientSyncCommitSubjectPrefix or sourceCommitPrefix
-func SourceHash(c *object.Commit, baseRepoOrg, baseRepoName string) plumbing.Hash {
+func SourceHash(c *object.Commit, tag string) plumbing.Hash {
 	lines := strings.Split(c.Message, "\n")
-	sourceCommitPrefix := strings.Title(baseRepoName) + "-commit: "
-	ancientSyncCommitSubjectPrefix := fmt.Sprintf("sync(%s/%s)", baseRepoOrg, baseRepoName)
+	sourceCommitPrefix := tag + ": "
 	for _, line := range lines {
 		if strings.HasPrefix(line, sourceCommitPrefix) {
 			return plumbing.NewHash(strings.TrimSpace(line[len(sourceCommitPrefix):]))
 		}
-	}
-
-	if strings.HasPrefix(lines[0], ancientSyncCommitSubjectPrefix) {
-		return plumbing.NewHash(strings.TrimSpace(lines[0][len(ancientSyncCommitSubjectPrefix):]))
 	}
 
 	return plumbing.ZeroHash

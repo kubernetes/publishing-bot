@@ -40,7 +40,7 @@ expected that the commit messages on the current branch contain a
 commit. Note, that a number of k8s.io/kubernetes mainline commits might
 be collapsed during filtering:
 
-    HEAD <upstream-branch>
+    HEAD <source-branch>
      |          |
      H'<--------H
      z          |
@@ -65,27 +65,21 @@ The sorted output looks like this:
     <sha of H> <sha of H'>
     ...
 
-Usage: %s --upstream-branch <upstream-branch> [-l]
+Usage: %s --source-branch <source-branch> [-l] [--commit-message-tag <Commit-message-tag>]
 `, os.Args[0])
 	flag.PrintDefaults()
 }
 
 func main() {
-	upstreamBranch := flag.String("upstream-branch", "", "the k8s.io/kubernetes branch (fully qualified e.g. refs/remotes/origin/master) used as the filter-branch basis")
+	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
+	sourceBranch := flag.String("source-branch", "", "the source branch (fully qualified e.g. refs/remotes/origin/master) used as the filter-branch basis")
 	showMessage := flag.Bool("l", false, "list the commit message after the two hashes")
-
-	repoName := flag.String("source-repo", "", "the name of the source repository")
-	repoOrg := flag.String("source-org", "", "the name of the source repository organization")
 
 	flag.Usage = Usage
 	flag.Parse()
 
-	if len(*repoName) == 0 || len(*repoOrg) == 0 {
-		glog.Fatalf("source-org and source-repo cannot be empty")
-	}
-
-	if *upstreamBranch == "" {
-		glog.Fatalf("upstream-branch cannot be empty")
+	if *sourceBranch == "" {
+		glog.Fatalf("source-branch cannot be empty")
 	}
 
 	// open repo at "."
@@ -105,17 +99,17 @@ func main() {
 	}
 
 	// get first-parent commit list of upstream branch
-	kUpstreamBranch, err := r.ResolveRevision(plumbing.Revision(*upstreamBranch))
+	kUpstreamBranch, err := r.ResolveRevision(plumbing.Revision(*sourceBranch))
 	if err != nil {
-		glog.Fatalf("Failed to open upstream branch %s: %v", *upstreamBranch, err)
+		glog.Fatalf("Failed to open upstream branch %s: %v", *sourceBranch, err)
 	}
 	kHead, err := cache.CommitObject(r, *kUpstreamBranch)
 	if err != nil {
-		glog.Fatalf("Failed to open upstream branch %s head: %v", *upstreamBranch, err)
+		glog.Fatalf("Failed to open upstream branch %s head: %v", *sourceBranch, err)
 	}
 	kFirstParents, err := git.FirstParentList(r, kHead)
 	if err != nil {
-		glog.Fatalf("Failed to get upstream branch %s first-parent list: %v", *upstreamBranch, err)
+		glog.Fatalf("Failed to get upstream branch %s first-parent list: %v", *sourceBranch, err)
 	}
 
 	// get first-parent commit list of HEAD
@@ -124,9 +118,9 @@ func main() {
 		glog.Fatalf("Failed to get first-parent commit list for %s: %v", dstHead.Hash, err)
 	}
 
-	sourceCommitToDstCommits, err := git.SourceCommitToDstCommits(r, *repoOrg, *repoName, dstFirstParents, kFirstParents)
+	sourceCommitToDstCommits, err := git.SourceCommitToDstCommits(r, *commitMsgTag, dstFirstParents, kFirstParents)
 	if err != nil {
-		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *upstreamBranch, err)
+		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
 	}
 
 	// print out a look-up table

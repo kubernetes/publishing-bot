@@ -41,7 +41,7 @@ import (
 //       B
 //       A - initial commit
 //
-func SourceCommitToDstCommits(r *gogit.Repository, repoOrg, repoName string, dstFirstParents, kFirstParents []*object.Commit) (map[plumbing.Hash]plumbing.Hash, error) {
+func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirstParents, kFirstParents []*object.Commit) (map[plumbing.Hash]plumbing.Hash, error) {
 	// compute merge point table
 	kubeMergePoints, err := MergePoints(r, kFirstParents)
 	if err != nil {
@@ -52,7 +52,7 @@ func SourceCommitToDstCommits(r *gogit.Repository, repoOrg, repoName string, dst
 	directKubeHashToDstMainLineHash := map[plumbing.Hash]plumbing.Hash{}
 	for _, c := range dstFirstParents {
 		// kh might be a non-mainline-merge (because we had used branch commits as kube hashes long ago)
-		kh := SourceHash(c, repoOrg, repoName)
+		kh := SourceHash(c, commitMsgTag)
 		if kh == plumbing.ZeroHash {
 			continue
 		}
