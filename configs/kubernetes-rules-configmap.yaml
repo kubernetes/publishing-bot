@@ -3,10 +3,9 @@ metadata:
   name: publisher-rules
 data:
   config: |
-    skip-source-branches: 
+    skip-source-branches:
     - release-1.5
     - release-1.6
-    - release-1.7
     rules:
     - destination: apimachinery
       branches:
