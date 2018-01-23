@@ -95,7 +95,8 @@ EXTRA_ARGS=()
 PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH}.sh
 echo "#!/bin/bash" > ${PUSH_SCRIPT}
 chmod +x ${PUSH_SCRIPT}
-/sync-tags --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
+/sync-tags --prefix "$(echo ${SOURCE_REPO_NAME})-" \
+           --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
            --source-remote upstream --source-branch "${SRC_BRANCH}" \
            --push-script ${PUSH_SCRIPT} "${EXTRA_ARGS[@]-}" \
            -alsologtostderr
