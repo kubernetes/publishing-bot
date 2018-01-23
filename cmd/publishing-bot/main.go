@@ -55,7 +55,7 @@ func main() {
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
 	basePublishScriptPath := flag.String("base-publish-script-path", "./publish_scripts", `the base path in source repo where bot will look for publishing scripts`)
 	interval := flag.Uint("interval", 0, "loop with the given seconds of wait in between")
-	healthzPort := flag.Int("healthz-port", 0, "start healthz webserver on the given port listening on 0.0.0.0")
+	serverPort := flag.Int("server-port", 0, "start a webserver on the given port listening on 0.0.0.0")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -119,13 +119,16 @@ func main() {
 		glog.Fatalf("No rules file provided")
 	}
 
-	// start healthz server
-	healthz := Healthz{
-		Issue:  cfg.GithubIssue,
-		config: cfg,
+	runChan := make(chan bool, 1)
+
+	// start server
+	server := Server{
+		Issue:   cfg.GithubIssue,
+		config:  cfg,
+		RunChan: runChan,
 	}
-	if *healthzPort != 0 {
-		if err := healthz.Run(*healthzPort); err != nil {
+	if *serverPort != 0 {
+		if err := server.Run(*serverPort); err != nil {
 			glog.Fatalf("Failed to run healthz server: %v", err)
 		}
 	}
@@ -149,21 +152,21 @@ func main() {
 
 			// run
 			logs, hash, err := publisher.Run()
-			healthz.SetHealth(err == nil, hash)
+			server.SetHealth(err == nil, hash)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 					githubIssueErrorf("Failed to report logs on github issue: %v", err)
-					healthz.SetHealth(false, hash)
+					server.SetHealth(false, hash)
 				}
 			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 				githubIssueErrorf("Failed to close issue: %v", err)
-				healthz.SetHealth(false, hash)
+				server.SetHealth(false, hash)
 			}
 		} else {
 			// run
 			_, hash, err := publisher.Run()
-			healthz.SetHealth(err == nil, hash)
+			server.SetHealth(err == nil, hash)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 			}
@@ -173,8 +176,9 @@ func main() {
 			break
 		}
 
-		timeToSleep := time.Duration(int(*interval)-int(time.Since(last).Seconds())) * time.Second
-		glog.Infof("Sleeping %v until next run", timeToSleep)
-		time.Sleep(timeToSleep)
+		select {
+		case <-runChan:
+		case <-time.After(time.Duration(int(*interval)-int(time.Since(last).Seconds())) * time.Second):
+		}
 	}
 }
