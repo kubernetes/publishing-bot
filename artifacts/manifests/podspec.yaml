@@ -29,7 +29,7 @@ containers:
   - --rules-file=/etc/publisher-rules/config
   - --token-file=/etc/secret-volume/token
   - --interval=0
-  - --healthz-port=8080
+  - --server-port=8080
   - 2>&1
   image: DOCKER_IMAGE
   imagePullPolicy: Always

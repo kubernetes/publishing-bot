@@ -28,8 +28,9 @@ import (
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
-type Healthz struct {
-	Issue int
+type Server struct {
+	Issue   int
+	RunChan chan bool
 
 	mutex    sync.RWMutex
 	response HealthResponse
@@ -48,7 +49,7 @@ type HealthResponse struct {
 	Issue string `json:"issue,omitempty"`
 }
 
-func (h *Healthz) SetHealth(healthy bool, hash string) {
+func (h *Server) SetHealth(healthy bool, hash string) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
@@ -65,9 +66,10 @@ func (h *Healthz) SetHealth(healthy bool, hash string) {
 	}
 }
 
-func (h *Healthz) Run(port int) error {
+func (h *Server) Run(port int) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", h.handler)
+	mux.HandleFunc("/healthz", h.healthzHandler)
+	mux.HandleFunc("/run", h.runHandler)
 	addr := fmt.Sprintf("0.0.0.0:%d", port)
 	glog.Infof("Listening on %v", addr)
 	go func() {
@@ -77,7 +79,19 @@ func (h *Healthz) Run(port int) error {
 	return nil
 }
 
-func (h *Healthz) handler(w http.ResponseWriter, r *http.Request) {
+func (h *Server) runHandler(w http.ResponseWriter, r *http.Request) {
+	if h.RunChan == nil {
+		http.Error(w, "run channel is closed", http.StatusInternalServerError)
+		return
+	}
+	select {
+	case h.RunChan <- true:
+	default:
+	}
+	w.Write([]byte("OK"))
+}
+
+func (h *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	h.mutex.RLock()
 	resp := h.response
 	if h.Issue != 0 {
