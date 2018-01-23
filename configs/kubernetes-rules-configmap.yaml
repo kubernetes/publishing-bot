@@ -28,7 +28,7 @@ data:
       - source:
           branch: release-1.9
           dir: staging/src/k8s.io/apimachinery
-        name: relase-1.9
+        name: release-1.9
       publish-script: /publish_scripts/publish_apimachinery.sh
     - destination: api
       branches:
