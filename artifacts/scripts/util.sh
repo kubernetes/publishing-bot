@@ -528,7 +528,8 @@ function commit-subject() {
 function filter-branch() {
     local commit_msg_tag="${1}"
     local subdirectory="${2}"
-    git filter-branch -f --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${3} ${4}
+    echo "Running git filter-branch ..."
+    git filter-branch -f --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${3} ${4} >/dev/null
 }
 
 function is-merge-with-master() {
