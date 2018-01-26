@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	depCommit   = "7c44971bbb9f0ed87db40b601f2d9fe4dffb750d"
+	depCommit   = "37d9ea0ac16f0e0a05afc3b60e1ac8c364b6c329"
 	godepCommit = "tags/v79"
 )
 
