@@ -153,14 +153,13 @@ func main() {
 	}
 
 	// get all annotated tags
-	fmt.Printf("Resolving all tags.\n")
 	bTagCommits, err := remoteTags(r, "origin")
 	if err != nil {
-		glog.Fatalf("Failed to iterate through tags: %v", err)
+		glog.Fatalf("Failed to iterate through origin tags: %v", err)
 	}
 	kTagCommits, err := remoteTags(r, *sourceRemote)
 	if err != nil {
-		glog.Fatalf("Failed to iterate through tags: %v", err)
+		glog.Fatalf("Failed to iterate through %s tags: %v", *sourceRemote, err)
 	}
 
 	// compute kube commit map
@@ -178,12 +177,6 @@ func main() {
 			bName = *prefix + name[1:] // remove the v
 		}
 
-		// skip if it already exists in origin
-		if _, found := bTagCommits[bName]; found {
-			fmt.Printf("Ignoring existing tag origin/%s\n", bName)
-			continue
-		}
-
 		// ignore non-annotated tags
 		tag, err := r.TagObject(kh)
 		if err != nil {
@@ -199,12 +192,18 @@ func main() {
 		// map kube commit to local branch
 		bh, found := sourceCommitsToDstCommits[tag.Target]
 		if !found {
+			// this means that the tag is not on the current source branch
 			continue
 		}
 
 		// do not override tags (we build master first, i.e. the x.y.z-alpha.0 tag on master will not be created for feature branches)
 		if tagExists(r, bName) {
-			fmt.Printf("Skipping existing tag %q.\n", bName)
+			continue
+		}
+
+		// skip if it already exists in origin
+		if _, found := bTagCommits[bName]; found {
+			fmt.Printf("Ignoring already published tag %s.\n", bName)
 			continue
 		}
 
