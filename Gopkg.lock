@@ -36,6 +36,12 @@
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
 
 [[projects]]
+  name = "github.com/pelletier/go-toml"
+  packages = ["."]
+  revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
+  version = "v1.1.0"
+
+[[projects]]
   name = "github.com/renstrom/dedent"
   packages = ["."]
   revision = "a1eba44eaecc89804e4b05ce2d17168eb353d524"
@@ -196,6 +202,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0f10913767e98772d45c86975426243d09ad398112b933b608ace6e9ec093687"
+  inputs-digest = "e80973ae7120f5aa16b9607a4efc854e7e8a35e651732585d2fe71f9522e35e6"
   solver-name = "gps-cdcl"
   solver-version = 1
