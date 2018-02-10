@@ -98,5 +98,7 @@ chmod +x ${PUSH_SCRIPT}
 /sync-tags --prefix "$(echo ${SOURCE_REPO_NAME})-" \
            --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
            --source-remote upstream --source-branch "${SRC_BRANCH}" \
-           --push-script ${PUSH_SCRIPT} "${EXTRA_ARGS[@]-}" \
-           -alsologtostderr
+           --push-script ${PUSH_SCRIPT} \
+           --dependencies "${DEPS}" \
+           -alsologtostderr \
+           "${EXTRA_ARGS[@]-}"

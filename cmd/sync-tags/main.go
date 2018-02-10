@@ -28,6 +28,7 @@ import (
 	"github.com/renstrom/dedent"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 
 	"k8s.io/publishing-bot/pkg/cache"
 	"k8s.io/publishing-bot/pkg/git"
@@ -52,6 +53,11 @@ Usage: %s --source-remote <remote> --source-branch <source-branch>
 
 const rfc2822 = "Mon Jan 02 15:04:05 -0700 2006"
 
+var publishingBot = object.Signature{
+	Name:  os.Getenv("GIT_COMMITTER_NAME"),
+	Email: os.Getenv("GIT_COMMITTER_EMAIL"),
+}
+
 func main() {
 	// repository flags used when the repository is not k8s.io/kubernetes
 	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
@@ -60,6 +66,7 @@ func main() {
 	publishBranch := flag.String("branch", "", "a (not qualified) branch name")
 	prefix := flag.String("prefix", "kubernetes-", "a string to put in front of upstream tags")
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
+	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -70,6 +77,14 @@ func main() {
 
 	if *sourceBranch == "" {
 		glog.Fatalf("source-branch cannot be empty")
+	}
+
+	var dependentRepos []string
+	if len(*dependencies) > 0 {
+		for _, pair := range strings.Split(*dependencies, ",") {
+			ps := strings.Split(pair, ":")
+			dependentRepos = append(dependentRepos, ps[0])
+		}
 	}
 
 	// open repo at "."
@@ -138,14 +153,13 @@ func main() {
 	}
 
 	// get all annotated tags
-	fmt.Printf("Resolving all tags.\n")
 	bTagCommits, err := remoteTags(r, "origin")
 	if err != nil {
-		glog.Fatalf("Failed to iterate through tags: %v", err)
+		glog.Fatalf("Failed to iterate through origin tags: %v", err)
 	}
 	kTagCommits, err := remoteTags(r, *sourceRemote)
 	if err != nil {
-		glog.Fatalf("Failed to iterate through tags: %v", err)
+		glog.Fatalf("Failed to iterate through %s tags: %v", *sourceRemote, err)
 	}
 
 	// compute kube commit map
@@ -163,12 +177,6 @@ func main() {
 			bName = *prefix + name[1:] // remove the v
 		}
 
-		// skip if it already exists in origin
-		if _, found := bTagCommits[bName]; found {
-			fmt.Printf("Ignoring existing tag origin/%s\n", bName)
-			continue
-		}
-
 		// ignore non-annotated tags
 		tag, err := r.TagObject(kh)
 		if err != nil {
@@ -184,13 +192,48 @@ func main() {
 		// map kube commit to local branch
 		bh, found := sourceCommitsToDstCommits[tag.Target]
 		if !found {
+			// this means that the tag is not on the current source branch
 			continue
 		}
 
 		// do not override tags (we build master first, i.e. the x.y.z-alpha.0 tag on master will not be created for feature branches)
 		if tagExists(r, bName) {
-			fmt.Printf("Skipping existing tag %q.\n", bName)
 			continue
+		}
+
+		// skip if it already exists in origin
+		if _, found := bTagCommits[bName]; found {
+			fmt.Printf("Ignoring already published tag %s.\n", bName)
+			continue
+		}
+
+		// update Godeps.json to point to actual tagged version in the dependencies. This version might differ
+		// from the one currently in Godeps.json because the other repo could have gotten more commit for this
+		// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
+		if len(dependentRepos) > 0 {
+			fmt.Printf("Checking that Godeps.json points to the actual tags in %s.\n", strings.Join(dependentRepos, ", "))
+			wt, err := r.Worktree()
+			if err != nil {
+				glog.Fatalf("Failed to get working tree: %v", err)
+			}
+			if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
+				glog.Fatalf("Failed to checkout %v: %v", bh, err)
+			}
+			changed, err := updateGodepsJsonWithTaggedDependencies(r, bName, dependentRepos)
+			if err != nil {
+				glog.Fatalf("Failed to update Godeps.json for tag %s: %v", bName, err)
+			}
+			if changed {
+				fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
+				bh, err = wt.Commit(fmt.Sprintf("Fix Godeps.json to point to %s tags", bName), &gogit.CommitOptions{
+					All:       true,
+					Author:    &publishingBot,
+					Committer: &publishingBot,
+				})
+				if err != nil {
+					glog.Fatalf("Failed to commit Godeps/Godeps.json changes: %v", err)
+				}
+			}
 		}
 
 		// create prefixed annotated tag
