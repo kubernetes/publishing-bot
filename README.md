@@ -67,7 +67,7 @@ This will not push to your org, but runs in dry-run mode. To run with a push, ad
 * Use one of the existing [configs](configs) and
 * launch `make deploy CONFIG=configs/kubernetes-nightly`
 
-**Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will close, them triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
+**Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will close, then triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
 
 ## Known issues
 
