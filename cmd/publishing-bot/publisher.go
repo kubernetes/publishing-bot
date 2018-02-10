@@ -147,7 +147,6 @@ func (p *PublisherMunger) construct() error {
 			return err
 		}
 
-		// construct branches
 		formatDeps := func(deps []config.Dependency) string {
 			var depStrings []string
 			for _, dep := range deps {
@@ -156,6 +155,7 @@ func (p *PublisherMunger) construct() error {
 			return strings.Join(depStrings, ",")
 		}
 
+		// construct branches
 		for _, branchRule := range repoRule.Branches {
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
@@ -175,6 +175,7 @@ func (p *PublisherMunger) construct() error {
 				branchRule.Source.Branch,
 				branchRule.Name,
 				formatDeps(branchRule.Dependencies),
+				strings.Join(branchRule.RequiredPackages, ":"),
 				sourceRemote,
 				branchRule.Source.Dir,
 				p.config.SourceRepo,
