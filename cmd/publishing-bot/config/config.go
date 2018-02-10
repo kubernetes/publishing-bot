@@ -40,8 +40,6 @@ type Config struct {
 	GithubIssue int `yaml:"github-issue,omitempty"`
 
 	// BasePublishScriptPath determine the base path where we will look for a
-	// publishing scripts in the source repo.
-	// This is optional and if not set, it will default to './publishing_scripts'.
-	// The script path should be ./publish_scripts/publish_<DESTINATION>.sh
+	// publishing scripts in the source repo. It defaults to ./publishing_scripts'.
 	BasePublishScriptPath string `yaml:"base-publish-script-path,omitempty"`
 }

@@ -94,6 +94,12 @@ func main() {
 		cfg.BasePublishScriptPath = *basePublishScriptPath
 	}
 
+	var err error
+	cfg.BasePublishScriptPath, err = filepath.Abs(cfg.BasePublishScriptPath)
+	if err != nil {
+		glog.Fatalf("Failed to get absolute path for base-publish-script-path %q: %v", cfg.BasePublishScriptPath, err)
+	}
+
 	if len(cfg.SourceRepo) == 0 || len(cfg.SourceOrg) == 0 {
 		glog.Fatalf("source-org and source-repo cannot be empty")
 	}

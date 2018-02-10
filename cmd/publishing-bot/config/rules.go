@@ -48,8 +48,8 @@ type BranchRule struct {
 type RepositoryRule struct {
 	DestinationRepository string       `yaml:"destination"`
 	Branches              []BranchRule `yaml:"branches"`
-	// if empty (e.g., for client-go), publisher will use its default publish script
-	PublishScript string `yaml:"publish-script"`
+	SmokeTest             string       `yaml:"smoke-test,omitempty"` // a multiline bash script
+	Library               bool         `yaml:"library,omitempty"`
 	// not updated when true
 	Skip bool `yaml:"skipped,omitempty"`
 }

@@ -155,14 +155,6 @@ func (p *PublisherMunger) construct() error {
 			}
 			return strings.Join(depStrings, ",")
 		}
-		if len(repoRule.PublishScript) == 0 {
-			repoPublishScriptPath := filepath.Join(p.config.BasePublishScriptPath, "publish_"+repoRule.DestinationRepository+".sh")
-			if _, err := os.Stat(repoPublishScriptPath); err == nil {
-				repoRule.PublishScript = repoPublishScriptPath
-			} else {
-				return fmt.Errorf("PublishScript cannot be empty: %#v", repoRule)
-			}
-		}
 
 		for _, branchRule := range repoRule.Branches {
 			if p.skippedBranch(branchRule.Source.Branch) {
@@ -172,16 +164,41 @@ func (p *PublisherMunger) construct() error {
 				branchRule.Source.Dir = "."
 				p.plog.Infof("%v: 'dir' cannot be empty, defaulting to '.'", branchRule)
 			}
-			// TODO: Refactor this to use environment variables instead
-			cmd := exec.Command(repoRule.PublishScript, branchRule.Source.Branch, branchRule.Name, formatDeps(branchRule.Dependencies), sourceRemote, branchRule.Source.Dir, p.config.SourceRepo, p.config.SourceRepo)
 
+			// get old HEAD. Ignore errors as the branch might be non-existent
+			oldHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output()
+
+			// TODO: Refactor this to use environment variables instead
+			repoPublishScriptPath := filepath.Join(p.config.BasePublishScriptPath, "construct.sh")
+			cmd := exec.Command(repoPublishScriptPath,
+				repoRule.DestinationRepository,
+				branchRule.Source.Branch,
+				branchRule.Name,
+				formatDeps(branchRule.Dependencies),
+				sourceRemote,
+				branchRule.Source.Dir,
+				p.config.SourceRepo,
+				p.config.SourceRepo,
+				fmt.Sprintf("%v", repoRule.Library))
 			if p.reposRules.SkipGodeps {
 				cmd.Env = append(os.Environ(), "PUBLISHER_BOT_SKIP_GODEPS=true")
 			}
-
 			if err := p.plog.Run(cmd); err != nil {
 				return err
 			}
+
+			newHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("HEAD", branchRule.Name)).Output()
+			if len(repoRule.SmokeTest) > 0 && string(oldHead) != string(newHead) {
+				p.plog.Infof("Running smoke tests for branch %s", branchRule.Name)
+				cmd := exec.Command("/bin/bash", "-xec", repoRule.SmokeTest)
+				if err := p.plog.Run(cmd); err != nil {
+					// do not clean up to allow debugging with kubectl-exec.
+					return err
+				}
+				exec.Command("git", "reset", "--hard").Run()
+				exec.Command("git", "clean", "-f", "-f", "-d").Run()
+			}
+
 			p.plog.Infof("Successfully constructed %s", branchRule.Name)
 		}
 	}
