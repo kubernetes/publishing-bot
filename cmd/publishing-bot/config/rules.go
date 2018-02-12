@@ -40,8 +40,9 @@ func (c Source) String() string {
 type BranchRule struct {
 	Name string `yaml:"name"`
 	// k8s.io/* repos the branch rule depends on
-	Dependencies []Dependency `yaml:"dependencies,omitempty"`
-	Source       Source       `yaml:"source"`
+	Dependencies     []Dependency `yaml:"dependencies,omitempty"`
+	Source           Source       `yaml:"source"`
+	RequiredPackages []string     `yaml:"required-packages,omitempty"`
 }
 
 // a collection of publishing rules for a single destination repo

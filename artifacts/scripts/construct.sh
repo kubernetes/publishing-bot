@@ -37,8 +37,8 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-if [ ! $# -eq 9 ]; then
-    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos kubernetes_remote subdirectory source_repo_org source_repo_name is_library"
+if [ ! $# -eq 10 ]; then
+    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name is_library"
     exit 1
 fi
 
@@ -50,17 +50,23 @@ SRC_BRANCH="${2:-master}"
 DST_BRANCH="${3:-master}"
 # dependent k8s.io repos
 DEPS="${4}"
+# required packages that are manually copied completely into vendor/, e.g. k8s.io/code-generator or a sub-package. They must be dependencies as well, either via Go imports or via ${DEPS}.
+REQUIRED="${5}"
 # Remote url for Kubernetes. If empty, will fetch kubernetes
 # from https://github.com/kubernetes/kubernetes.
-SOURCE_REMOTE="${5}"
+SOURCE_REMOTE="${6}"
 # maps to staging/k8s.io/src/${REPO}
-SUBDIR="${6}"
+SUBDIR="${7}"
 # source repository organization name (eg. kubernetes)
-SOURCE_REPO_ORG="${7}"
+SOURCE_REPO_ORG="${8}"
 # source repository name (eg. kubernetes) has to be set for the sync-tags
-SOURCE_REPO_NAME="${8}"
+SOURCE_REPO_NAME="${9}"
+
+shift 9
+
 # If ${REPO} is a library
-IS_LIBRARY="${9}"
+IS_LIBRARY="${1}"
+
 readonly SRC_BRANCH DST_BRANCH DEPS SOURCE_REMOTE SOURCE_REPO_ORG SOURCE_REPO_NAME SUBDIR IS_LIBRARY
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
@@ -88,7 +94,7 @@ fi
 
 # sync_repo cherry-picks the commits that change
 # k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
-sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${IS_LIBRARY}"
+sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${IS_LIBRARY}"
 
 # add tags
 EXTRA_ARGS=()

@@ -131,7 +131,8 @@ sync_repo() {
     local dst_branch="${5}"
     local kubernetes_remote="${6}"
     local deps="${7:-""}"
-    local is_library="${8}"
+    local required_packages="${8:-""}"
+    local is_library="${9}"
     local commit_msg_tag="${source_repo_name^}-commit"
     readonly subdirectory src_branch dst_branch kubernetes_remote deps is_library
 
@@ -311,7 +312,7 @@ sync_repo() {
             local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "${commit_msg_tag}: ${k_pending_merge_commit}")" HEAD^{tree})
             # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. Godeps.json did not change.
             git reset -q --hard ${dst_new_merge}
-            fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}"
+            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}"
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -356,7 +357,7 @@ sync_repo() {
 
             # if there is no pending merge commit, update Godeps.json because this could be a target of tag
             if [ -z "${k_pending_merge_commit}" ]; then
-                fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
+                fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
                 dst_needs_godeps_update=false
                 dst_merge_point_commit=$(git rev-parse HEAD)
             fi
@@ -459,7 +460,7 @@ sync_repo() {
             # we would end up with "base B + change B" which misses the change A changes.
             amend-godeps-at ${f_mainline_commit}
 
-            fix-godeps "${deps}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
+            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -472,10 +473,10 @@ sync_repo() {
     #       output depends on upstream's HEAD.
     echo "Fixing up godeps after a complete sync"
     if [ $(git rev-parse HEAD) != "${dst_old_head}" ] || [ "${new_branch}" = "true" ]; then
-        fix-godeps "${deps}" "${is_library}" true true ${commit_msg_tag}
+        fix-godeps "${deps}" "${required_packages}" "${is_library}" true true ${commit_msg_tag}
     else
         # update godeps without squashing because it would mutate a published commit
-        fix-godeps "${deps}" "${is_library}" true false ${commit_msg_tag}
+        fix-godeps "${deps}" "${required_packages}" "${is_library}" true false ${commit_msg_tag}
     fi
 
     # create look-up file for collapsed upstream commits
@@ -607,11 +608,12 @@ function fix-godeps() {
         return 0
     fi
 
-    local deps="${1:-""}"
-    local is_library="${2}"
-    local needs_godeps_update="${3}"
-    local squash="${4:-true}"
-    local commit_msg_tag="${5}"
+    local deps="${1}"
+    local required_packages="${2}"
+    local is_library="${3}"
+    local needs_godeps_update="${4}"
+    local squash="${5:-true}"
+    local commit_msg_tag="${6}"
     local dst_old_commit=$(git rev-parse HEAD)
     if [ "${needs_godeps_update}" = true ]; then
         # run godeps restore+save
@@ -630,6 +632,25 @@ function fix-godeps() {
         git rm -q -rf vendor/
         if ! git-index-clean; then
             git commit -q -m "sync: remove vendor/"
+        fi
+    fi
+
+    # copy required packages into vendor/
+    if [ -n "${required_packages}" ]; then
+        IFS=',' read -a pkg_array <<< "${required_packages}"
+        local pkg_count=${#pkg_array[@]}
+        for (( i=0; i<${pkg_count}; i++ )); do
+            local pkg="${pkg_array[i]%%:*}"
+            rm -rf "vendor/${pkg}"
+            mkdir -p "vendor/${pkg}"
+            cp -ax "${GOPATH}/src/${pkg%/}/"* "vendor/${pkg%/}/" # skip hidden files like .git
+        done
+        git add "vendor/${pkg}"
+
+        # check if there are new contents
+        if ! git-index-clean; then
+           echo "Committing vendor/ with required packages: ${required_packages}"
+           git commit -q -m "sync: update required packages"
         fi
     fi
 
@@ -687,7 +708,7 @@ function squash() {
 # This function assumes to be called at the root of the repository that's going to be published.
 # This function assumes the branch that need update is checked out.
 # This function assumes it's the last step in the publishing process that's going to generate commits.
-update_full_godeps() {
+function update_full_godeps() {
     local deps="${1:-""}"
     local is_library="${2}"
     local commit_msg_tag="${3}"

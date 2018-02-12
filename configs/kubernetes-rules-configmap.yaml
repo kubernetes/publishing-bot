@@ -7,6 +7,20 @@ data:
     - release-1.5
     - release-1.6
     rules:
+    - destination: code-generator
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/code-generator
+        name: master
+      - source:
+          branch: release-1.8
+          dir: staging/src/k8s.io/code-generator
+        name: release-1.8
+      - source:
+          branch: release-1.9
+          dir: staging/src/k8s.io/code-generator
+        name: release-1.9
     - destination: apimachinery
       library: true
       branches:
@@ -238,6 +252,10 @@ data:
           branch: master
         - repository: apiserver
           branch: master
+        - repository: code-generator
+          branch: master
+        required-packages:
+        - k8s.io/code-generator
       - source:
           branch: release-1.6
           dir: staging/src/k8s.io/sample-apiserver
@@ -273,6 +291,10 @@ data:
           branch: release-5.0
         - repository: apiserver
           branch: release-1.8
+        - repository: code-generator
+          branch: release-1.8
+        required-packages:
+        - k8s.io/code-generator
       - source:
           branch: release-1.9
           dir: staging/src/k8s.io/sample-apiserver
@@ -286,6 +308,10 @@ data:
           branch: release-6.0
         - repository: apiserver
           branch: release-1.9
+        - repository: code-generator
+          branch: release-1.9
+        required-packages:
+        - k8s.io/code-generator
       smoke-test: |
         # vendor/ should have all dependencies as a non-library
         go build .
@@ -307,6 +333,10 @@ data:
           branch: master
         - repository: client-go
           branch: master
+        - repository: code-generator
+          branch: master
+        required-packages:
+        - k8s.io/code-generator
       - source:
           branch: release-1.9
           dir: staging/src/k8s.io/sample-controller
@@ -318,6 +348,10 @@ data:
           branch: release-1.9
         - repository: client-go
           branch: release-6.0
+        - repository: code-generator
+          branch: release-1.9
+        required-packages:
+        - k8s.io/code-generator
       smoke-test: |
         # vendor/ should have all dependencies as a non-library
         go build .
@@ -342,6 +376,10 @@ data:
           branch: master
         - repository: apiserver
           branch: master
+        - repository: code-generator
+          branch: master
+        required-packages:
+        - k8s.io/code-generator
       - source:
           branch: release-1.7
           dir: staging/src/k8s.io/apiextensions-apiserver
@@ -366,6 +404,10 @@ data:
           branch: release-5.0
         - repository: apiserver
           branch: release-1.8
+        - repository: code-generator
+          branch: release-1.8
+        required-packages:
+        - k8s.io/code-generator
       - source:
           branch: release-1.9
           dir: staging/src/k8s.io/apiextensions-apiserver
@@ -379,6 +421,10 @@ data:
           branch: release-6.0
         - repository: apiserver
           branch: release-1.9
+        - repository: code-generator
+          branch: release-1.9
+        required-packages:
+        - k8s.io/code-generator
     - destination: metrics
       library: true
       branches:
@@ -424,18 +470,3 @@ data:
           branch: release-1.9
         - repository: client-go
           branch: release-6.0
-    - destination: code-generator
-      branches:
-      - source:
-          branch: master
-          dir: staging/src/k8s.io/code-generator
-        name: master
-      - source:
-          branch: release-1.8
-          dir: staging/src/k8s.io/code-generator
-        name: release-1.8
-      - source:
-          branch: release-1.9
-          dir: staging/src/k8s.io/code-generator
-        name: release-1.9
-
