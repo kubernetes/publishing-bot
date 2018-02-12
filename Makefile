@@ -41,7 +41,7 @@ update-deps:
 init-deploy:
 	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true rc publisher
 	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true pod publisher
-	while $(KUBECTL) get pod publisher -a &>/dev/null; do echo -n .; sleep 1; done
+	while $(KUBECTL) get pod -n "$(NAMESPACE)" publisher -a &>/dev/null; do echo -n .; sleep 1; done
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/storage-class.yaml || true
 	$(KUBECTL) get StorageClass ssd
 	sed 's/TOKEN/$(shell echo "$(TOKEN)" | base64 | tr -d '\n')/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
