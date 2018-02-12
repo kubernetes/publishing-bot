@@ -8,6 +8,7 @@ data:
     - release-1.6
     rules:
     - destination: apimachinery
+      library: true
       branches:
       - source:
           branch: master
@@ -29,8 +30,8 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/apimachinery
         name: release-1.9
-      publish-script: /publish_scripts/publish_apimachinery.sh
     - destination: api
+      library: true
       branches:
       - source:
           branch: master
@@ -53,8 +54,8 @@ data:
         dependencies:
         - repository: apimachinery
           branch: release-1.9
-      publish-script: /publish_scripts/publish_api.sh
     - destination: client-go
+      library: true
       branches:
       - source:
           branch: master
@@ -101,8 +102,12 @@ data:
           branch: release-1.9
         - repository: api
           branch: release-1.9
-      publish-script: /publish_scripts/publish_client_go.sh
+      smoke-test: |
+        godep restore
+        go build ./...
+        go test $(go list ./... | grep -v /vendor/)
     - destination: apiserver
+      library: true
       branches:
       - source:
           branch: master
@@ -155,7 +160,6 @@ data:
           branch: release-1.9
         - repository: client-go
           branch: release-6.0
-      publish-script: /publish_scripts/publish_apiserver.sh
     - destination: kube-aggregator
       branches:
       - source:
@@ -219,7 +223,6 @@ data:
           branch: release-6.0
         - repository: apiserver
           branch: release-1.9
-      publish-script: /publish_scripts/publish_kube_aggregator.sh
     - destination: sample-apiserver
       branches:
       - source:
@@ -283,7 +286,14 @@ data:
           branch: release-6.0
         - repository: apiserver
           branch: release-1.9
-      publish-script: /publish_scripts/publish_sample_apiserver.sh
+      smoke-test: |
+        # vendor/ should have all dependencies as a non-library
+        go build .
+        # re-create vendor/ and try again
+        godep restore
+        rm -rf vendor/ Godeps/
+        godep save ./...
+        go build .
     - destination: sample-controller
       branches:
       - source:
@@ -308,7 +318,15 @@ data:
           branch: release-1.9
         - repository: client-go
           branch: release-6.0
-      publish-script: /publish_scripts/publish_sample_controller.sh
+      smoke-test: |
+        # vendor/ should have all dependencies as a non-library
+        go build .
+
+        # re-create vendor/ and try again
+        godep restore
+        rm -rf vendor/ Godeps/
+        godep save ./...
+        go build .
     - destination: apiextensions-apiserver
       branches:
       - source:
@@ -361,8 +379,8 @@ data:
           branch: release-6.0
         - repository: apiserver
           branch: release-1.9
-      publish-script: /publish_scripts/publish_apiextensions_apiserver.sh
     - destination: metrics
+      library: true
       branches:
       - source:
           branch: master
@@ -406,7 +424,6 @@ data:
           branch: release-1.9
         - repository: client-go
           branch: release-6.0
-      publish-script: /publish_scripts/publish_metrics.sh
     - destination: code-generator
       branches:
       - source:
@@ -421,4 +438,4 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/code-generator
         name: release-1.9
-      publish-script: /publish_scripts/publish_code_generator.sh
+
