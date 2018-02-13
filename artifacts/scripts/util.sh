@@ -123,6 +123,23 @@ set -o xtrace
 #    - branch-commit to map a k_..._commit to a f_..._commit or dst_..._commit
 #      (depending on the current branch or the second parameter if given.
 sync_repo() {
+    local source_repo_name="${2}"
+    local dst_branch="${5}"
+
+    # cherry-pick commits
+    sync_commits "$@"
+
+    # create look-up file for collapsed upstream commits
+    local repo=$(basename ${PWD})
+    if [ -n "$(git log --oneline --first-parent --merges | head -n 1)" ]; then
+        echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch}"
+        /collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
+    else
+        echo "No merge commit on ${dst_branch} branch, must be old. Skipping look-up table."
+        echo > ../kube-commits-${repo}-${dst_branch}
+    fi
+}
+sync_commits() {
     # subdirectory in k8s.io/kubernetes, e.g., staging/src/k8s.io/apimachinery
     local source_repo_org="${1}"
     local source_repo_name="${2}"
@@ -227,6 +244,11 @@ sync_repo() {
                 return 1
             fi
             git branch -f filtered-branch-base ${k_base_merge} >/dev/null
+
+            if [ $(git log --oneline --first-parent filtered-branch-base..filtered-branch -- "${subdirectory}" | wc -l) = 0 ]; then
+                echo "No new commits found. Skipping any cherry-picking."
+                return 0
+            fi
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
             filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
@@ -487,16 +509,6 @@ sync_repo() {
     else
         # update godeps without squashing because it would mutate a published commit
         fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
-    fi
-
-    # create look-up file for collapsed upstream commits
-    local repo=$(basename ${PWD})
-    if [ -n "$(git log --oneline --first-parent --merges | head -n 1)" ]; then
-        echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch}"
-        /collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
-    else
-        echo "No merge commit on ${dst_branch} branch, must be old. Skipping look-up table."
-        echo > ../kube-commits-${repo}-${dst_branch}
     fi
 }
 
