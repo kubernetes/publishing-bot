@@ -92,7 +92,7 @@ func main() {
 	if len(cfg.RulesFile) == 0 {
 		glog.Fatalf("No rules file provided")
 	}
-	rules, err := config.LoadRules(&cfg)
+	rules, err := config.LoadRules(cfg.RulesFile)
 	if err != nil {
 		glog.Fatalf("Failed to load rules: %v", err)
 	}
