@@ -1,8 +1,13 @@
 package config
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -63,18 +68,43 @@ type RepositoryRules struct {
 
 // LoadRules loads the repository rules either from the remote HTTP location or
 // a local file path.
-func LoadRules(config *Config) (*RepositoryRules, error) {
+func LoadRules(ruleFile string) (*RepositoryRules, error) {
 	var (
 		content []byte
 		err     error
 	)
-	content, err = ioutil.ReadFile(config.RulesFile)
-	if err != nil {
-		return nil, err
+	if ruleUrl, err := url.ParseRequestURI(ruleFile); err != nil {
+		content, err = ioutil.ReadFile(ruleFile)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		content, err = readFromUrl(ruleUrl)
 	}
+
 	var rules RepositoryRules
 	if err = yaml.Unmarshal(content, &rules); err != nil {
 		return nil, err
 	}
 	return &rules, nil
+}
+
+// readFromUrl reads the rule file from provided URL.
+func readFromUrl(u *url.URL) ([]byte, error) {
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	// timeout the request after 30 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	resp, err := client.Do(req.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
 }

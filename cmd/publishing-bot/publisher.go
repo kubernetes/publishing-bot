@@ -65,7 +65,7 @@ func (p *PublisherMunger) updateSourceRepo() (string, error) {
 		return "", fmt.Errorf("failed running %v on %q repo: %v", strings.Join(cmd.Args, " "), p.config.SourceRepo, err)
 	}
 
-	rules, err := config.LoadRules(p.config)
+	rules, err := config.LoadRules(p.config.RulesFile)
 	if err != nil {
 		return "", err
 	}
