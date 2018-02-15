@@ -225,10 +225,12 @@ func main() {
 			}
 			if changed {
 				fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
+				publishingBotNow := publishingBot
+				publishingBotNow.When = time.Now()
 				bh, err = wt.Commit(fmt.Sprintf("Fix Godeps.json to point to %s tags", bName), &gogit.CommitOptions{
 					All:       true,
-					Author:    &publishingBot,
-					Committer: &publishingBot,
+					Author:    &publishingBotNow,
+					Committer: &publishingBotNow,
 				})
 				if err != nil {
 					glog.Fatalf("Failed to commit Godeps/Godeps.json changes: %v", err)
