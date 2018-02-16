@@ -73,13 +73,14 @@ func LoadRules(ruleFile string) (*RepositoryRules, error) {
 		content []byte
 		err     error
 	)
-	if ruleUrl, err := url.ParseRequestURI(ruleFile); err != nil {
+	if ruleUrl, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleUrl.Host) > 0 {
+		content, err = readFromUrl(ruleUrl)
+	} else {
 		content, err = ioutil.ReadFile(ruleFile)
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		content, err = readFromUrl(ruleUrl)
+
 	}
 
 	var rules RepositoryRules
