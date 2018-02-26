@@ -328,9 +328,9 @@ sync_repo() {
             echo "Deferring master merge commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
         elif [ ${dst_branch} != master ] && [ -n "${k_pending_merge_commit}" ] && is-merge-with-master "${k_pending_merge_commit}"; then
             echo "Skipping master commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit}). Master merge commit ${k_pending_merge_commit} is pending."
-        elif ! git show -q ${f_mainline_commit} | grep -q "^Merge: " || pick-merge-as-single-commit ${k_mainline_commit}; then
+        elif ! is-merge ${f_mainline_commit} || pick-merge-as-single-commit ${k_mainline_commit}; then
             local pick_args=""
-            if git show -q ${f_mainline_commit} | grep -q "^Merge: "; then
+            if is-merge ${f_mainline_commit}; then
                 pick_args="-m 1"
                 echo "Cherry-picking k8s.io/kubernetes merge-commit  ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
             else
@@ -517,6 +517,10 @@ function commit-author() {
     git show --format="%an <%ae>" -q ${1}
 }
 
+function short-commit-message() {
+    git show --format=short -q ${1}
+}
+
 function commit-message() {
     git show --format="%B" -q ${1}
 }
@@ -533,8 +537,14 @@ function filter-branch() {
     git filter-branch -f --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${3} ${4} >/dev/null
 }
 
+function is-merge() {
+    if ! grep -q "^Merge: " <<<"$(short-commit-message ${1})"; then
+        return 1
+    fi
+}
+
 function is-merge-with-master() {
-    if ! grep -q "^Merge remote-tracking branch 'origin/master'" <<<"$(commit-message ${1})"; then
+    if ! grep -q "^Merge remote-tracking branch 'origin/master'" <<<"$(short-commit-message ${1})"; then
         return 1
     fi
 }
