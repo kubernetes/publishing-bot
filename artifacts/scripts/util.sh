@@ -757,6 +757,11 @@ function update_full_godeps() {
     echo "Running godep save."
     godep save ./...
 
+    # restore all other files of Godeps/ (like OWNERS), but preserve the new Godeps.json
+    cp Godeps/Godeps.json Godeps/Godeps.json.preserve
+    git checkout HEAD Godeps/ # this does not delete new files
+    mv Godeps/Godeps.json.preserve Godeps/Godeps.json
+
     # remove Comment from each dependency and use tabs
     jq 'del(.Deps[].Comment)' Godeps/Godeps.json | unexpand --first-only --tabs=2 > Godeps/Godeps.json.clean
     mv Godeps/Godeps.json.clean Godeps/Godeps.json
