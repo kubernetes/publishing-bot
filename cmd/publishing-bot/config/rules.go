@@ -64,6 +64,9 @@ type RepositoryRules struct {
 	SkippedSourceBranches []string         `yaml:"skip-source-branches"`
 	SkipGodeps            bool             `yaml:"skip-godeps"`
 	Rules                 []RepositoryRule `yaml:"rules"`
+
+	// ls-files patterns like: */BUILD *.ext pkg/foo.go Makefile
+	RecursiveDeletePatterns []string `yaml:"recursive-delete-patterns"`
 }
 
 // LoadRules loads the repository rules either from the remote HTTP location or
