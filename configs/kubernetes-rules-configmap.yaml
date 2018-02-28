@@ -6,6 +6,11 @@ data:
     skip-source-branches:
     - release-1.5
     - release-1.6
+    recursive-delete-patterns:
+    - BUILD
+    - "*/BUILD"
+    - BUILD.bazel
+    - "*/BUILD.bazel"
     rules:
     - destination: code-generator
       branches:

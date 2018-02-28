@@ -133,6 +133,11 @@ sync_repo() {
     local deps="${7:-""}"
     local required_packages="${8:-""}"
     local is_library="${9}"
+
+    shift 9
+
+    local recursive_delete_pattern="${1}"
+
     local commit_msg_tag="${source_repo_name^}-commit"
     readonly subdirectory src_branch dst_branch kubernetes_remote deps is_library
 
@@ -168,7 +173,7 @@ sync_repo() {
     local f_mainline_commits=""
     if [ "${new_branch}" = "true" ] && [ "${src_branch}" = master ]; then
         # new master branch
-        filter-branch "${commit_msg_tag}" "${subdirectory}" ${src_branch} filtered-branch
+        filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
         # the corresponding fast-forward merge and left the feature branch commits)
@@ -196,7 +201,7 @@ sync_repo() {
             git branch -f filtered-branch-base ${k_branch_point_commit} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
-            filter-branch "${commit_msg_tag}" "${subdirectory}" filtered-branch filtered-branch-base
+            filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
 
             # for a new branch that is not master: map filtered-branch-base to our ${dst_branch} as ${dst_branch_point_commit}
             local k_branch_point_commit=$(kube-commit ${commit_msg_tag} filtered-branch-base) # k_branch_point_commit will probably different thanthe k_branch_point_commit
@@ -223,7 +228,7 @@ sync_repo() {
             git branch -f filtered-branch-base ${k_base_merge} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
-            filter-branch "${commit_msg_tag}" "${subdirectory}" filtered-branch filtered-branch-base
+            filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
         fi
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
@@ -241,6 +246,19 @@ sync_repo() {
     if [ -f kubernetes-sha ]; then
         git rm -q kubernetes-sha
         git commit -q -m "sync: remove kubernetes-sha"
+    fi
+
+    # remove existing recursive-delete-pattern files. After a first removal commit, the filter-branch command
+    # will filter them out from upstream commits.
+    if [ -n "${recursive_delete_pattern}" ]; then
+        local split_recursive_delete_pattern
+        read -r -a split_recursive_delete_pattern <<< "${recursive_delete_pattern}"
+        git rm -q --ignore-unmatch -r "${split_recursive_delete_pattern[@]}"
+        git add -u
+        if ! git-index-clean; then
+            echo "Deleting files recursively: ${recursive_delete_pattern}"
+            git commit -m "sync: initially remove files ${recursive_delete_pattern}"
+        fi
     fi
 
     local dst_old_head=$(git rev-parse HEAD) # will be the initial commit for new branch
@@ -533,8 +551,17 @@ function commit-subject() {
 function filter-branch() {
     local commit_msg_tag="${1}"
     local subdirectory="${2}"
+    local recursive_delete_pattern="${3}"
     echo "Running git filter-branch ..."
-    git filter-branch -f --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${3} ${4} >/dev/null
+    local index_filter=""
+    if [ -n "${recursive_delete_pattern}" ]; then
+        local pattern=""
+        index_filter="git rm -q --cached --ignore-unmatch -r"
+        while read -r pattern; do
+            index_filter+=" '${pattern}'"
+        done <<< "${recursive_delete_pattern}"
+    fi
+    git filter-branch -f --index-filter "${index_filter}" --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${4} ${5} >/dev/null
 }
 
 function is-merge() {

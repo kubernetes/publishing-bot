@@ -6,6 +6,10 @@ data:
     # Specify branches you want to skip
     skip-source-branches: 
     # - release-1.7
+    # ls-files pattern like: */BUILD *.ext pkg/foo.go Makefile
+    recursive-delete-patterns:
+    # - BUILD
+    # - "*/BUILD"
     rules:
     - destination: <destination-repository-name> # eg. "client-go"
       branches:

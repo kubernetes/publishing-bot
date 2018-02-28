@@ -180,7 +180,8 @@ func (p *PublisherMunger) construct() error {
 				branchRule.Source.Dir,
 				p.config.SourceRepo,
 				p.config.SourceRepo,
-				fmt.Sprintf("%v", repoRule.Library))
+				fmt.Sprintf("%v", repoRule.Library),
+				strings.Join(p.reposRules.RecursiveDeletePatterns, " "))
 			if p.reposRules.SkipGodeps {
 				cmd.Env = append(os.Environ(), "PUBLISHER_BOT_SKIP_GODEPS=true")
 			}

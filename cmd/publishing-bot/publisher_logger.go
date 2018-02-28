@@ -34,7 +34,7 @@ import (
 )
 
 type plog struct {
-	buf         *bytes.Buffer
+	buf *bytes.Buffer
 }
 
 func NewPublisherLog(buf *bytes.Buffer) *plog {
