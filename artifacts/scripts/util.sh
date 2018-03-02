@@ -798,7 +798,7 @@ function update_full_godeps() {
     fi
 
     git add Godeps/Godeps.json
-    git add vendor/ || true
+    git add vendor/ --ignore-errors &>/dev/null || true
 
     # check if there are new contents
     if git-index-clean; then
