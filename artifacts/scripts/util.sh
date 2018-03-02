@@ -668,7 +668,7 @@ function fix-godeps() {
     if ! git diff --exit-code ${dst_old_commit} &>/dev/null && [ "${squash}" = true ]; then
         echo "Amending last merge with godep changes."
         git reset --soft -q ${dst_old_commit}
-        git commit -q --amend -C ${dst_old_commit}
+        git commit -q --amend --allow-empty -C ${dst_old_commit}
     fi
 
     ensure-clean-working-dir
