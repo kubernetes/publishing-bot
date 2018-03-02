@@ -26,6 +26,9 @@ ENV GOPATH="/go-workspace"
 ENV PATH="${GOPATH}/bin:/usr/local/go/bin:${PATH}"
 ENV GIT_COMMITTER_NAME="Kubernetes Publisher"
 ENV GIT_COMMITTER_EMAIL="k8s-publishing-bot@users.noreply.github.com"
+ENV TERM=xterm
+ENV PS1='\h:\w\$'
+ENV SHELL=/bin/bash
 
 WORKDIR "/"
 
