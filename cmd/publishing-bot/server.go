@@ -37,33 +37,42 @@ type Server struct {
 	config   config.Config
 }
 
-type HealthResponse struct {
-	Successful   *bool      `json:"successful,omitempty"`
-	Time         *time.Time `json:"time,omitempty"`
-	UpstreamHash string     `json:"upstreamHash,omitempty"`
-
-	LastSuccessfulTime         *time.Time `json:"lastSuccessfulTime,omitempty"`
-	LastFailureTime            *time.Time `json:"lastFailureTime,omitempty"`
-	LastSuccessfulUpstreamHash string     `json:"lastSuccessfulUpstreamHash,omitempty"`
-
-	Issue string `json:"issue,omitempty"`
+type HealthBranch struct {
+	Name                       string `json:"branchName"`
+	UpstreamHash               string `json:"upstreamHash,omitempty"`
+	LastSuccessfulUpstreamHash string `json:"lastSuccessfulUpstreamHash,omitempty"`
 }
 
-func (h *Server) SetHealth(healthy bool, hash string) {
+type HealthResponse struct {
+	Successful         *bool          `json:"successful,omitempty"`
+	Time               *time.Time     `json:"time,omitempty"`
+	SourceBranches     []HealthBranch `json:"sourceBranches"`
+	Issue              string         `json:"issue,omitempty"`
+	LastSuccessfulTime *time.Time     `json:"lastSuccessfulTime,omitempty"`
+	LastFailureTime    *time.Time     `json:"lastFailureTime,omitempty"`
+}
+
+func (h *Server) SetHealth(healthy bool, hashes map[string]string) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-
 	h.response.Successful = &healthy
 	now := time.Now()
 	h.response.Time = &now
-	h.response.UpstreamHash = hash
-
+	for branchName, hash := range hashes {
+		b := HealthBranch{
+			Name:         branchName,
+			UpstreamHash: hash,
+		}
+		if healthy {
+			b.LastSuccessfulUpstreamHash = hash
+		}
+		h.response.SourceBranches = append(h.response.SourceBranches, b)
+	}
 	if healthy {
 		h.response.LastSuccessfulTime = h.response.Time
-		h.response.LastSuccessfulUpstreamHash = h.response.UpstreamHash
-	} else {
-		h.response.LastFailureTime = h.response.Time
+		return
 	}
+	h.response.LastFailureTime = h.response.Time
 }
 
 func (h *Server) Run(port int) error {

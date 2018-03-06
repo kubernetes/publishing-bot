@@ -13,6 +13,8 @@ import (
 
 	"strings"
 
+	"net/url"
+
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
@@ -40,6 +42,7 @@ func main() {
 	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
 	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
 	rulesFile := flag.String("rules-file", "", "the file with repository rules")
+	rulesFileBranches := flag.String("rules-file-branches", "master", "list of source repository branches we look for the rules")
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
 	skipGodep := flag.Bool("skip-godep", false, `skip godeps installation and godeps-restore`)
 	skipDep := flag.Bool("skip-dep", false, `skip 'dep'' installation`)
@@ -71,7 +74,9 @@ func main() {
 	if cfg.SourceRepo != "kubernetes" {
 		BaseRepoPath = filepath.Join(SystemGoPath, "src", "github.com", cfg.TargetOrg)
 	}
-
+	if *rulesFileBranches != "" {
+		cfg.RuleSourceBranches = *rulesFileBranches
+	}
 	if *rulesFile != "" {
 		cfg.RulesFile = *rulesFile
 	}
@@ -84,17 +89,8 @@ func main() {
 		glog.Fatalf("Target organization cannot be empty")
 	}
 
-	// If RULE_FILE_PATH is detected, check if the source repository include rules files.
-	if len(os.Getenv("RULE_FILE_PATH")) > 0 {
-		cfg.RulesFile = filepath.Join(BaseRepoPath, cfg.SourceRepo, os.Getenv("RULE_FILE_PATH"))
-	}
-
 	if len(cfg.RulesFile) == 0 {
 		glog.Fatalf("No rules file provided")
-	}
-	rules, err := config.LoadRules(cfg.RulesFile)
-	if err != nil {
-		glog.Fatalf("Failed to load rules: %v", err)
 	}
 
 	if err := os.MkdirAll(BaseRepoPath, os.ModePerm); err != nil {
@@ -107,10 +103,40 @@ func main() {
 	if !*skipDep {
 		installDep()
 	}
-
 	cloneSourceRepo(cfg, *skipGodep)
-	for _, rule := range rules.Rules {
-		cloneForkRepo(cfg, rule.DestinationRepository)
+
+	var (
+		rules *config.RepositoryRules
+		err   error
+	)
+
+	branches := strings.Split(cfg.RuleSourceBranches, ",")
+	clonedRepos := map[string]bool{}
+
+	for _, sourceBranch := range branches {
+		if strings.HasPrefix(cfg.RulesFile, "/") {
+			// The rules are specified as absolute file path
+			rules, err = config.LoadRulesFromFile(cfg.RulesFile)
+		} else {
+			// The rules are specified as URL
+			if ruleUrl, err := url.ParseRequestURI(cfg.RulesFile); err == nil && len(ruleUrl.Host) > 0 {
+				rules, err = config.LoadRulesFromURL(ruleUrl)
+			} else {
+				// The rules are specified as relative path in repository dir
+				rules, err = config.LoadRulesFromRepo(cfg.RulesFile, filepath.Join(BaseRepoPath, cfg.SourceRepo), sourceBranch)
+			}
+		}
+		if err != nil || rules == nil {
+			glog.Fatalf("Failed to load rules %q: %v", cfg.RulesFile, err)
+		}
+		for _, rule := range rules.Rules {
+			if _, exists := clonedRepos[rule.DestinationRepository]; exists {
+				glog.Infof("Already cloned fork repository %s, skipping ...", rule.DestinationRepository)
+				continue
+			}
+			cloneForkRepo(cfg, rule.DestinationRepository)
+			clonedRepos[rule.DestinationRepository] = true
+		}
 	}
 }
 
