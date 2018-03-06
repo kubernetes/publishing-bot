@@ -12,19 +12,11 @@ The robot is also responsible to update the `Godeps/Godeps.json` and the `vendor
 
 ## Playbook
 
-### Publishing a new repo
+### Publishing a new repo or a new branch
 
-* Create a (repoRules) in [cmd/publishing-bot/publisher.go](cmd/publishing-bot/publisher.go)
+* Adapt the rules in [config/kubernetes-rules-configmap.yaml](config/kubernetes-rules-configmap.yaml)
 
-* Add a `publish_<repository_name>.sh` in [artifacts/scripts](artifacts/scripts)
-
-* Add the repo to the repo list in [hack/fetch-all-latest-and-push.sh](hack/fetch-all-latest-and-push.sh)
-
-* [Test and deploy the changes](#testing-and-deploying-the-robot)
-
-### Publishing a new branch
-
-* Update the (repoRules) in [cmd/publishing-bot/publisher.go](cmd/publishing-bot/publisher.go)
+* For a new repo, add it to the repo list in [hack/fetch-all-latest-and-push.sh](hack/fetch-all-latest-and-push.sh)
 
 * [Test and deploy the changes](#testing-and-deploying-the-robot)
 
