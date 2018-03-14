@@ -37,7 +37,7 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-if [ ! $# -eq 10 ]; then
+if [ ! $# -eq 11 ]; then
     echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name is_library"
     exit 1
 fi
@@ -66,6 +66,8 @@ shift 9
 
 # If ${REPO} is a library
 IS_LIBRARY="${1}"
+# A ls-files pattern like "*/BUILD *.ext pkg/foo.go Makefile"
+RECURSIVE_DELETE_PATTERN="${2}"
 
 readonly SRC_BRANCH DST_BRANCH DEPS SOURCE_REMOTE SOURCE_REPO_ORG SOURCE_REPO_NAME SUBDIR IS_LIBRARY
 
@@ -94,7 +96,7 @@ fi
 
 # sync_repo cherry-picks the commits that change
 # k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
-sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${IS_LIBRARY}"
+sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
 
 # add tags
 EXTRA_ARGS=()
