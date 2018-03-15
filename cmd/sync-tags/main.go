@@ -31,6 +31,8 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 
 	"k8s.io/publishing-bot/pkg/cache"
+	"k8s.io/publishing-bot/pkg/dependency"
+	"k8s.io/publishing-bot/pkg/dependency/dep"
 	"k8s.io/publishing-bot/pkg/git"
 )
 
@@ -47,6 +49,7 @@ Usage: %s --source-remote <remote> --source-branch <source-branch>
           [--origin-branch <branch>]
           [--prefix <tag-prefix>]
           [--push-script <file-path>]
+          [--required <pkg>,...]
 `, os.Args[0])
 	flag.PrintDefaults()
 }
@@ -67,6 +70,7 @@ func main() {
 	prefix := flag.String("prefix", "kubernetes-", "a string to put in front of upstream tags")
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
+	required := flag.String("required", "", "comma-separated list of Golang packages that are required")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -79,12 +83,9 @@ func main() {
 		glog.Fatalf("source-branch cannot be empty")
 	}
 
-	var dependentRepos []string
-	if len(*dependencies) > 0 {
-		for _, pair := range strings.Split(*dependencies, ",") {
-			ps := strings.Split(pair, ":")
-			dependentRepos = append(dependentRepos, ps[0])
-		}
+	dependentRepos, err := dependency.ParseDependencies(*dependencies)
+	if err != nil {
+		glog.Fatalf("Failed to parse dependencies %q: %v", *dependencies, err)
 	}
 
 	// open repo at "."
@@ -106,14 +107,15 @@ func main() {
 		*publishBranch = localBranch
 	}
 
+	var requiredPkgs []string
+	if len(*required) > 0 {
+		requiredPkgs = strings.Split(*required, ",")
+	}
+
 	// get first-parent commit list of local branch
-	bRevision, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/heads/%s", localBranch)))
+	bHead, err := git.BranchHead(r, localBranch)
 	if err != nil {
 		glog.Fatalf("Failed to open branch %s: %v", localBranch, err)
-	}
-	bHead, err := cache.CommitObject(r, *bRevision)
-	if err != nil {
-		glog.Fatalf("Failed to open branch %s head: %v", localBranch, err)
 	}
 	bFirstParents, err := git.FirstParentList(r, bHead)
 	if err != nil {
@@ -169,6 +171,11 @@ func main() {
 		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
 	}
 
+	wt, err := r.Worktree()
+	if err != nil {
+		glog.Fatalf("Failed to get working tree: %v", err)
+	}
+
 	// create or update tags from kTagCommits as local tags with the given prefix
 	createdTags := []string{}
 	for name, kh := range kTagCommits {
@@ -207,34 +214,45 @@ func main() {
 			continue
 		}
 
+		// set tag in dependencies
+		for i := range dependentRepos {
+			dependentRepos[i].Branch = ""
+			dependentRepos[i].Tag = bName
+		}
+
 		// update Godeps.json to point to actual tagged version in the dependencies. This version might differ
 		// from the one currently in Godeps.json because the other repo could have gotten more commit for this
 		// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
 		if len(dependentRepos) > 0 {
-			fmt.Printf("Checking that Godeps.json points to the actual tags in %s.\n", strings.Join(dependentRepos, ", "))
-			wt, err := r.Worktree()
-			if err != nil {
-				glog.Fatalf("Failed to get working tree: %v", err)
-			}
+			fmt.Printf("Checking that Godeps.json points to the actual tags in %s.\n", *dependencies)
 			if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
 				glog.Fatalf("Failed to checkout %v: %v", bh, err)
 			}
-			changed, err := updateGodepsJsonWithTaggedDependencies(r, bName, dependentRepos)
-			if err != nil {
+			if _, err := updateGodepsJsonWithTaggedDependencies(r, bName, dependentRepos); err != nil {
 				glog.Fatalf("Failed to update Godeps.json for tag %s: %v", bName, err)
 			}
-			if changed {
-				fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
-				publishingBotNow := publishingBot
-				publishingBotNow.When = time.Now()
-				bh, err = wt.Commit(fmt.Sprintf("Fix Godeps.json to point to %s tags", bName), &gogit.CommitOptions{
-					All:       true,
-					Author:    &publishingBotNow,
-					Committer: &publishingBotNow,
-				})
-				if err != nil {
-					glog.Fatalf("Failed to commit Godeps/Godeps.json changes: %v", err)
-				}
+		}
+
+		// update golang/dep Gopkg.toml
+		fmt.Printf("Updating Gopkg.toml.\n")
+		if err := dep.GodepToGopkg(dependentRepos, requiredPkgs); err != nil {
+			glog.Fatalf("Failed to create Gopkg.toml: %v", err)
+		}
+		wt.Add("Gopkg.toml")
+
+		if st, err := wt.Status(); err != nil {
+			glog.Fatalf("Failed to get git status: %v", err)
+		} else if !st.IsClean() {
+			fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
+			publishingBotNow := publishingBot
+			publishingBotNow.When = time.Now()
+			bh, err = wt.Commit(fmt.Sprintf("Fix Godeps.json to point to %s tags", bName), &gogit.CommitOptions{
+				All:       true,
+				Author:    &publishingBotNow,
+				Committer: &publishingBotNow,
+			})
+			if err != nil {
+				glog.Fatalf("Failed to commit Godeps/Godeps.json changes: %v", err)
 			}
 		}
 

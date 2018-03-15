@@ -21,6 +21,7 @@ build:
 	$(call build_cmd,publishing-bot)
 	$(call build_cmd,sync-tags)
 	$(call build_cmd,init-repo)
+	$(call build_cmd,godep-to-gopkg)
 .PHONY: build
 
 build-image: build

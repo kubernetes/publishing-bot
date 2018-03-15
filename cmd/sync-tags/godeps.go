@@ -22,11 +22,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
 	"strings"
 
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+
+	"k8s.io/publishing-bot/pkg/dependency"
 )
 
 type GodepDependency struct {
@@ -45,7 +46,7 @@ type Godeps struct {
 
 // updateGodepsJsonWithTaggedDependencies gets the dependencies at the given tag and fills Godeps.json. If anything
 // is changed, it commit the changes. Returns true if Godeps.json changed.
-func updateGodepsJsonWithTaggedDependencies(r *gogit.Repository, tag string, depsRepo []string) (bool, error) {
+func updateGodepsJsonWithTaggedDependencies(r *gogit.Repository, tag string, depsRepo []dependency.Dependency) (bool, error) {
 	bs, err := ioutil.ReadFile("Godeps/Godeps.json")
 	if os.IsNotExist(err) {
 		return false, nil
@@ -60,7 +61,7 @@ func updateGodepsJsonWithTaggedDependencies(r *gogit.Repository, tag string, dep
 
 	depRevisions := map[string]plumbing.Hash{}
 	for _, dep := range depsRepo {
-		depPath := filepath.Join("..", dep)
+		depPath := filepath.Join("..", dep.Name)
 		dr, err := gogit.PlainOpen(depPath)
 		if err != nil {
 			return false, fmt.Errorf("failed to open dependency repo at %q: %v", depPath, err)

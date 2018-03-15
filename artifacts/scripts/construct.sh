@@ -108,5 +108,6 @@ chmod +x ${PUSH_SCRIPT}
            --source-remote upstream --source-branch "${SRC_BRANCH}" \
            --push-script ${PUSH_SCRIPT} \
            --dependencies "${DEPS}" \
+           --required "${REQUIRED}" \
            -alsologtostderr \
            "${EXTRA_ARGS[@]-}"

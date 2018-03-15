@@ -663,6 +663,19 @@ function fix-godeps() {
         update-deps-in-godep-json "${deps}" "${is_library}" "${commit_msg_tag}"
     fi
 
+    # update golang/dep Gopkg.toml
+    if [ -f Godeps/Godeps.json ]; then
+        echo "Converting Godeps/Godeps.json to Gopkg.toml"
+        /godep-to-gopkg --dependencies "${deps}" --required "${required_packages}"
+        git add Gopkg.toml
+    elif [ -f Gopkg.toml ]; then
+        git rm -f Gopkg.toml
+    fi
+    if ! git-index-clean; then
+        echo "Committing Gopkg.toml"
+        git commit -q -m "sync: update Gopkg.toml"
+    fi
+
     # remove vendor/ on non-master branches for libraries
     if [ "$(git rev-parse --abbrev-ref HEAD)" != master ] && [ -d vendor/ ] && [ "${is_library}" = "true" ]; then
         echo "Removing vendor/ on non-master branch because this is a library"
