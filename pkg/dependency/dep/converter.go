@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/golang/dep"
@@ -33,7 +34,7 @@ import (
 
 // GodepToGopkg convert Godeps/Godeps.json into Gopkg.toml. All given dependencies are
 // constraint by branch or tag if set. Every other package is constraint by revision.
-func GodepToGopkg(deps []dependency.Dependency, requiredPackages []string) error {
+func GodepToGopkg(deps []dependency.Dependency, requiredPackages []string, source string) error {
 	bs, err := ioutil.ReadFile("Godeps/Godeps.json")
 	if os.IsNotExist(err) {
 		return nil
@@ -87,6 +88,10 @@ func GodepToGopkg(deps []dependency.Dependency, requiredPackages []string) error
 				constraint.Constraint = gps.NewVersion(d.Tag)
 			} else if len(d.Branch) > 0 {
 				constraint.Constraint = gps.NewBranch(d.Branch)
+			}
+
+			if len(source) > 0 {
+				constraint.Source = path.Join(source, d.Name)
 			}
 		}
 

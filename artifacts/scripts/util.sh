@@ -126,17 +126,18 @@ sync_repo() {
     # subdirectory in k8s.io/kubernetes, e.g., staging/src/k8s.io/apimachinery
     local source_repo_org="${1}"
     local source_repo_name="${2}"
-    local subdirectory="${3}"
-    local src_branch="${4}"
-    local dst_branch="${5}"
-    local kubernetes_remote="${6}"
-    local deps="${7:-""}"
-    local required_packages="${8:-""}"
-    local is_library="${9}"
+    local target_repo_org="${3}"
+    local subdirectory="${4}"
+    local src_branch="${5}"
+    local dst_branch="${6}"
+    local kubernetes_remote="${7}"
+    local deps="${8:-""}"
+    local required_packages="${9:-""}"
 
     shift 9
 
-    local recursive_delete_pattern="${1}"
+    local is_library="${1}"
+    local recursive_delete_pattern="${2}"
 
     local commit_msg_tag="${source_repo_name^}-commit"
     readonly subdirectory src_branch dst_branch kubernetes_remote deps is_library
@@ -330,7 +331,7 @@ sync_repo() {
             local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "${commit_msg_tag}: ${k_pending_merge_commit}")" HEAD^{tree})
             # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. Godeps.json did not change.
             git reset -q --hard ${dst_new_merge}
-            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}"
+            fix-godeps "${deps}" "${required_packages}" "${is_library}" "${dst_needs_godeps_update}" true "${commit_msg_tag}" "${source_repo_org}" "${target_repo_org}"
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -375,7 +376,7 @@ sync_repo() {
 
             # if there is no pending merge commit, update Godeps.json because this could be a target of tag
             if [ -z "${k_pending_merge_commit}" ]; then
-                fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
+                fix-godeps "${deps}" "${required_packages}" "${is_library}" "${dst_needs_godeps_update}" true "${commit_msg_tag}" "${source_repo_org}" "${target_repo_org}"
                 dst_needs_godeps_update=false
                 dst_merge_point_commit=$(git rev-parse HEAD)
             fi
@@ -478,7 +479,7 @@ sync_repo() {
             # we would end up with "base B + change B" which misses the change A changes.
             amend-godeps-at ${f_mainline_commit}
 
-            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
+            fix-godeps "${deps}" "${required_packages}" "${is_library}" "${dst_needs_godeps_update}" true "${commit_msg_tag}" "${source_repo_org}" "${target_repo_org}"
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -491,10 +492,10 @@ sync_repo() {
     #       output depends on upstream's HEAD.
     echo "Fixing up godeps after a complete sync"
     if [ $(git rev-parse HEAD) != "${dst_old_head}" ] || [ "${new_branch}" = "true" ]; then
-        fix-godeps "${deps}" "${required_packages}" "${is_library}" true true ${commit_msg_tag}
+        fix-godeps "${deps}" "${required_packages}" "${is_library}" true true "${commit_msg_tag}" "${source_repo_org}" "${target_repo_org}"
     else
         # update godeps without squashing because it would mutate a published commit
-        fix-godeps "${deps}" "${required_packages}" "${is_library}" true false ${commit_msg_tag}
+        fix-godeps "${deps}" "${required_packages}" "${is_library}" true false "${commit_msg_tag}" "${source_repo_org}" "${target_repo_org}"
     fi
 
     # create look-up file for collapsed upstream commits
@@ -651,6 +652,9 @@ function fix-godeps() {
     local needs_godeps_update="${4}"
     local squash="${5:-true}"
     local commit_msg_tag="${6}"
+    local source_repo_org="${7}"
+    local target_repo_org="${8}"
+
     local dst_old_commit=$(git rev-parse HEAD)
     if [ "${needs_godeps_update}" = true ]; then
         # run godeps restore+save
@@ -666,7 +670,11 @@ function fix-godeps() {
     # update golang/dep Gopkg.toml
     if [ -f Godeps/Godeps.json ]; then
         echo "Converting Godeps/Godeps.json to Gopkg.toml"
-        /godep-to-gopkg --dependencies "${deps}" --required "${required_packages}"
+        local alternative_source=""
+        if [ "${source_repo_org}" != "${target_repo_org}" ]; then
+            alternative_source="github.com/${target_repo_org}/"
+        fi
+        /godep-to-gopkg --dependencies "${deps}" --required "${required_packages}" --alternative-source "${alternative_source}"
         git add Gopkg.toml
     elif [ -f Gopkg.toml ]; then
         git rm -f Gopkg.toml

@@ -33,6 +33,7 @@ func Usage() {
 Usage: %s --source-remote <remote> --source-branch <source-branch>
           [--dependencies <repo-name>[:branch]]
           [--required <pkg>,...]
+          [--alternative-source <pkg>]
 `, os.Args[0])
 	flag.PrintDefaults()
 }
@@ -40,6 +41,7 @@ Usage: %s --source-remote <remote> --source-branch <source-branch>
 func main() {
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
 	required := flag.String("required", "", "comma-separated list of Golang packages that are required")
+	alternativeSource := flag.String("alternative-source", "", "a package org like github.com/sttts to be used as alternative source of the dependencies")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -54,7 +56,7 @@ func main() {
 		glog.Fatalf("Failed to parse dependencies %q: %v", *dependencies, err)
 	}
 
-	if err := dep.GodepToGopkg(dependentRepos, requiredPkgs); err != nil {
+	if err := dep.GodepToGopkg(dependentRepos, requiredPkgs, *alternativeSource); err != nil {
 		glog.Fatal(err)
 	}
 }

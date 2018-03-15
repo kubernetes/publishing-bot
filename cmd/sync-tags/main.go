@@ -50,6 +50,7 @@ Usage: %s --source-remote <remote> --source-branch <source-branch>
           [--prefix <tag-prefix>]
           [--push-script <file-path>]
           [--required <pkg>,...]
+          [--alternative-source <pkg>]
 `, os.Args[0])
 	flag.PrintDefaults()
 }
@@ -71,6 +72,7 @@ func main() {
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
 	required := flag.String("required", "", "comma-separated list of Golang packages that are required")
+	alternativeSource := flag.String("alternative-source", "", "a package org like github.com/sttts to be used as alternative source of the dependencies")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -235,7 +237,7 @@ func main() {
 
 		// update golang/dep Gopkg.toml
 		fmt.Printf("Updating Gopkg.toml.\n")
-		if err := dep.GodepToGopkg(dependentRepos, requiredPkgs); err != nil {
+		if err := dep.GodepToGopkg(dependentRepos, requiredPkgs, *alternativeSource); err != nil {
 			glog.Fatalf("Failed to create Gopkg.toml: %v", err)
 		}
 		wt.Add("Gopkg.toml")

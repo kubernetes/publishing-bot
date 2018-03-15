@@ -178,8 +178,9 @@ func (p *PublisherMunger) construct() error {
 				strings.Join(branchRule.RequiredPackages, ":"),
 				sourceRemote,
 				branchRule.Source.Dir,
+				p.config.SourceOrg,
 				p.config.SourceRepo,
-				p.config.SourceRepo,
+				p.config.TargetOrg,
 				fmt.Sprintf("%v", repoRule.Library),
 				strings.Join(p.reposRules.RecursiveDeletePatterns, " "))
 			if p.reposRules.SkipGodeps {
