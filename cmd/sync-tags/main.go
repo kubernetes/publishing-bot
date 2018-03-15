@@ -222,39 +222,41 @@ func main() {
 			dependentRepos[i].Tag = bName
 		}
 
-		// update Godeps.json to point to actual tagged version in the dependencies. This version might differ
-		// from the one currently in Godeps.json because the other repo could have gotten more commit for this
-		// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
-		if len(dependentRepos) > 0 {
-			fmt.Printf("Checking that Godeps.json points to the actual tags in %s.\n", *dependencies)
-			if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
-				glog.Fatalf("Failed to checkout %v: %v", bh, err)
+		if os.Getenv("PUBLISHER_BOT_SKIP_GODEPS") != "true" {
+			// update Godeps.json to point to actual tagged version in the dependencies. This version might differ
+			// from the one currently in Godeps.json because the other repo could have gotten more commit for this
+			// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
+			if len(dependentRepos) > 0 {
+				fmt.Printf("Checking that Godeps.json points to the actual tags in %s.\n", *dependencies)
+				if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
+					glog.Fatalf("Failed to checkout %v: %v", bh, err)
+				}
+				if _, err := updateGodepsJsonWithTaggedDependencies(r, bName, dependentRepos); err != nil {
+					glog.Fatalf("Failed to update Godeps.json for tag %s: %v", bName, err)
+				}
 			}
-			if _, err := updateGodepsJsonWithTaggedDependencies(r, bName, dependentRepos); err != nil {
-				glog.Fatalf("Failed to update Godeps.json for tag %s: %v", bName, err)
+
+			// update golang/dep Gopkg.toml
+			fmt.Printf("Updating Gopkg.toml.\n")
+			if err := dep.GodepToGopkg(dependentRepos, requiredPkgs, *alternativeSource); err != nil {
+				glog.Fatalf("Failed to create Gopkg.toml: %v", err)
 			}
-		}
+			wt.Add("Gopkg.toml")
 
-		// update golang/dep Gopkg.toml
-		fmt.Printf("Updating Gopkg.toml.\n")
-		if err := dep.GodepToGopkg(dependentRepos, requiredPkgs, *alternativeSource); err != nil {
-			glog.Fatalf("Failed to create Gopkg.toml: %v", err)
-		}
-		wt.Add("Gopkg.toml")
-
-		if st, err := wt.Status(); err != nil {
-			glog.Fatalf("Failed to get git status: %v", err)
-		} else if !st.IsClean() {
-			fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
-			publishingBotNow := publishingBot
-			publishingBotNow.When = time.Now()
-			bh, err = wt.Commit(fmt.Sprintf("Fix Godeps.json to point to %s tags", bName), &gogit.CommitOptions{
-				All:       true,
-				Author:    &publishingBotNow,
-				Committer: &publishingBotNow,
-			})
-			if err != nil {
-				glog.Fatalf("Failed to commit Godeps/Godeps.json changes: %v", err)
+			if st, err := wt.Status(); err != nil {
+				glog.Fatalf("Failed to get git status: %v", err)
+			} else if !st.IsClean() {
+				fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
+				publishingBotNow := publishingBot
+				publishingBotNow.When = time.Now()
+				bh, err = wt.Commit(fmt.Sprintf("Fix Godeps.json to point to %s tags", bName), &gogit.CommitOptions{
+					All:       true,
+					Author:    &publishingBotNow,
+					Committer: &publishingBotNow,
+				})
+				if err != nil {
+					glog.Fatalf("Failed to commit Godeps/Godeps.json changes: %v", err)
+				}
 			}
 		}
 
