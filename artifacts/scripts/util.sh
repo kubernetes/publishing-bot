@@ -555,11 +555,13 @@ function filter-branch() {
     echo "Running git filter-branch ..."
     local index_filter=""
     if [ -n "${recursive_delete_pattern}" ]; then
-        local pattern=""
+        local patterns=()
+        local p=""
         index_filter="git rm -q --cached --ignore-unmatch -r"
-        while read -r pattern; do
-            index_filter+=" '${pattern}'"
-        done <<< "${recursive_delete_pattern}"
+        IFS=" " read -ra patterns <<<"${recursive_delete_pattern}"
+        for p in "${patterns[@]}"; do
+            index_filter+=" '${p}'"
+        done
     fi
     git filter-branch -f --index-filter "${index_filter}" --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${4} ${5} >/dev/null
 }
