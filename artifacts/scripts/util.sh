@@ -250,16 +250,7 @@ sync_repo() {
 
     # remove existing recursive-delete-pattern files. After a first removal commit, the filter-branch command
     # will filter them out from upstream commits.
-    if [ -n "${recursive_delete_pattern}" ]; then
-        local split_recursive_delete_pattern
-        read -r -a split_recursive_delete_pattern <<< "${recursive_delete_pattern}"
-        git rm -q --ignore-unmatch -r "${split_recursive_delete_pattern[@]}"
-        git add -u
-        if ! git-index-clean; then
-            echo "Deleting files recursively: ${recursive_delete_pattern}"
-            git commit -m "sync: initially remove files ${recursive_delete_pattern}"
-        fi
-    fi
+    apply-recursive-delete-pattern "${recursive_delete_pattern}"
 
     local dst_old_head=$(git rev-parse HEAD) # will be the initial commit for new branch
 
@@ -330,7 +321,7 @@ sync_repo() {
             local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "${commit_msg_tag}: ${k_pending_merge_commit}")" HEAD^{tree})
             # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. Godeps.json did not change.
             git reset -q --hard ${dst_new_merge}
-            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}"
+            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}" "${recursive_delete_pattern}"
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -375,7 +366,7 @@ sync_repo() {
 
             # if there is no pending merge commit, update Godeps.json because this could be a target of tag
             if [ -z "${k_pending_merge_commit}" ]; then
-                fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
+                fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
                 dst_needs_godeps_update=false
                 dst_merge_point_commit=$(git rev-parse HEAD)
             fi
@@ -478,7 +469,7 @@ sync_repo() {
             # we would end up with "base B + change B" which misses the change A changes.
             amend-godeps-at ${f_mainline_commit}
 
-            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag}
+            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -491,10 +482,10 @@ sync_repo() {
     #       output depends on upstream's HEAD.
     echo "Fixing up godeps after a complete sync"
     if [ $(git rev-parse HEAD) != "${dst_old_head}" ] || [ "${new_branch}" = "true" ]; then
-        fix-godeps "${deps}" "${required_packages}" "${is_library}" true true ${commit_msg_tag}
+        fix-godeps "${deps}" "${required_packages}" "${is_library}" true true ${commit_msg_tag} "${recursive_delete_pattern}"
     else
         # update godeps without squashing because it would mutate a published commit
-        fix-godeps "${deps}" "${required_packages}" "${is_library}" true false ${commit_msg_tag}
+        fix-godeps "${deps}" "${required_packages}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
     fi
 
     # create look-up file for collapsed upstream commits
@@ -642,6 +633,22 @@ function git-index-clean() {
     return 1
 }
 
+function apply-recursive-delete-pattern() {
+    local recursive_delete_pattern="${1}"
+    if [ -z "${recursive_delete_pattern}" ]; then
+        return
+    fi
+
+    local split_recursive_delete_pattern
+    read -r -a split_recursive_delete_pattern <<< "${recursive_delete_pattern}"
+    git rm -q --ignore-unmatch -r "${split_recursive_delete_pattern[@]}"
+    git add -u
+    if ! git-index-clean; then
+        echo "Deleting files recursively: ${recursive_delete_pattern}"
+        git commit -m "sync: initially remove files ${recursive_delete_pattern}"
+    fi
+}
+
 function fix-godeps() {
     if [ "${PUBLISHER_BOT_SKIP_GODEPS:-}" = true ]; then
         return 0
@@ -653,6 +660,8 @@ function fix-godeps() {
     local needs_godeps_update="${4}"
     local squash="${5:-true}"
     local commit_msg_tag="${6}"
+    local recursive_delete_pattern="${7}"
+
     local dst_old_commit=$(git rev-parse HEAD)
     if [ "${needs_godeps_update}" = true ]; then
         # run godeps restore+save
@@ -693,11 +702,22 @@ function fix-godeps() {
         fi
     fi
 
-    # amend godep commit to ${dst_old_commit}
-    if ! git diff --exit-code ${dst_old_commit} &>/dev/null && [ "${squash}" = true ]; then
+    # required packages above could have added files to be deleted according to delete pattern
+    apply-recursive-delete-pattern "${recursive_delete_pattern}"
+
+    # squash godep commits, either into ${dst_old_commit} or into _one_ new commit
+    if git diff --exit-code ${dst_old_commit} &>/dev/null; then
+        echo "Remove redundant godep commits on-top of ${dst_old_commit}."
+        git reset --soft -q ${dst_old_commit}
+    elif [ "${squash}" = true ]; then
         echo "Amending last merge with godep changes."
         git reset --soft -q ${dst_old_commit}
         git commit -q --amend --allow-empty -C ${dst_old_commit}
+    else
+        echo "Squashing godep commits into one."
+        local old_head="$(git rev-parse HEAD)"
+        git reset --soft -q ${dst_old_commit}
+        git commit -q --allow-empty -m "sync: update godeps"
     fi
 
     ensure-clean-working-dir
