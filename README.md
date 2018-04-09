@@ -30,9 +30,9 @@ Currently we don't have tests for the bot. It relies on manual tests:
 * Create a config and a corresponding ConfigMap in [configs](configs),
   - by copying [configs/example](config/example) and [configs/example-configmap.yaml](configs/example-configmap.yaml),
   - and by changing the Makefile constants in `configs/<yourconfig>`
-  - and the ConfigMap values in  `configs/<yourconfig>-configmap.yaml.
+  - and the ConfigMap values in  `configs/<yourconfig>-configmap.yaml`.
 
-* Create a rules config and a corresponding ConfigMap in [configs](configs),
+* Create a rule config and a corresponding ConfigMap in [configs](configs),
   - by copying [configs/example-rules-configmap.yaml](configs/example-rules-configmap.yaml),
   - and by changing the Makefile constants in `configs/<yourconfig>`
   - and the ConfigMap values in  `configs/<yourconfig>-rules-configmap.yaml`.
