@@ -220,21 +220,31 @@ sync_repo() {
                 echo "Couldn't find a ${commit_msg_tag} commit SHA in any commit on ${dst_branch}."
                 return 1
             fi
-            local k_base_merge=$(git-find-merge ${k_base_commit} upstream/${src_branch})
-            if [ -z "${k_base_merge}" ]; then
-                echo "Didn't find merge commit of source commit ${k_base_commit}. Odd."
-                return 1
-            fi
-            git branch -f filtered-branch-base ${k_base_merge} >/dev/null
+
+            git branch -f filtered-branch-base ${k_base_commit} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
             filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
         fi
 
+        # if f_base_commit is not a merge, but on some feature branch, we first list the commits
+        # on the feature branch and then continue with mainline commits
+        local f_base_commit=$(git rev-parse filtered-branch-base)
+        local f_base_merge=$(git-find-merge ${f_base_commit} filtered-branch)
+        if [ -z "${f_base_merge}" ]; then
+            echo "Didn't find merge commit of filtered commit ${f_base_commit}."
+            return 1
+        fi
+        f_mainline_commits=""
+        if [ "${f_base_merge}" != "${f_base_commit}" ]; then
+            echo "Starting on non-mainline commit $(kube-commit ${f_base_commit})."
+            f_mainline_commits="$(git log --ancestry-path --format='%H' --reverse ${f_base_commit}..${f_base_merge})"
+            f_base_commit="{f_base_merge}"
+        fi
+
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
         # the corresponding fast-forward merge and left the feature branch commits)
-        local f_base_commit=$(git rev-parse filtered-branch-base)
-        f_mainline_commits=$(git log --first-parent --format='%H' --reverse ${f_base_commit}..HEAD)
+        f_mainline_commits+=" $(git log --first-parent --format='%H' --reverse ${f_base_commit}..HEAD)"
 
         # checkout our dst branch. For old branches this is the old HEAD, for new non-master branches this is branch point on master.
         echo "Checking out branch ${dst_branch}."
