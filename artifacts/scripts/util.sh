@@ -775,7 +775,7 @@ function update_full_godeps() {
     local depbranch=""
     for depbranch in ${deps//,/ } $(basename "${PWD}"); do # due to a bug in kube's update-staging-godeps script we have reflexive dependencies. Remove them as well.
         IFS=: read dep branch <<<"${depbranch}"
-        jq '.Deps |= map(select(.ImportPath | (startswith("k8s.io/'${dep}'/") or . == "k8s.io/'${dep}'") | not))' Godeps/Godeps.json > Godeps/Godeps.json.clean
+        jq '.Deps |= map(select(.ImportPath | (startswith("k8s.io/'${dep}'/") or . == "k8s.io/'${dep}'") | not))' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
         mv Godeps/Godeps.json.clean Godeps/Godeps.json
     done
 
@@ -798,7 +798,7 @@ function update_full_godeps() {
     mv Godeps/Godeps.json.preserve Godeps/Godeps.json
 
     # remove Comment from each dependency and use tabs
-    jq 'del(.Deps[].Comment)' Godeps/Godeps.json | unexpand --first-only --tabs=2 > Godeps/Godeps.json.clean
+    jq 'del(.Deps[].Comment)' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
     mv Godeps/Godeps.json.clean Godeps/Godeps.json
 
     if [ "${is_library}" = "true" ]; then
@@ -877,7 +877,7 @@ update-deps-in-godep-json() {
     done
 
     # due to a bug we have xxxx revisions for reflexive dependencies. Remove them.
-    jq '.Deps |= map(select(.ImportPath | (startswith("k8s.io/'$(basename "${PWD}")'/") or . == "k8s.io/'$(basename "${PWD}")'") | not))' Godeps/Godeps.json > Godeps/Godeps.json.clean
+    jq '.Deps |= map(select(.ImportPath | (startswith("k8s.io/'$(basename "${PWD}")'/") or . == "k8s.io/'$(basename "${PWD}")'") | not))' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
     mv Godeps/Godeps.json.clean Godeps/Godeps.json
 
     git add Godeps/Godeps.json
@@ -930,4 +930,8 @@ checkout-deps-to-kube-commit() {
             git checkout -q "${dep_commit}"
         popd >/dev/null
     done
+}
+
+indent-godeps() {
+     unexpand --first-only --tabs=2
 }
