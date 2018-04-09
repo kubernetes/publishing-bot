@@ -124,6 +124,12 @@
   revision = "9d8544a6b2c7df9cff240fcf92d7b2f59bc13416"
 
 [[projects]]
+  name = "gopkg.in/natefinch/lumberjack.v2"
+  packages = ["."]
+  revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
+  version = "v2.1"
+
+[[projects]]
   name = "gopkg.in/src-d/go-billy.v3"
   packages = [
     ".",
@@ -196,6 +202,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0f10913767e98772d45c86975426243d09ad398112b933b608ace6e9ec093687"
+  inputs-digest = "6c25c8f64838e53a919ffd320738b0b7fcea6b742091acaf84029012e8d89238"
   solver-name = "gps-cdcl"
   solver-version = 1
