@@ -121,7 +121,7 @@ set -o xtrace
 #    - kube-commit to map a f_..._commit or dst_..._commit to the corresponding
 #      k_..._commmit using the "Kubernetes-commit: <sha>" line in the commit message,
 #    - branch-commit to map a k_..._commit to a f_..._commit or dst_..._commit
-#      (depending on the current branch or the second paramter if given.
+#      (depending on the current branch or the second parameter if given.
 sync_repo() {
     # subdirectory in k8s.io/kubernetes, e.g., staging/src/k8s.io/apimachinery
     local source_repo_org="${1}"
