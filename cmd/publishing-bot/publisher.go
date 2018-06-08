@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -247,7 +248,10 @@ func (p *PublisherMunger) publish() error {
 // Run constructs the repos and pushes them.
 func (p *PublisherMunger) Run() (string, string, error) {
 	buf := bytes.NewBuffer(nil)
-	p.plog = NewPublisherLog(buf)
+	var err error
+	if p.plog, err = NewPublisherLog(buf, path.Join(p.baseRepoPath, "run.log")); err != nil {
+		return "", "", err
+	}
 
 	hash, err := p.updateSourceRepo()
 	if err != nil {

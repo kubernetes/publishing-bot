@@ -31,20 +31,30 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/shurcooL/go/indentwriter"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type plog struct {
-	buf *bytes.Buffer
+	combinedBufAndFile io.Writer
+	buf                *bytes.Buffer
 }
 
-func NewPublisherLog(buf *bytes.Buffer) *plog {
-	return &plog{buf}
+func NewPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
+	logFile := &lumberjack.Logger{
+		Filename: logFileName,
+		MaxAge:   7,
+	}
+	if err := logFile.Rotate(); err != nil {
+		return nil, err
+	}
+
+	return &plog{muxWriter{buf, logFile}, buf}, nil
 }
 
 func (p *plog) write(s string) {
-	p.buf.WriteString("[" + time.Now().Format(time.RFC822) + "]: ")
-	p.buf.WriteString(s)
-	p.buf.WriteString("\n")
+	p.combinedBufAndFile.Write([]byte("[" + time.Now().Format(time.RFC822) + "]: "))
+	p.combinedBufAndFile.Write([]byte(s))
+	p.combinedBufAndFile.Write([]byte("\n"))
 }
 
 func (p *plog) Errorf(format string, args ...interface{}) {
@@ -70,8 +80,8 @@ func (p *plog) Run(c *exec.Cmd) error {
 
 	errBuf := &bytes.Buffer{}
 
-	c.Stdout = indentwriter.New(&muxWriter{p.buf, os.Stdout}, 1)
-	c.Stderr = indentwriter.New(errBuf, 1)
+	c.Stdout = indentwriter.New(muxWriter{p.combinedBufAndFile, os.Stdout}, 1)
+	c.Stderr = indentwriter.New(muxWriter{p.combinedBufAndFile, errBuf}, 1)
 
 	err := c.Start()
 	if err != nil {
@@ -117,13 +127,15 @@ func (cs cmdStr) String() string {
 	return strings.Join(args, " ")
 }
 
-type muxWriter struct {
-	A, B io.Writer
-}
+type muxWriter []io.Writer
 
-func (w *muxWriter) Write(b []byte) (int, error) {
-	if n, err := w.A.Write(b); err != nil {
-		return n, err
+func (mw muxWriter) Write(b []byte) (int, error) {
+	n := 0
+	var err error
+	for _, w := range mw {
+		if n, err = w.Write(b); err != nil {
+			return n, err
+		}
 	}
-	return w.B.Write(b)
+	return n, nil
 }
