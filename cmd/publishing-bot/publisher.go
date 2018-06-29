@@ -114,11 +114,16 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 		return nil
 	}
 
-	err := exec.Command("mkdir", "-p", dst).Run()
-	if err != nil {
+	cmd := exec.Command("mkdir", "-p", dst)
+	if err := p.plog.Run(cmd); err != nil {
 		return err
 	}
-	cmd := exec.Command("git", "clone", "--no-tags", dstURL, dst)
+	cmd = exec.Command("git", "clone", dstURL, dst)
+	if err := p.plog.Run(cmd); err != nil {
+		return err
+	}
+	cmd = exec.Command("/bin/bash", "-c", "git tag -l | xargs git tag -d")
+	cmd.Dir = dst
 	return p.plog.Run(cmd)
 }
 
