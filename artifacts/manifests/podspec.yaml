@@ -10,9 +10,11 @@ initContainers:
   imagePullPolicy: Always
   resources:
     requests:
-      cpu: 2000m
+      cpu: 300m
+      memory: 200Mi
     limits:
-      cpu: 2000m
+      cpu: 2
+      memory: 1.6Gi
   volumeMounts:
   - mountPath: /etc/munge-config
     name: munge-config
@@ -35,9 +37,11 @@ containers:
   imagePullPolicy: Always
   resources:
     requests:
-      cpu: 2000m
+      cpu: 300m
+      memory: 200Mi
     limits:
-      cpu: 2000m
+      cpu: 2
+      memory: 1.6Gi
   volumeMounts:
   - mountPath: /etc/munge-config
     name: munge-config
