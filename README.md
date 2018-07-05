@@ -63,6 +63,5 @@ This will not push to your org, but runs in dry-run mode. To run with a push, ad
 
 ## Known issues
 
-1. Reporting issues: the publishing robot should file an issue and attach its logs if it meets bugs during publishing.
-2. Testing: currently we rely on manual testing. We should set up CI for it.
-3. Automate release process (tracked at https://github.com/kubernetes/kubernetes/issues/49011): when kubernetes release, automatic update the configuration of the publishing robot. This probably means that the config must move into the Kubernetes repo, e.g. as a `.publishing.yaml` file.
+1. Testing: currently we rely on manual testing. We should set up CI for it.
+2. Automate release process (tracked at https://github.com/kubernetes/kubernetes/issues/49011): when kubernetes release, automatic update the configuration of the publishing robot. This probably means that the config must move into the Kubernetes repo, e.g. as a `.publishing.yaml` file.
