@@ -220,12 +220,12 @@ sync_repo() {
                 echo "Couldn't find a ${commit_msg_tag} commit SHA in any commit on ${dst_branch}."
                 return 1
             fi
-            local k_base_merge=$(git-find-merge ${k_base_commit} upstream/${src_branch})
-            if [ -z "${k_base_merge}" ]; then
-                echo "Didn't find merge commit of source commit ${k_base_commit}. Odd."
-                return 1
-            fi
-            git branch -f filtered-branch-base ${k_base_merge} >/dev/null
+            #local k_base_merge=$(git-find-merge ${k_base_commit} upstream/${src_branch})
+            #if [ -z "${k_base_merge}" ]; then
+            #    echo "Didn't find merge commit of source commit ${k_base_commit}. Odd."
+            #    return 1
+            #fi
+            git branch -f filtered-branch-base ${k_base_commit} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
             filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
@@ -509,7 +509,10 @@ EOF
 # amend-godeps-at checks out the Godeps.json at the given commit and amend it to the previous commit.
 function amend-godeps-at() {
     if [ -f Godeps/Godeps.json ]; then
+        set +e
         git checkout ${f_mainline_commit} Godeps/Godeps.json # reset to mainline state which is guaranteed to be correct
+        [ "$?" != "0" ] && return
+        set -e
         git commit --amend --no-edit -q
     fi
 }
