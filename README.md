@@ -61,6 +61,10 @@ This will not push to your org, but runs in dry-run mode. To run with a push, ad
 
 **Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will close, them triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
 
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on how to contribute.
+
 ## Known issues
 
 1. Testing: currently we rely on manual testing. We should set up CI for it.
