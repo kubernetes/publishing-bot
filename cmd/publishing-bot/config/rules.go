@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"time"
 
+	"os/exec"
+
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -69,23 +71,37 @@ type RepositoryRules struct {
 	RecursiveDeletePatterns []string `yaml:"recursive-delete-patterns"`
 }
 
-// LoadRules loads the repository rules either from the remote HTTP location or
-// a local file path.
-func LoadRules(ruleFile string) (*RepositoryRules, error) {
-	var (
-		content []byte
-		err     error
-	)
-	if ruleUrl, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleUrl.Host) > 0 {
-		content, err = readFromUrl(ruleUrl)
-	} else {
-		content, err = ioutil.ReadFile(ruleFile)
-		if err != nil {
-			return nil, err
-		}
-
+func LoadRulesFromFile(ruleFile string) (*RepositoryRules, error) {
+	content, err := ioutil.ReadFile(ruleFile)
+	if err != nil {
+		return nil, err
 	}
+	var rules RepositoryRules
+	if err = yaml.Unmarshal(content, &rules); err != nil {
+		return nil, err
+	}
+	return &rules, nil
+}
 
+func LoadRulesFromURL(ruleURL *url.URL) (*RepositoryRules, error) {
+	content, err := readFromUrl(ruleURL)
+	if err != nil {
+		return nil, err
+	}
+	var rules RepositoryRules
+	if err = yaml.Unmarshal(content, &rules); err != nil {
+		return nil, err
+	}
+	return &rules, nil
+}
+
+func LoadRulesFromRepo(ruleFile, repoDir, branch string) (*RepositoryRules, error) {
+	c := exec.Command("git", "show", fmt.Sprintf("%s:%s", branch, ruleFile))
+	c.Dir = repoDir
+	content, err := c.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %v", string(content), err)
+	}
 	var rules RepositoryRules
 	if err = yaml.Unmarshal(content, &rules); err != nil {
 		return nil, err

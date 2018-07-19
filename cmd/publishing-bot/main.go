@@ -49,6 +49,7 @@ func main() {
 	dryRun := flag.Bool("dry-run", false, "do not push anything to github")
 	tokenFile := flag.String("token-file", "", "the file with the github token")
 	rulesFile := flag.String("rules-file", "", "the file or URL with repository rules")
+	rulesFileBranches := flag.String("rules-file-branches", "master", "list of source repository branches we look for the rules")
 	// TODO: make absolute
 	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
 	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
@@ -89,6 +90,9 @@ func main() {
 	}
 	if *rulesFile != "" {
 		cfg.RulesFile = *rulesFile
+	}
+	if *rulesFileBranches != "" {
+		cfg.RuleSourceBranches = *rulesFileBranches
 	}
 	if *basePublishScriptPath != "" {
 		cfg.BasePublishScriptPath = *basePublishScriptPath
@@ -157,17 +161,17 @@ func main() {
 			token := strings.Trim(string(bs), " \t\n")
 
 			// run
-			logs, hash, err := publisher.Run()
-			server.SetHealth(err == nil, hash)
+			logs, hashes, err := publisher.Run()
+			server.SetHealth(err == nil, hashes)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 					githubIssueErrorf("Failed to report logs on github issue: %v", err)
-					server.SetHealth(false, hash)
+					server.SetHealth(false, hashes)
 				}
 			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 				githubIssueErrorf("Failed to close issue: %v", err)
-				server.SetHealth(false, hash)
+				server.SetHealth(false, hashes)
 			}
 		} else {
 			// run

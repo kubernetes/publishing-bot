@@ -27,6 +27,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"net/url"
+
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
@@ -50,7 +52,7 @@ func New(cfg *config.Config, baseRepoPath string) *PublisherMunger {
 }
 
 // update the local checkout of the source repository
-func (p *PublisherMunger) updateSourceRepo() (string, error) {
+func (p *PublisherMunger) updateSourceRepo(sourceBranch string) (string, error) {
 	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
 
 	cmd := exec.Command("git", "fetch", "origin")
@@ -66,10 +68,27 @@ func (p *PublisherMunger) updateSourceRepo() (string, error) {
 		return "", fmt.Errorf("failed running %v on %q repo: %v", strings.Join(cmd.Args, " "), p.config.SourceRepo, err)
 	}
 
-	rules, err := config.LoadRules(p.config.RulesFile)
+	var rules *config.RepositoryRules
+
+	if strings.HasPrefix(p.config.RulesFile, "/") {
+		// The rules are specified as absolute file path
+		rules, err = config.LoadRulesFromFile(p.config.RulesFile)
+	} else {
+		// The rules are specified as URL
+		if ruleUrl, err := url.ParseRequestURI(p.config.RulesFile); err == nil && len(ruleUrl.Host) > 0 {
+			rules, err = config.LoadRulesFromURL(ruleUrl)
+		} else {
+			// The rules are specified as relative path in repository dir
+			rules, err = config.LoadRulesFromRepo(p.config.RulesFile, repoDir, sourceBranch)
+		}
+	}
 	if err != nil {
 		return "", err
 	}
+	if rules == nil {
+		return "", fmt.Errorf("Unable to load rule file from %q", p.config.RulesFile)
+	}
+
 	p.reposRules = *rules
 	glog.Infof("Loaded %d repository rules from %s", len(p.reposRules.Rules), p.config.RulesFile)
 
@@ -251,28 +270,51 @@ func (p *PublisherMunger) publish() error {
 }
 
 // Run constructs the repos and pushes them.
-func (p *PublisherMunger) Run() (string, string, error) {
+func (p *PublisherMunger) Run() (string, map[string]string, error) {
 	buf := bytes.NewBuffer(nil)
 	var err error
 	if p.plog, err = NewPublisherLog(buf, path.Join(p.baseRepoPath, "run.log")); err != nil {
 		return "", "", err
 	}
 
-	hash, err := p.updateSourceRepo()
-	if err != nil {
-		p.plog.Errorf("%v", err)
-		p.plog.Flush()
-		return p.plog.Logs(), hash, err
+	// If --branches is specified, re-run the bot with different set of rules
+	// per each specified branch.
+	sourceBranches := strings.Split(p.config.RuleSourceBranches, ",")
+
+	// Each source branch will report its healthz
+	hashes := make(map[string]string, len(sourceBranches))
+	for _, branch := range sourceBranches {
+		hashes[branch] = ""
 	}
-	if err := p.construct(); err != nil {
-		p.plog.Errorf("%v", err)
-		p.plog.Flush()
-		return p.plog.Logs(), hash, err
+
+	var errors []error
+	for _, sourceBranch := range sourceBranches {
+		hash, err := p.updateSourceRepo(sourceBranch)
+		if err != nil {
+			p.plog.Errorf("%v", err)
+			errors = append(errors, err)
+			continue
+		}
+		hashes[sourceBranch] = hash
+		if err := p.construct(); err != nil {
+			p.plog.Errorf("%v", err)
+			errors = append(errors, err)
+			continue
+		}
+		if err := p.publish(); err != nil {
+			p.plog.Errorf("%v", err)
+			errors = append(errors, err)
+			continue
+		}
 	}
-	if err := p.publish(); err != nil {
-		p.plog.Errorf("%v", err)
-		p.plog.Flush()
-		return p.plog.Logs(), hash, err
+	p.plog.Flush()
+
+	if len(errors) > 0 {
+		errMsg := []string{}
+		for _, err := range errors {
+			errMsg = append(errMsg, err.Error())
+		}
+		return p.plog.Logs(), hashes, fmt.Errorf("%v", errMsg)
 	}
-	return p.plog.Logs(), hash, nil
+	return p.plog.Logs(), hashes, nil
 }

@@ -33,6 +33,9 @@ type Config struct {
 	// the file that contain the repository rules
 	RulesFile string `yaml:"rules-file"`
 
+	// comma separated list of source repository branches we will read the rule file from
+	RuleSourceBranches string `yaml:"rule-source-branches"`
+
 	// If true, don't make any mutating API calls
 	DryRun bool
 
