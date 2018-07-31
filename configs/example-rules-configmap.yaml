@@ -1,10 +1,11 @@
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: publisher-rules
 data:
   config: |
     # Specify branches you want to skip
-    skip-source-branches: 
+    skip-source-branches:
     # - release-1.7
     # ls-files pattern like: */BUILD *.ext pkg/foo.go Makefile
     recursive-delete-patterns:
