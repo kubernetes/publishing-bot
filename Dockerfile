@@ -17,13 +17,12 @@ MAINTAINER Chao Xu <xuchao@google.com>
 RUN apt-get update \
  && apt-get install -y -qq git=1:2.1.4-2.1+deb8u6 \
  && apt-get install -y -qq mercurial \
- && apt-get install -y -qq ca-certificates wget jq vim tmux bsdmainutils tig \
- && wget https://storage.googleapis.com/golang/go1.10.2.linux-amd64.tar.gz \
- && tar -C /usr/local -xzf go1.10.2.linux-amd64.tar.gz \
+ && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig \
  && rm -rf /var/lib/apt/lists/*
 
 ENV GOPATH="/go-workspace"
-ENV PATH="${GOPATH}/bin:/usr/local/go/bin:${PATH}"
+ENV GOROOT="/go-workspace/go"
+ENV PATH="${GOPATH}/bin:/go-workspace/go/bin:${PATH}"
 ENV GIT_COMMITTER_NAME="Kubernetes Publisher"
 ENV GIT_COMMITTER_EMAIL="k8s-publishing-bot@users.noreply.github.com"
 ENV TERM=xterm

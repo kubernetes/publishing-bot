@@ -44,6 +44,8 @@ func (c Source) String() string {
 
 type BranchRule struct {
 	Name string `yaml:"name"`
+	// a (full) version string like 1.10.2.
+	GoVersion string `yaml:"go"`
 	// k8s.io/* repos the branch rule depends on
 	Dependencies     []Dependency `yaml:"dependencies,omitempty"`
 	Source           Source       `yaml:"source"`
