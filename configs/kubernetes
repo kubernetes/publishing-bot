@@ -2,3 +2,5 @@ DOCKER_REPO = sttts/k8s-publishing-bot
 NAMESPACE = k8s-publishing-bot
 SCHEDULE = * */4 * * *
 INTERVAL = 14400
+MEMORY_REQUESTS = 1.5Gi
+MEMORY_LIMITS = 2Gi

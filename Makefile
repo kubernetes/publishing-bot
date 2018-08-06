@@ -10,9 +10,11 @@ TOKEN ?=
 KUBECTL ?= kubectl
 SCHEDULE ?= 0 5 * * *
 INTERVAL ?= 86400
+MEMORY_REQUESTS ?= 200Mi
+MEMORY_LIMITS ?= 1.6Gi
 
 build_cmd = mkdir -p _output && GOOS=linux go build -o _output/$(1) ./cmd/$(1)
-prepare_spec = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g'
+prepare_spec = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s,MEMORY_REQUESTS,$(MEMORY_REQUESTS),g;s,MEMORY_LIMITS,$(MEMORY_LIMITS),g'
 
 SHELL := /bin/bash
 
