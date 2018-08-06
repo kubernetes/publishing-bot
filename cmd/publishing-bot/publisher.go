@@ -174,6 +174,15 @@ func (p *PublisherMunger) construct() error {
 			// get old HEAD. Ignore errors as the branch might be non-existent
 			oldHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output()
 
+			goPath := os.Getenv("GOPATH")
+			branchEnv := append([]string(nil), os.Environ()...) // make mutable
+			if branchRule.GoVersion != "" {
+				goRoot := filepath.Join(goPath, "go-"+branchRule.GoVersion)
+				branchEnv = append(branchEnv, "GOROOT="+goRoot)
+				goBin := filepath.Join(goRoot, "bin")
+				branchEnv = updateEnv(branchEnv, "PATH", prependPath(goBin), goBin)
+			}
+
 			// TODO: Refactor this to use environment variables instead
 			repoPublishScriptPath := filepath.Join(p.config.BasePublishScriptPath, "construct.sh")
 			cmd := exec.Command(repoPublishScriptPath,
@@ -188,8 +197,9 @@ func (p *PublisherMunger) construct() error {
 				p.config.SourceRepo,
 				fmt.Sprintf("%v", repoRule.Library),
 				strings.Join(p.reposRules.RecursiveDeletePatterns, " "))
+			cmd.Env = append([]string(nil), branchEnv...) // make mutable
 			if p.reposRules.SkipGodeps {
-				cmd.Env = append(os.Environ(), "PUBLISHER_BOT_SKIP_GODEPS=true")
+				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_SKIP_GODEPS=true")
 			}
 			if err := p.plog.Run(cmd); err != nil {
 				return err
@@ -199,6 +209,7 @@ func (p *PublisherMunger) construct() error {
 			if len(repoRule.SmokeTest) > 0 && string(oldHead) != string(newHead) {
 				p.plog.Infof("Running smoke tests for branch %s", branchRule.Name)
 				cmd := exec.Command("/bin/bash", "-xec", repoRule.SmokeTest)
+				cmd.Env = append([]string(nil), branchEnv...) // make mutable
 				if err := p.plog.Run(cmd); err != nil {
 					// do not clean up to allow debugging with kubectl-exec.
 					return err
@@ -211,6 +222,26 @@ func (p *PublisherMunger) construct() error {
 		}
 	}
 	return nil
+}
+
+func updateEnv(env []string, key string, change func(string) string, val string) []string {
+	for i := range env {
+		if strings.HasPrefix(env[i], key+"=") {
+			ss := strings.SplitN(env[i], "=", 2)
+			env[i] = fmt.Sprintf("%s=%s", key, change(ss[1]))
+			return env
+		}
+	}
+	return append(env, fmt.Sprintf("%s=%s", key, val))
+}
+
+func prependPath(p string) func(string) string {
+	return func(s string) string {
+		if s == "" {
+			return p
+		}
+		return p + ":" + s
+	}
 }
 
 // publish to remotes.

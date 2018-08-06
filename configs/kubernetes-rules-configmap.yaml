@@ -28,10 +28,12 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/code-generator
         name: release-1.9
+        go: 1.9.7
       - source:
           branch: release-1.10
           dir: staging/src/k8s.io/code-generator
         name: release-1.10
+        go: 1.9.7
       - source:
           branch: release-1.11
           dir: staging/src/k8s.io/code-generator
@@ -59,10 +61,12 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/apimachinery
         name: release-1.9
+        go: 1.9.7
       - source:
           branch: release-1.10
           dir: staging/src/k8s.io/apimachinery
         name: release-1.10
+        go: 1.9.7
       - source:
           branch: release-1.11
           dir: staging/src/k8s.io/apimachinery
@@ -88,6 +92,7 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/api
         name: release-1.9
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.9
@@ -95,6 +100,7 @@ data:
           branch: release-1.10
           dir: staging/src/k8s.io/api
         name: release-1.10
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.10
@@ -148,6 +154,7 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/client-go
         name: release-6.0
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.9
@@ -157,6 +164,7 @@ data:
           branch: release-1.10
           dir: staging/src/k8s.io/client-go
         name: release-7.0
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.10
@@ -222,6 +230,7 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/apiserver
         name: release-1.9
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.9
@@ -233,6 +242,7 @@ data:
           branch: release-1.10
           dir: staging/src/k8s.io/apiserver
         name: release-1.10
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.10
@@ -305,6 +315,7 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/kube-aggregator
         name: release-1.9
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.9
@@ -318,6 +329,7 @@ data:
           branch: release-1.10
           dir: staging/src/k8s.io/kube-aggregator
         name: release-1.10
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.10
@@ -402,6 +414,7 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/sample-apiserver
         name: release-1.9
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.9
@@ -419,6 +432,7 @@ data:
           branch: release-1.10
           dir: staging/src/k8s.io/sample-apiserver
         name: release-1.10
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.10
@@ -478,6 +492,7 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/sample-controller
         name: release-1.9
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.9
@@ -493,6 +508,7 @@ data:
           branch: release-1.10
           dir: staging/src/k8s.io/sample-controller
         name: release-1.10
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.10
@@ -579,6 +595,7 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/apiextensions-apiserver
         name: release-1.9
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.9
@@ -596,6 +613,7 @@ data:
           branch: release-1.10
           dir: staging/src/k8s.io/apiextensions-apiserver
         name: release-1.10
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.10
@@ -664,6 +682,7 @@ data:
           branch: release-1.9
           dir: staging/src/k8s.io/metrics
         name: release-1.9
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.9
@@ -675,6 +694,7 @@ data:
           branch: release-1.10
           dir: staging/src/k8s.io/metrics
         name: release-1.10
+        go: 1.9.7
         dependencies:
         - repository: apimachinery
           branch: release-1.10
