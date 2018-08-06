@@ -7,3 +7,9 @@ NAMESPACE = <your-kubernetes-namespace>
 
 # time in seconds between publisher runs in seconds
 INTERVAL = 86400
+
+# requested resources for the main container
+# MEMORY_REQUESTS = 1Gi
+
+# requested limits for the main container
+# MEMORY_LIMITS = 2Gi

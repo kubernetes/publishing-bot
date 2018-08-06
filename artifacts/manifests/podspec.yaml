@@ -40,10 +40,10 @@ containers:
   resources:
     requests:
       cpu: 300m
-      memory: 200Mi
+      memory: MEMORY_REQUESTS
     limits:
       cpu: 2
-      memory: 1.6Gi
+      memory: MEMORY_LIMITS
   volumeMounts:
   - mountPath: /etc/munge-config
     name: munge-config
