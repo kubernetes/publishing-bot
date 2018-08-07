@@ -1,3 +1,18 @@
+/*
+Copyright 2016 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package main
 
 import (
@@ -33,8 +48,8 @@ func TestNewGithubLogBuilder(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		builder := newLogBuilderWithMaxBytes(c.maxBytes, c.rawLog)
-		if l := builder.log(); l != c.expectedLog {
+		builder := NewLogBuilderWithMaxBytes(c.maxBytes, c.rawLog)
+		if l := builder.Log(); l != c.expectedLog {
 			t.Errorf("log mismatched: expected(%q) actual(%q)", c.expectedLog, l)
 			t.Fail()
 		}
@@ -49,19 +64,20 @@ foobarfoo
 barbarbar
 `
 	expected := `****
-fooworld
+foobarfoo
 foobaz
-foobarfoo`
-	actual := newLogBuilderWithMaxBytes(0, testLog).
-		addHeading("****").
-		trim("\n").
-		split("\n").
-		filter(func(line string) bool {
+fooworld`
+	actual := NewLogBuilderWithMaxBytes(0, testLog).
+		AddHeading("****").
+		Trim("\n").
+		Split("\n").
+		Filter(func(line string) bool {
 			return strings.HasPrefix(line, "foo")
 		}).
-		tail(3).
-		join("\n").
-		log()
+		Tail(3).
+		Reverse().
+		Join("\n").
+		Log()
 	if expected != actual {
 		t.Errorf("log mismatched: expected(%q) actual(%q)", expected, actual)
 	}

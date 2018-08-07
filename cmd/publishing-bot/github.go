@@ -53,20 +53,8 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	}
 
 	// create new newComment
-	// body := fmt.Sprintf("The last publishing run failed: %v\n\n```%s```\n", e, tail(logs, 65000))
+	body := transfromLogToGithubFormat(logs, 50, fmt.Sprintf("The last publishing run failed: %v", e))
 
-	body := newLogBuilderWithMaxBytes(65000, logs).
-		addHeading(fmt.Sprintf("The last publishing run failed: %v", e)).
-		addHeading("```").
-		trim("\n").
-		split("\n").
-		filter(func(line string) bool {
-			return strings.HasPrefix(line, "+")
-		}).
-		tail(50).
-		join("\n").
-		addTailing("```").
-		log()
 	newComment, resp, err := client.Issues.CreateComment(ctx, org, repo, issue, &github.IssueComment{
 		Body: &body,
 	})
@@ -120,4 +108,28 @@ func CloseIssue(token, org, repo string, issue int) error {
 	}
 
 	return nil
+}
+
+func transfromLogToGithubFormat(original string, maxLines int, headings ...string) string {
+	logCount := 0
+	transformed := NewLogBuilderWithMaxBytes(65000, original).
+		AddHeading(headings...).
+		AddHeading("```").
+		Trim("\n").
+		Split("\n").
+		Reverse().
+		Filter(func(line string) bool {
+			if logCount < maxLines {
+				if strings.HasPrefix(line, "+") {
+					logCount++
+				}
+				return true
+			}
+			return false
+		}).
+		Reverse().
+		Join("\n").
+		AddTailing("```").
+		Log()
+	return transformed
 }
