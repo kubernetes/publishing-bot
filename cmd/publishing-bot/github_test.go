@@ -13,36 +13,36 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package main
 
-import (
-	"fmt"
-	"testing"
-)
+import "testing"
 
-func TestTail(t *testing.T) {
-	tests := []struct {
-		msg      string
-		maxBytes int
-		want     string
-	}{
-		{"", 10, ""},
-		{"012", 10, "012"},
-		{"0123456789", 10, "0123456789"},
-		{"01234567890", 10, "...4567890"},
-		{"\n01234567890", 10, "...4567890"},
-		{"01234567890\n", 10, "...4567890"},
-		{"01234\n0123", 10, "01234\n0123"},
-		{"0123456\n0123", 10, "...\n0123"},
-		{"0123\n0123\n0123", 10, "...\n0123"},
-		{"01\n01\n01\n01", 10, "...\n01\n01"},
-	}
-	for i, tt := range tests {
-		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
-			if got := tail(tt.msg, tt.maxBytes); got != tt.want {
-				t.Errorf("tail(%q, %d) = %v, want %v", tt.msg, tt.maxBytes, got, tt.want)
-			}
-		})
+func TestGithubLogTransform(t *testing.T) {
+	originLog := `111111111111
+222222
++ hello
+hello foo
+hello bar
++ holla
+holla foo
+holla bar
++ hi 
+hi foo
+hi bar
+`
+	expected := "```" + `
++ hello
+hello foo
+hello bar
++ holla
+holla foo
+holla bar
++ hi 
+hi foo
+hi bar` + "```\n"
+	actual := transfromLogToGithubFormat(originLog, 3)
+	if actual != expected {
+		t.Errorf("log mismatched: expected(%q) actual(%q)", expected, actual)
+		t.Fail()
 	}
 }

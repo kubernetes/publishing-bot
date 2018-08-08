@@ -53,7 +53,8 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	}
 
 	// create new newComment
-	body := fmt.Sprintf("The last publishing run failed: %v\n\n```%s```\n", e, tail(logs, 65000))
+	body := transfromLogToGithubFormat(logs, 50, fmt.Sprintf("The last publishing run failed: %v", e))
+
 	newComment, resp, err := client.Issues.CreateComment(ctx, org, repo, issue, &github.IssueComment{
 		Body: &body,
 	})
@@ -109,49 +110,26 @@ func CloseIssue(token, org, repo string, issue int) error {
 	return nil
 }
 
-// tail returns lines with a maximum of the given bytes in length. Only complete lines are
-// returned, with the exception if the is only one line, then "..." are put in front.
-// maxBytes must be at least 3.
-func tail(msg string, maxBytes int) string {
-	msg = strings.Trim(msg, "\n")
-	if len(msg) <= maxBytes {
-		return msg
-	}
-	lines := strings.Split(msg, "\n")
-	if len(lines) == 1 {
-		if len(lines[0]) <= maxBytes {
-			return lines[0]
-		}
-		return "..." + lines[0][max(0, len(lines[0])-maxBytes+3):]
-	}
-
-	prefix := "..."
-	ret := []string{}
-	n := len(prefix)
-	for i := len(lines) - 1; i >= 0; i-- {
-		if n+len("\n")+len(lines[i]) > maxBytes {
-			if len(ret) == 0 {
-				return "..." + lines[0][max(0, len(lines[0])-maxBytes+3):]
+func transfromLogToGithubFormat(original string, maxLines int, headings ...string) string {
+	logCount := 0
+	transformed := NewLogBuilderWithMaxBytes(65000, original).
+		AddHeading(headings...).
+		AddHeading("```").
+		Trim("\n").
+		Split("\n").
+		Reverse().
+		Filter(func(line string) bool {
+			if logCount < maxLines {
+				if strings.HasPrefix(line, "+") {
+					logCount++
+				}
+				return true
 			}
-			break
-		}
-		ret = append(ret, lines[i])
-		n += len(lines[i]) + len("\n")
-	}
-
-	return strings.Join(reverse(append(ret, prefix)), "\n")
-}
-
-func reverse(s []string) []string {
-	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
-		s[i], s[j] = s[j], s[i]
-	}
-	return s
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
+			return false
+		}).
+		Reverse().
+		Join("\n").
+		AddTailing("```").
+		Log()
+	return transformed
 }
