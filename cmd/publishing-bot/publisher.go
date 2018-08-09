@@ -137,7 +137,7 @@ func (p *PublisherMunger) construct() error {
 
 		// clone the destination repo
 		dstDir := filepath.Join(p.baseRepoPath, repoRule.DestinationRepository, "")
-		dstURL := fmt.Sprintf("https://github.com/%s/%s.git", p.config.TargetOrg, repoRule.DestinationRepository)
+		dstURL := fmt.Sprintf("https://%s/%s/%s.git", p.config.GithubHost, p.config.TargetOrg, repoRule.DestinationRepository)
 		if err := p.ensureCloned(dstDir, dstURL); err != nil {
 			p.plog.Errorf("%v", err)
 			return err
@@ -272,7 +272,7 @@ func (p *PublisherMunger) publish() error {
 				continue
 			}
 
-			cmd := exec.Command("/publish_scripts/push.sh", p.config.TokenFile, branchRule.Name)
+			cmd := exec.Command(p.config.BasePublishScriptPath+"/push.sh", p.config.TokenFile, branchRule.Name)
 			if err := p.plog.Run(cmd); err != nil {
 				return err
 			}

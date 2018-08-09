@@ -38,6 +38,9 @@ Command line flags override config values.
 
 func main() {
 	configFilePath := flag.String("config", "", "the config file in yaml format")
+	githubHost := flag.String("github-host", "", "the address of github (defaults to github.com)")
+	basePackage := flag.String("base-package", "", "the name of the package base (defaults to k8s.io when source repo is kubernetes, "+
+		"otherwise github-host/target-org)")
 	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
 	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
 	rulesFile := flag.String("rules-file", "", "the file with repository rules")
@@ -68,10 +71,26 @@ func main() {
 	if *repoOrg != "" {
 		cfg.SourceOrg = *repoOrg
 	}
-
-	if cfg.SourceRepo != "kubernetes" {
-		BaseRepoPath = filepath.Join(SystemGoPath, "src", "github.com", cfg.TargetOrg)
+	if *githubHost != "" {
+		cfg.GithubHost = *githubHost
 	}
+	if *basePackage != "" {
+		cfg.BasePackage = *basePackage
+	}
+
+	if cfg.GithubHost == "" {
+		cfg.GithubHost = "github.com"
+	}
+	// defaulting when base package is not specified
+	if cfg.BasePackage == "" {
+		if cfg.SourceRepo == "kubernetes" {
+			cfg.BasePackage = "k8s.io"
+		} else {
+			cfg.BasePackage = filepath.Join(cfg.GithubHost, cfg.TargetOrg)
+		}
+	}
+
+	BaseRepoPath = filepath.Join(SystemGoPath, "src", cfg.BasePackage)
 
 	if *rulesFile != "" {
 		cfg.RulesFile = *rulesFile
@@ -164,7 +183,7 @@ func installGoVersion(v string, pth string) {
 }
 
 func cloneForkRepo(cfg config.Config, repoName string) {
-	forkRepoLocation := "https://github.com/" + cfg.TargetOrg + "/" + repoName
+	forkRepoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.TargetOrg, repoName)
 	repoDir := filepath.Join(BaseRepoPath, repoName)
 
 	if _, err := os.Stat(repoDir); err == nil {
@@ -246,7 +265,7 @@ func cloneSourceRepo(cfg config.Config, runGodepRestore bool) {
 		return
 	}
 
-	repoLocation := "https://" + filepath.Join("github.com", cfg.SourceOrg, cfg.SourceRepo)
+	repoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
 	glog.Infof("Cloning source repository %s ...", repoLocation)
 	cloneCmd := exec.Command("git", "clone", repoLocation)
 	run(cloneCmd)

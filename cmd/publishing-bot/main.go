@@ -46,6 +46,9 @@ Command line flags override config values.
 
 func main() {
 	configFilePath := flag.String("config", "", "the config file in yaml format")
+	githubHost := flag.String("github-host", "", "the address of github (defaults to github.com)")
+	basePackage := flag.String("base-package", "", "the name of the package base (defaults to k8s.io when source repo is kubernetes, "+
+		"otherwise github-host/target-org)")
 	dryRun := flag.Bool("dry-run", false, "do not push anything to github")
 	tokenFile := flag.String("token-file", "", "the file with the github token")
 	rulesFile := flag.String("rules-file", "", "the file or URL with repository rules")
@@ -53,7 +56,7 @@ func main() {
 	repoName := flag.String("source-repo", "", "the name of the source repository (eg. kubernetes)")
 	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
-	basePublishScriptPath := flag.String("base-publish-script-path", "./publish_scripts", `the base path in source repo where bot will look for publishing scripts`)
+	basePublishScriptPath := flag.String("base-publish-script-path", "./artifacts/scripts", `the base path in source repo where bot will look for publishing scripts`)
 	interval := flag.Uint("interval", 0, "loop with the given seconds of wait in between")
 	serverPort := flag.Int("server-port", 0, "start a webserver on the given port listening on 0.0.0.0")
 
@@ -93,6 +96,17 @@ func main() {
 	if *basePublishScriptPath != "" {
 		cfg.BasePublishScriptPath = *basePublishScriptPath
 	}
+	if *githubHost != "" {
+		cfg.GithubHost = *githubHost
+	}
+	if *basePackage != "" {
+		cfg.BasePackage = *basePackage
+	}
+
+	// defaulting to github.com when it is not specified.
+	if cfg.GithubHost == "" {
+		cfg.GithubHost = "github.com"
+	}
 
 	var err error
 	cfg.BasePublishScriptPath, err = filepath.Abs(cfg.BasePublishScriptPath)
@@ -110,11 +124,15 @@ func main() {
 
 	// set the baseRepoPath
 	gopath := os.Getenv("GOPATH")
-	// if the SourceRepo is not kubernetes, use github.com as baseRepoPath
-	baseRepoPath := filepath.Join(gopath, "src", "github.com", cfg.TargetOrg)
-	if cfg.SourceRepo == "kubernetes" {
-		baseRepoPath = filepath.Join(gopath, "src", "k8s.io")
+	// defaulting when base package is not specified
+	if cfg.BasePackage == "" {
+		if cfg.SourceRepo == "kubernetes" {
+			cfg.BasePackage = "k8s.io"
+		} else {
+			cfg.BasePackage = filepath.Join(cfg.GithubHost, cfg.TargetOrg)
+		}
 	}
+	baseRepoPath := fmt.Sprintf("%s/%s/%s", gopath, "src", cfg.BasePackage)
 
 	// If RULE_FILE_PATH is detected, check if the source repository include rules files.
 	if len(os.Getenv("RULE_FILE_PATH")) > 0 {

@@ -18,6 +18,15 @@ package config
 
 // Config is how we are configured to talk to github.
 type Config struct {
+	// GithubHost is the address for github.
+	// Defaults to github.com
+	GithubHost string `yaml:"github-host"`
+
+	// BasePackage is the base package name for this repo.
+	// Defaults to k8s.io when SourceOrg is kubernetes, otherwise, defaults
+	// to ${GithubHost}/${TargetOrg}
+	BasePackage string `yaml:"base-package"`
+
 	// the organization to publish into, e.g. k8s-publishing-bot or kubernetes-nightly
 	TargetOrg string `yaml:"target-org"`
 
