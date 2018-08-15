@@ -132,7 +132,8 @@ sync_repo() {
     local kubernetes_remote="${6}"
     local deps="${7:-""}"
     local required_packages="${8:-""}"
-    local is_library="${9}"
+    local base_package="${9:-"k8s.io"}"
+    local is_library="${10}"
 
     shift 9
 
@@ -321,7 +322,7 @@ sync_repo() {
             local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "${commit_msg_tag}: ${k_pending_merge_commit}")" HEAD^{tree})
             # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. Godeps.json did not change.
             git reset -q --hard ${dst_new_merge}
-            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}" "${recursive_delete_pattern}"
+            fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}" "${recursive_delete_pattern}"
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -366,7 +367,7 @@ sync_repo() {
 
             # if there is no pending merge commit, update Godeps.json because this could be a target of tag
             if [ -z "${k_pending_merge_commit}" ]; then
-                fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
+                fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
                 dst_needs_godeps_update=false
                 dst_merge_point_commit=$(git rev-parse HEAD)
             fi
@@ -469,7 +470,7 @@ sync_repo() {
             # we would end up with "base B + change B" which misses the change A changes.
             amend-godeps-at ${f_mainline_commit}
 
-            fix-godeps "${deps}" "${required_packages}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
+            fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -482,10 +483,10 @@ sync_repo() {
     #       output depends on upstream's HEAD.
     echo "Fixing up godeps after a complete sync"
     if [ $(git rev-parse HEAD) != "${dst_old_head}" ] || [ "${new_branch}" = "true" ]; then
-        fix-godeps "${deps}" "${required_packages}" "${is_library}" true true ${commit_msg_tag} "${recursive_delete_pattern}"
+        fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" true true ${commit_msg_tag} "${recursive_delete_pattern}"
     else
         # update godeps without squashing because it would mutate a published commit
-        fix-godeps "${deps}" "${required_packages}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
+        fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
     fi
 
     # create look-up file for collapsed upstream commits
@@ -656,22 +657,23 @@ function fix-godeps() {
 
     local deps="${1}"
     local required_packages="${2}"
-    local is_library="${3}"
-    local needs_godeps_update="${4}"
-    local squash="${5:-true}"
-    local commit_msg_tag="${6}"
-    local recursive_delete_pattern="${7}"
+    local base_package="${3}"
+    local is_library="${4}"
+    local needs_godeps_update="${5}"
+    local squash="${6:-true}"
+    local commit_msg_tag="${7}"
+    local recursive_delete_pattern="${8}"
 
     local dst_old_commit=$(git rev-parse HEAD)
     if [ "${needs_godeps_update}" = true ]; then
         # run godeps restore+save
-        update_full_godeps "${deps}" "${is_library}" "${commit_msg_tag}"
+        update_full_godeps "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
     elif [ -f Godeps/Godeps.json ]; then
         # update the Godeps.json quickly by just updating the dependency hashes
         # Note: this is a compromise between correctness and completeness. It's neither 100%
         #       of these, but good enough for go get and vendoring tools.
         checkout-deps-to-kube-commit "${commit_msg_tag}" "${deps}"
-        update-deps-in-godep-json "${deps}" "${is_library}" "${commit_msg_tag}"
+        update-deps-in-godep-json "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
     fi
 
     # remove vendor/ on non-master branches for libraries
@@ -765,8 +767,9 @@ function squash() {
 # This function assumes it's the last step in the publishing process that's going to generate commits.
 function update_full_godeps() {
     local deps="${1:-""}"
-    local is_library="${2}"
-    local commit_msg_tag="${3}"
+    local base_package="${2}"
+    local is_library="${3}"
+    local commit_msg_tag="${4}"
 
     ensure-clean-working-dir
 
@@ -789,13 +792,13 @@ function update_full_godeps() {
     fi
 
     # remove dependencies from Godeps/Godeps.json
-    echo "Removing k8s.io/* dependencies from Godeps.json"
+    echo "Removing ${base_package}/* dependencies from Godeps.json"
     local dep=""
     local branch=""
     local depbranch=""
     for depbranch in ${deps//,/ } $(basename "${PWD}"); do # due to a bug in kube's update-staging-godeps script we have reflexive dependencies. Remove them as well.
         IFS=: read dep branch <<<"${depbranch}"
-        jq '.Deps |= map(select(.ImportPath | (startswith("k8s.io/'${dep}'/") or . == "k8s.io/'${dep}'") | not))' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
+        jq '.Deps |= map(select(.ImportPath | (startswith("'${base_package}/${dep}'/") or . == "'${base_package}/${dep}'") | not))' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
         mv Godeps/Godeps.json.clean Godeps/Godeps.json
     done
 
@@ -863,9 +866,10 @@ update-deps-in-godep-json() {
         return 0
     fi
 
-    local is_library=${2}
+    local base_package=${2}
+    local is_library=${3}
     local deps=${1}
-    local commit_msg_tag="${3}"
+    local commit_msg_tag="${4}"
     local deps_array=()
     IFS=',' read -a deps_array <<< "${1}"
     local dep_count=${#deps_array[@]}
@@ -878,7 +882,7 @@ update-deps-in-godep-json() {
         fi
 
         # get old dependency hash in Godeps/Godeps.json
-        local old_dep_commit=$(jq -r '.Deps[] | select(.ImportPath | startswith("k8s.io/'${dep}'/") or . == "k8s.io/'${dep}'") | .Rev' Godeps/Godeps.json | tail -n 1)
+        local old_dep_commit=$(jq -r '.Deps[] | select(.ImportPath | startswith("'${base_package}/${dep}'/") or . == "'${base_package}/${dep}'") | .Rev' Godeps/Godeps.json | tail -n 1)
         if [ -n "${old_dep_commit}" ]; then
             if [ "${old_dep_commit}" != "${dep_commit}" ]; then
                 # it existed before => replace with the new value
@@ -889,7 +893,7 @@ update-deps-in-godep-json() {
             # revert changes and fall back to full vendoring
             echo "Found new dependency k8s.io/${dep}. Switching to full vendoring."
             git checkout -q HEAD Godeps/Godeps.json
-            update_full_godeps "${deps}" "${is_library}" "${commit_msg_tag}"
+            update_full_godeps "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
             return $?
         else
             echo "Ignoring k8s.io/${dep} dependency because it seems not to be used."
@@ -897,7 +901,7 @@ update-deps-in-godep-json() {
     done
 
     # due to a bug we have xxxx revisions for reflexive dependencies. Remove them.
-    jq '.Deps |= map(select(.ImportPath | (startswith("k8s.io/'$(basename "${PWD}")'/") or . == "k8s.io/'$(basename "${PWD}")'") | not))' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
+    jq '.Deps |= map(select(.ImportPath | (startswith("'${base_package}/$(basename "${PWD}")'/") or . == "'${base_package}/$(basename "${PWD}")'") | not))' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
     mv Godeps/Godeps.json.clean Godeps/Godeps.json
 
     git add Godeps/Godeps.json

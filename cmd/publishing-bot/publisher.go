@@ -195,6 +195,7 @@ func (p *PublisherMunger) construct() error {
 				branchRule.Source.Dir,
 				p.config.SourceRepo,
 				p.config.SourceRepo,
+				p.config.BasePackage,
 				fmt.Sprintf("%v", repoRule.Library),
 				strings.Join(p.reposRules.RecursiveDeletePatterns, " "))
 			cmd.Env = append([]string(nil), branchEnv...) // make mutable
