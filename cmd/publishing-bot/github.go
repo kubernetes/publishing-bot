@@ -67,7 +67,9 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	}
 
 	// delete all other comments from this user
-	comments, resp, err := client.Issues.ListComments(ctx, org, repo, issue, &github.IssueListCommentsOptions{})
+	comments, resp, err := client.Issues.ListComments(ctx, org, repo, issue, &github.IssueListCommentsOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+	})
 	if err != nil {
 		return fmt.Errorf("failed to get github comments of issue #%d: %v", issue, err)
 	}
