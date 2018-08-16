@@ -133,11 +133,11 @@ sync_repo() {
     local deps="${7:-""}"
     local required_packages="${8:-""}"
     local base_package="${9:-"k8s.io"}"
-    local is_library="${10}"
 
     shift 9
 
-    local recursive_delete_pattern="${1}"
+    local is_library="${1}"
+    local recursive_delete_pattern="${2}"
 
     local commit_msg_tag="${source_repo_name^}-commit"
     readonly subdirectory src_branch dst_branch kubernetes_remote deps is_library

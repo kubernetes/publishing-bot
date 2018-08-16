@@ -61,15 +61,15 @@ SUBDIR="${7}"
 SOURCE_REPO_ORG="${8}"
 # source repository name (eg. kubernetes) has to be set for the sync-tags
 SOURCE_REPO_NAME="${9}"
-# base package name (eg. k8s.io)
-BASE_PACKAGE="${10-k8s.io}"
 
 shift 9
 
+# base package name (eg. k8s.io)
+BASE_PACKAGE="${1-k8s.io}"
 # If ${REPO} is a library
-IS_LIBRARY="${1}"
+IS_LIBRARY="${2}"
 # A ls-files pattern like "*/BUILD *.ext pkg/foo.go Makefile"
-RECURSIVE_DELETE_PATTERN="${2}"
+RECURSIVE_DELETE_PATTERN="${3}"
 
 readonly SRC_BRANCH DST_BRANCH DEPS SOURCE_REMOTE SOURCE_REPO_ORG SOURCE_REPO_NAME BASE_PACKAGE SUBDIR IS_LIBRARY
 
