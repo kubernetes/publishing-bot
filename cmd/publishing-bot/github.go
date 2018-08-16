@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
@@ -74,14 +75,21 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 		return fmt.Errorf("failed to get github comments of issue #%d: HTTP code %d", issue, resp.StatusCode)
 	}
 	for _, c := range comments {
-		if *c.User.ID == *myself.ID && *c.ID != *newComment.ID {
-			resp, err = client.Issues.DeleteComment(ctx, org, repo, *c.ID)
-			if err != nil {
-				return fmt.Errorf("failed to delete github comment %d of issue #%d: %v", *c.ID, issue, err)
-			}
-			if resp.StatusCode >= 300 {
-				return fmt.Errorf("failed to delete github comment %d of issue #%d: HTTP code %d", *c.ID, issue, resp.StatusCode)
-			}
+		if *c.User.ID != *myself.ID {
+			glog.Infof("Skipping comment %d not by me, but %v", *c.ID, c.User.Name)
+			continue
+		}
+		if *c.ID == *newComment.ID {
+			continue
+		}
+
+		glog.Infof("Deleting comment %d", *c.ID)
+		resp, err = client.Issues.DeleteComment(ctx, org, repo, *c.ID)
+		if err != nil {
+			return fmt.Errorf("failed to delete github comment %d of issue #%d: %v", *c.ID, issue, err)
+		}
+		if resp.StatusCode >= 300 {
+			return fmt.Errorf("failed to delete github comment %d of issue #%d: HTTP code %d", *c.ID, issue, resp.StatusCode)
 		}
 	}
 
