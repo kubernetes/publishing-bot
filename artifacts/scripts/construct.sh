@@ -100,7 +100,9 @@ fi
 # k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
 sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
 
-# add tags
+# add tags.
+LAST_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+LAST_HEAD=$(git rev-parse HEAD)
 EXTRA_ARGS=()
 PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH}.sh
 echo "#!/bin/bash" > ${PUSH_SCRIPT}
@@ -112,3 +114,8 @@ chmod +x ${PUSH_SCRIPT}
            --dependencies "${DEPS}" \
            -alsologtostderr \
            "${EXTRA_ARGS[@]-}"
+if [ "${LAST_HEAD}" != "$(git rev-parse ${LAST_BRANCH})" ]; then
+    echo "Unexpected: branch ${LAST_BRANCH} has diverted to $(git rev-parse HEAD) from ${LAST_HEAD} before tagging."
+    exit 1
+fi
+git checkout ${LAST_BRANCH}
