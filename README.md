@@ -14,7 +14,7 @@ The robot is also responsible to update the `Godeps/Godeps.json` and the `vendor
 
 ### Publishing a new repo or a new branch
 
-* Adapt the rules in [config/kubernetes-rules-configmap.yaml](config/kubernetes-rules-configmap.yaml)
+* Adapt the rules in [config/kubernetes-rules-configmap.yaml](configs/kubernetes-rules-configmap.yaml)
 
 * For a new repo, add it to the repo list in [hack/fetch-all-latest-and-push.sh](hack/fetch-all-latest-and-push.sh)
 
@@ -28,7 +28,7 @@ Currently we don't have tests for the bot. It relies on manual tests:
 * Run [hack/fetch-all-latest-and-push.sh](hack/fetch-all-latest-and-push.sh) from the bot root directory to update the branches of your repos. This will sync your forks with upstream. **CAUTION:** this might delete data in your forks.
 
 * Create a config and a corresponding ConfigMap in [configs](configs),
-  - by copying [configs/example](config/example) and [configs/example-configmap.yaml](configs/example-configmap.yaml),
+  - by copying [configs/example](configs/example) and [configs/example-configmap.yaml](configs/example-configmap.yaml),
   - and by changing the Makefile constants in `configs/<yourconfig>`
   - and the ConfigMap values in  `configs/<yourconfig>-configmap.yaml`.
 

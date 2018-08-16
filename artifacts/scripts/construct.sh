@@ -37,8 +37,8 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-if [ ! $# -eq 11 ]; then
-    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name is_library"
+if [ ! $# -eq 12 ]; then
+    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name base_package is_library"
     exit 1
 fi
 
@@ -61,6 +61,8 @@ SUBDIR="${7}"
 SOURCE_REPO_ORG="${8}"
 # source repository name (eg. kubernetes) has to be set for the sync-tags
 SOURCE_REPO_NAME="${9}"
+# base package name (eg. k8s.io)
+BASE_PACKAGE="${10-k8s.io}"
 
 shift 9
 
@@ -69,7 +71,7 @@ IS_LIBRARY="${1}"
 # A ls-files pattern like "*/BUILD *.ext pkg/foo.go Makefile"
 RECURSIVE_DELETE_PATTERN="${2}"
 
-readonly SRC_BRANCH DST_BRANCH DEPS SOURCE_REMOTE SOURCE_REPO_ORG SOURCE_REPO_NAME SUBDIR IS_LIBRARY
+readonly SRC_BRANCH DST_BRANCH DEPS SOURCE_REMOTE SOURCE_REPO_ORG SOURCE_REPO_NAME BASE_PACKAGE SUBDIR IS_LIBRARY
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 source "${SCRIPT_DIR}"/util.sh
@@ -96,7 +98,7 @@ fi
 
 # sync_repo cherry-picks the commits that change
 # k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
-sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
+sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
 
 # add tags
 EXTRA_ARGS=()
