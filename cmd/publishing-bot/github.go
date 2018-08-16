@@ -76,6 +76,12 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	for _, c := range comments {
 		if *c.User.ID == *myself.ID && *c.ID != *newComment.ID {
 			resp, err = client.Issues.DeleteComment(ctx, org, repo, *c.ID)
+			if err != nil {
+				return fmt.Errorf("failed to delete github comment %d of issue #%d: %v", *c.ID, issue, err)
+			}
+			if resp.StatusCode >= 300 {
+				return fmt.Errorf("failed to delete github comment %d of issue #%d: HTTP code %d", *c.ID, issue, resp.StatusCode)
+			}
 		}
 	}
 
