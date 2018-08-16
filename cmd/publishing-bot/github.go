@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
@@ -53,7 +54,7 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	}
 
 	// create new newComment
-	body := transfromLogToGithubFormat(logs, 50, fmt.Sprintf("The last publishing run failed: %v", e))
+	body := transfromLogToGithubFormat(logs, 50, fmt.Sprintf("/reopen\n\nThe last publishing run failed: %v", e))
 
 	newComment, resp, err := client.Issues.CreateComment(ctx, org, repo, issue, &github.IssueComment{
 		Body: &body,
@@ -65,19 +66,10 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 		return fmt.Errorf("failed to comment on issue #%d: HTTP code %d", issue, resp.StatusCode)
 	}
 
-	// re-open issue in case it was closed
-	_, resp, err = client.Issues.Edit(ctx, org, repo, issue, &github.IssueRequest{
-		State: github.String("open"),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to re-open issue #%d: %v", issue, err)
-	}
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("failed to re-open issue #%d: HTTP code %d", issue, resp.StatusCode)
-	}
-
 	// delete all other comments from this user
-	comments, resp, err := client.Issues.ListComments(ctx, org, repo, issue, &github.IssueListCommentsOptions{})
+	comments, resp, err := client.Issues.ListComments(ctx, org, repo, issue, &github.IssueListCommentsOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+	})
 	if err != nil {
 		return fmt.Errorf("failed to get github comments of issue #%d: %v", issue, err)
 	}
@@ -85,8 +77,21 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 		return fmt.Errorf("failed to get github comments of issue #%d: HTTP code %d", issue, resp.StatusCode)
 	}
 	for _, c := range comments {
-		if *c.User.ID == *myself.ID && *c.ID != *newComment.ID {
-			resp, err = client.Issues.DeleteComment(ctx, org, repo, *c.ID)
+		if *c.User.ID != *myself.ID {
+			glog.Infof("Skipping comment %d not by me, but %v", *c.ID, c.User.Name)
+			continue
+		}
+		if *c.ID == *newComment.ID {
+			continue
+		}
+
+		glog.Infof("Deleting comment %d", *c.ID)
+		resp, err = client.Issues.DeleteComment(ctx, org, repo, *c.ID)
+		if err != nil {
+			return fmt.Errorf("failed to delete github comment %d of issue #%d: %v", *c.ID, issue, err)
+		}
+		if resp.StatusCode >= 300 {
+			return fmt.Errorf("failed to delete github comment %d of issue #%d: HTTP code %d", *c.ID, issue, resp.StatusCode)
 		}
 	}
 
