@@ -53,7 +53,7 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	}
 
 	// create new newComment
-	body := transfromLogToGithubFormat(logs, 50, fmt.Sprintf("The last publishing run failed: %v", e))
+	body := transfromLogToGithubFormat(logs, 50, fmt.Sprintf("/reopen\n\nThe last publishing run failed: %v", e))
 
 	newComment, resp, err := client.Issues.CreateComment(ctx, org, repo, issue, &github.IssueComment{
 		Body: &body,
@@ -63,17 +63,6 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	}
 	if resp.StatusCode >= 300 {
 		return fmt.Errorf("failed to comment on issue #%d: HTTP code %d", issue, resp.StatusCode)
-	}
-
-	// re-open issue in case it was closed
-	_, resp, err = client.Issues.Edit(ctx, org, repo, issue, &github.IssueRequest{
-		State: github.String("open"),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to re-open issue #%d: %v", issue, err)
-	}
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("failed to re-open issue #%d: HTTP code %d", issue, resp.StatusCode)
 	}
 
 	// delete all other comments from this user
