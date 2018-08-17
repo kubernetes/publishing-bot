@@ -176,7 +176,9 @@ func installGoVersion(v string, pth string) {
 		glog.Fatal(err)
 	}
 	defer os.RemoveAll(tmpPath)
-	run(exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -SLf https://storage.googleapis.com/golang/go%s.linux-amd64.tar.gz | tar -xz --strip 1 -C %s", v, tmpPath)))
+	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -SLf https://storage.googleapis.com/golang/go%s.linux-amd64.tar.gz | tar -xz --strip 1 -C %s", v, tmpPath))
+	cmd.Dir = tmpPath
+	run(cmd)
 	if err := os.Rename(tmpPath, pth); err != nil {
 		glog.Fatal(err)
 	}
