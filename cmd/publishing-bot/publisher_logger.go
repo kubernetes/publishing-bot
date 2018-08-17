@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -48,7 +49,7 @@ func NewPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
 		return nil, err
 	}
 
-	return &plog{muxWriter{buf, logFile}, buf}, nil
+	return &plog{newSyncWriter(muxWriter{buf, logFile}), buf}, nil
 }
 
 func (p *plog) write(s string) {
@@ -80,8 +81,10 @@ func (p *plog) Run(c *exec.Cmd) error {
 
 	errBuf := &bytes.Buffer{}
 
-	c.Stdout = indentwriter.New(muxWriter{p.combinedBufAndFile, os.Stdout}, 1)
-	c.Stderr = indentwriter.New(muxWriter{p.combinedBufAndFile, errBuf}, 1)
+	stdoutLineWriter := newLineWriter(muxWriter{p.combinedBufAndFile, os.Stdout})
+	stderrLineWriter := newLineWriter(muxWriter{p.combinedBufAndFile, errBuf})
+	c.Stdout = indentwriter.New(stdoutLineWriter, 1)
+	c.Stderr = indentwriter.New(stderrLineWriter, 1)
 
 	err := c.Start()
 	if err != nil {
@@ -92,6 +95,8 @@ func (p *plog) Run(c *exec.Cmd) error {
 	if err != nil {
 		p.Errorf("%s\n%s", err.Error(), errBuf.String())
 	}
+	stdoutLineWriter.Flush()
+	stderrLineWriter.Flush()
 	return err
 }
 
@@ -138,4 +143,56 @@ func (mw muxWriter) Write(b []byte) (int, error) {
 		}
 	}
 	return n, nil
+}
+
+func newLineWriter(writer io.Writer) lineWriter {
+	return lineWriter{
+		buf:    new(bytes.Buffer),
+		writer: writer,
+	}
+}
+
+type lineWriter struct {
+	buf    *bytes.Buffer
+	writer io.Writer
+}
+
+func (lw lineWriter) Write(b []byte) (int, error) {
+	n := 0
+	for idx := range b {
+		if err := lw.buf.WriteByte(b[idx]); err != nil {
+			return n, err
+		}
+		if b[idx] == '\n' {
+			if _, err := lw.Flush(); err != nil {
+				return n, err
+			}
+		}
+		n++
+	}
+	return n, nil
+}
+
+func (lw lineWriter) Flush() (int, error) {
+	written, err := lw.buf.WriteTo(lw.writer)
+	lw.buf.Reset()
+	return int(written), err
+}
+
+func newSyncWriter(writer io.Writer) syncWriter {
+	return syncWriter{
+		writer: writer,
+		lock:   &sync.Mutex{},
+	}
+}
+
+type syncWriter struct {
+	writer io.Writer
+	lock   *sync.Mutex
+}
+
+func (sw syncWriter) Write(b []byte) (int, error) {
+	sw.lock.Lock()
+	defer sw.lock.Unlock()
+	return sw.writer.Write(b)
 }

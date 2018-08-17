@@ -43,12 +43,12 @@ func NewLogBuilderWithMaxBytes(maxBytes int, rawLogs ...string) *logBuilder {
 	return logBuilder
 }
 
-func (builder *logBuilder) AddHeading(lines... string) *logBuilder {
+func (builder *logBuilder) AddHeading(lines ...string) *logBuilder {
 	builder.headings = append(builder.headings, lines...)
 	return builder
 }
 
-func (builder *logBuilder) AddTailing(lines... string) *logBuilder {
+func (builder *logBuilder) AddTailing(lines ...string) *logBuilder {
 	builder.tailings = append(builder.tailings, lines...)
 	return builder
 }
