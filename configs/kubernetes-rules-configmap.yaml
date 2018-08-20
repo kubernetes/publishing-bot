@@ -984,3 +984,15 @@ data:
           branch: release-1.12
         - repository: apiserver
           branch: release-1.12
+    - destination: cluster-bootstrap
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/cluster-bootstrap
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
