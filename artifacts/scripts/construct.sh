@@ -37,7 +37,7 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-if [ ! $# -eq 12 ]; then
+if [ ! $# -eq 13 ]; then
     echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name base_package is_library recursive_delete_pattern skip_tags"
     exit 1
 fi
