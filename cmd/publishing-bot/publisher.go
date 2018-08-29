@@ -183,6 +183,12 @@ func (p *PublisherMunger) construct() error {
 				branchEnv = updateEnv(branchEnv, "PATH", prependPath(goBin), goBin)
 			}
 
+			skipTags := ""
+			if p.reposRules.SkipTags {
+				skipTags = "true"
+				p.plog.Infof("synchronizing tags is disabled")
+			}
+
 			// TODO: Refactor this to use environment variables instead
 			repoPublishScriptPath := filepath.Join(p.config.BasePublishScriptPath, "construct.sh")
 			cmd := exec.Command(repoPublishScriptPath,
@@ -197,7 +203,9 @@ func (p *PublisherMunger) construct() error {
 				p.config.SourceRepo,
 				p.config.BasePackage,
 				fmt.Sprintf("%v", repoRule.Library),
-				strings.Join(p.reposRules.RecursiveDeletePatterns, " "))
+				strings.Join(p.reposRules.RecursiveDeletePatterns, " "),
+				skipTags,
+			)
 			cmd.Env = append([]string(nil), branchEnv...) // make mutable
 			if p.reposRules.SkipGodeps {
 				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_SKIP_GODEPS=true")
