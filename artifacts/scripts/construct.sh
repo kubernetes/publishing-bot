@@ -78,6 +78,8 @@ readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 source "${SCRIPT_DIR}"/util.sh
 
+echo "Running garbage collection."
+git gc --auto
 echo "Fetching from origin."
 git fetch origin --no-tags
 echo "Cleaning up checkout."
