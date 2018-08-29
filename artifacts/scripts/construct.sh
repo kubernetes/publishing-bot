@@ -38,7 +38,7 @@ set -o pipefail
 set -o xtrace
 
 if [ ! $# -eq 12 ]; then
-    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name base_package is_library"
+    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name base_package is_library recursive_delete_pattern skip_tags"
     exit 1
 fi
 
@@ -70,8 +70,10 @@ BASE_PACKAGE="${1-k8s.io}"
 IS_LIBRARY="${2}"
 # A ls-files pattern like "*/BUILD *.ext pkg/foo.go Makefile"
 RECURSIVE_DELETE_PATTERN="${3}"
+# Skip syncing tags
+SKIP_TAGS="${4}"
 
-readonly SRC_BRANCH DST_BRANCH DEPS SOURCE_REMOTE SOURCE_REPO_ORG SOURCE_REPO_NAME BASE_PACKAGE SUBDIR IS_LIBRARY
+readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG SUBDIR SOURCE_REPO_NAME BASE_PACKAGE IS_LIBRARY RECURSIVE_DELETE_PATTERN SKIP_TAGS
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 source "${SCRIPT_DIR}"/util.sh
@@ -107,15 +109,18 @@ EXTRA_ARGS=()
 PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH}.sh
 echo "#!/bin/bash" > ${PUSH_SCRIPT}
 chmod +x ${PUSH_SCRIPT}
-/sync-tags --prefix "$(echo ${SOURCE_REPO_NAME})-" \
-           --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
-           --source-remote upstream --source-branch "${SRC_BRANCH}" \
-           --push-script ${PUSH_SCRIPT} \
-           --dependencies "${DEPS}" \
-           -alsologtostderr \
-           "${EXTRA_ARGS[@]-}"
-if [ "${LAST_HEAD}" != "$(git rev-parse ${LAST_BRANCH})" ]; then
-    echo "Unexpected: branch ${LAST_BRANCH} has diverted to $(git rev-parse HEAD) from ${LAST_HEAD} before tagging."
-    exit 1
+
+if [[ -z "${SKIP_TAGS}}" ]]; then
+    /sync-tags --prefix "$(echo ${SOURCE_REPO_NAME})-" \
+               --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
+               --source-remote upstream --source-branch "${SRC_BRANCH}" \
+               --push-script ${PUSH_SCRIPT} \
+               --dependencies "${DEPS}" \
+               -alsologtostderr \
+               "${EXTRA_ARGS[@]-}"
+    if [ "${LAST_HEAD}" != "$(git rev-parse ${LAST_BRANCH})" ]; then
+        echo "Unexpected: branch ${LAST_BRANCH} has diverted to $(git rev-parse HEAD) from ${LAST_HEAD} before tagging."
+        exit 1
+    fi
 fi
 git checkout ${LAST_BRANCH}
