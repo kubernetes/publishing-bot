@@ -43,6 +43,7 @@ repos=(
     apiextensions-apiserver
     metrics
     code-generator
+    csi-api
 )
 
 repo_count=${#repos[@]}

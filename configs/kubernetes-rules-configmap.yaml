@@ -713,3 +713,17 @@ data:
           branch: release-1.11
         - repository: client-go
           branch: release-8.0
+    - destination: csi-api
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/csi-api
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+        - repository: client-go
+          branch: master
