@@ -198,6 +198,24 @@ sync_repo() {
                 echo "Couldn't find a branch point of upstream/${src_branch} and upstream/master."
                 return 1
             fi
+
+            # does ${subdirectory} exist at ${k_branch_point_commit}? If not it was introduced to the branch via some fast-forward merge.
+            # we use the fast-forward merge commit's second parent (on master) as branch point.
+            if [ $(git ls-tree --name-only -r ${k_branch_point_commit} -- "${subdirectory}" | wc -l) = 0 ]; then
+                echo "Subdirectory ${subdirectory} did not exist at branch point ${k_branch_point_commit}. Looking for fast-forward merge introducing it."
+                last_with_subdir=$(git rev-list upstream/${src_branch} --first-parent --remove-empty -- "${subdirectory}" | tail -1)
+                if [ -z "${last_with_subdir}" ]; then
+                    echo "Couldn't find any commit introducing ${subdirectory} on branch upstream/${src_branch}"
+                    return 1
+                fi
+                if ! is-merge ${last_with_subdir}; then
+                    echo "Subdirectory ${subdirectory} was introduced on non-merge branch commit ${last_with_subdir}. We don't support this."
+                    return 1
+                fi
+                k_branch_point_commit=$(git rev-parse ${last_with_subdir}^2)
+                echo "Using second-parent ${k_branch_point_commit} of merge ${last_with_subdir} on upstream/${src_branch} as starting point for new branch"
+            fi
+
             echo "Using branch point ${k_branch_point_commit} as new starting point for new branch ${dst_branch}."
             git branch -f filtered-branch-base ${k_branch_point_commit} >/dev/null
 
@@ -205,8 +223,8 @@ sync_repo() {
             filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
 
             # for a new branch that is not master: map filtered-branch-base to our ${dst_branch} as ${dst_branch_point_commit}
-            local k_branch_point_commit=$(kube-commit ${commit_msg_tag} filtered-branch-base) # k_branch_point_commit will probably different thanthe k_branch_point_commit
-                                                                            # above because filtered drops commits and maps to ancestors if necessary
+            local k_branch_point_commit=$(kube-commit ${commit_msg_tag} filtered-branch-base) # k_branch_point_commit will probably be different than the k_branch_point_commit
+                                                                                              # above because filtered drops commits and maps to ancestors if necessary
             local dst_branch_point_commit=$(branch-commit ${commit_msg_tag} ${k_branch_point_commit} master)
             if [ -z "${dst_branch_point_commit}" ]; then
                 echo "Couldn't find a corresponding branch point commit for ${k_branch_point_commit} as ascendent of origin/master."
