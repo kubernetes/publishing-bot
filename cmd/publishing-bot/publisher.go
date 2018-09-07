@@ -214,7 +214,7 @@ func (p *PublisherMunger) construct() error {
 				return err
 			}
 
-			newHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("HEAD", branchRule.Name)).Output()
+			newHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output()
 			if len(repoRule.SmokeTest) > 0 && string(oldHead) != string(newHead) {
 				p.plog.Infof("Running smoke tests for branch %s", branchRule.Name)
 				cmd := exec.Command("/bin/bash", "-xec", repoRule.SmokeTest)
