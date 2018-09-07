@@ -846,3 +846,79 @@ data:
           branch: release-1.12
         - repository: client-go
           branch: release-9.0
+    - destination: sample-cli-plugin
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/sample-cli-plugin
+        name: master
+        dependencies:
+        - repository: api
+          branch: master
+        - repository: apimachinery
+          branch: master
+        - repository: cli-runtime
+          branch: master
+        - repository: client-go
+          branch: master
+    - destination: cli-runtime
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/cli-runtime
+        name: master
+        dependencies:
+        - repository: api
+          branch: master
+        - repository: apimachinery
+          branch: master
+        - repository: client-go
+          branch: master
+    - destination: kube-proxy
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/kube-proxy
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+    - destination: kubelet
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/kubelet
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: api
+          branch: master
+    - destination: kube-scheduler
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/kube-scheduler
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: apiserver
+          branch: master
+    - destination: kube-controller-manager
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/kube-scheduler
+        name: master
+        dependencies:
+        - repository: apimachinery
+          branch: master
+        - repository: apiserver
+          branch: master

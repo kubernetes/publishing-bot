@@ -44,6 +44,12 @@ repos=(
     metrics
     code-generator
     csi-api
+    sample-cli-plugin
+    cli-runtime
+    kube-proxy
+    kubelet
+    kube-scheduler
+    kube-controller-manager
 )
 
 repo_count=${#repos[@]}
