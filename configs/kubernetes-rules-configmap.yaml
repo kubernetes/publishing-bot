@@ -846,6 +846,31 @@ data:
           branch: release-1.12
         - repository: client-go
           branch: release-9.0
+    - destination: cli-runtime
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/cli-runtime
+        name: master
+        dependencies:
+        - repository: api
+          branch: master
+        - repository: apimachinery
+          branch: master
+        - repository: client-go
+          branch: master
+      - source:
+          branch: release-1.12
+          dir: staging/src/k8s.io/cli-runtime
+        name: release-1.12
+        dependencies:
+        - repository: api
+          branch: release-1.12
+        - repository: apimachinery
+          branch: release-1.12
+        - repository: client-go
+          branch: release-9.0
     - destination: sample-cli-plugin
       library: false
       branches:
@@ -872,31 +897,6 @@ data:
         - repository: apimachinery
           branch: release-1.12
         - repository: cli-runtime
-          branch: release-1.12
-        - repository: client-go
-          branch: release-9.0
-    - destination: cli-runtime
-      library: true
-      branches:
-      - source:
-          branch: master
-          dir: staging/src/k8s.io/cli-runtime
-        name: master
-        dependencies:
-        - repository: api
-          branch: master
-        - repository: apimachinery
-          branch: master
-        - repository: client-go
-          branch: master
-      - source:
-          branch: release-1.12
-          dir: staging/src/k8s.io/cli-runtime
-        name: release-1.12
-        dependencies:
-        - repository: api
-          branch: release-1.12
-        - repository: apimachinery
           branch: release-1.12
         - repository: client-go
           branch: release-9.0
