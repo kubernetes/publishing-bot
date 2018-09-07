@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -189,6 +190,16 @@ func (p *PublisherMunger) construct() error {
 				p.plog.Infof("synchronizing tags is disabled")
 			}
 
+			// get old published hash to eventually skip cherry picking
+			var lastPublishedUpstreamHash string
+			bs, err := ioutil.ReadFile(path.Join(p.baseRepoPath, publishedFileName(repoRule.DestinationRepository, branchRule.Name)))
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			if err == nil {
+				lastPublishedUpstreamHash = string(bs)
+			}
+
 			// TODO: Refactor this to use environment variables instead
 			repoPublishScriptPath := filepath.Join(p.config.BasePublishScriptPath, "construct.sh")
 			cmd := exec.Command(repoPublishScriptPath,
@@ -205,6 +216,7 @@ func (p *PublisherMunger) construct() error {
 				fmt.Sprintf("%v", repoRule.Library),
 				strings.Join(p.reposRules.RecursiveDeletePatterns, " "),
 				skipTags,
+				lastPublishedUpstreamHash,
 			)
 			cmd.Env = append([]string(nil), branchEnv...) // make mutable
 			if p.reposRules.SkipGodeps {
@@ -254,7 +266,7 @@ func prependPath(p string) func(string) string {
 }
 
 // publish to remotes.
-func (p *PublisherMunger) publish() error {
+func (p *PublisherMunger) publish(newUpstreamHash string) error {
 	if p.config.DryRun {
 		p.plog.Infof("Skipping push in dry-run mode")
 		return nil
@@ -285,9 +297,17 @@ func (p *PublisherMunger) publish() error {
 			if err := p.plog.Run(cmd); err != nil {
 				return err
 			}
+
+			if err := ioutil.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(newUpstreamHash), 0644); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
+}
+
+func publishedFileName(repo, branch string) string {
+	return fmt.Sprintf("published-%s-%s", repo, branch)
 }
 
 // Run constructs the repos and pushes them.
@@ -298,21 +318,21 @@ func (p *PublisherMunger) Run() (string, string, error) {
 		return "", "", err
 	}
 
-	hash, err := p.updateSourceRepo()
+	newUpstreamHash, err := p.updateSourceRepo()
 	if err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), hash, err
+		return p.plog.Logs(), newUpstreamHash, err
 	}
 	if err := p.construct(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), hash, err
+		return p.plog.Logs(), newUpstreamHash, err
 	}
-	if err := p.publish(); err != nil {
+	if err := p.publish(newUpstreamHash); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), hash, err
+		return p.plog.Logs(), newUpstreamHash, err
 	}
-	return p.plog.Logs(), hash, nil
+	return p.plog.Logs(), newUpstreamHash, nil
 }
