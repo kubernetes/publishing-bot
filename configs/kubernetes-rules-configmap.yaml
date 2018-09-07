@@ -847,7 +847,7 @@ data:
         - repository: client-go
           branch: release-9.0
     - destination: sample-cli-plugin
-      library: true
+      library: false
       branches:
       - source:
           branch: master
@@ -862,6 +862,19 @@ data:
           branch: master
         - repository: client-go
           branch: master
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/sample-cli-plugin
+        name: release-1.12
+        dependencies:
+        - repository: api
+          branch: release-1.12
+        - repository: apimachinery
+          branch: release-1.12
+        - repository: cli-runtime
+          branch: release-1.12
+        - repository: client-go
+          branch: release-9.0
     - destination: cli-runtime
       library: true
       branches:
@@ -876,6 +889,17 @@ data:
           branch: master
         - repository: client-go
           branch: master
+      - source:
+          branch: release-1.12
+          dir: staging/src/k8s.io/cli-runtime
+        name: release-1.12
+        dependencies:
+        - repository: api
+          branch: release-1.12
+        - repository: apimachinery
+          branch: release-1.12
+        - repository: client-go
+          branch: release-9.0
     - destination: kube-proxy
       library: true
       branches:
@@ -886,6 +910,13 @@ data:
         dependencies:
         - repository: apimachinery
           branch: master
+      - source:
+          branch: release-1.12
+          dir: staging/src/k8s.io/kube-proxy
+        name: release-1.12
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.12
     - destination: kubelet
       library: true
       branches:
@@ -898,6 +929,15 @@ data:
           branch: master
         - repository: api
           branch: master
+      - source:
+          branch: release-1.12
+          dir: staging/src/k8s.io/kubelet
+        name: release-1.12
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.12
+        - repository: api
+          branch: release-1.12
     - destination: kube-scheduler
       library: true
       branches:
@@ -910,6 +950,15 @@ data:
           branch: master
         - repository: apiserver
           branch: master
+      - source:
+          branch: release-1.12
+          dir: staging/src/k8s.io/kube-scheduler
+        name: release-1.12
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.12
+        - repository: apiserver
+          branch: release-1.12
     - destination: kube-controller-manager
       library: true
       branches:
@@ -922,3 +971,12 @@ data:
           branch: master
         - repository: apiserver
           branch: master
+      - source:
+          branch: release-1.12
+          dir: staging/src/k8s.io/kube-scheduler
+        name: release-1.12
+        dependencies:
+        - repository: apimachinery
+          branch: release-1.12
+        - repository: apiserver
+          branch: release-1.12
