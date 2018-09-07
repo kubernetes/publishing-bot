@@ -37,8 +37,8 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-if [ ! $# -eq 13 ]; then
-    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name base_package is_library recursive_delete_pattern skip_tags"
+if [ ! $# -eq 14 ]; then
+    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name base_package is_library recursive_delete_pattern skip_tags last_published_upstream_hash"
     exit 1
 fi
 
@@ -72,8 +72,10 @@ IS_LIBRARY="${2}"
 RECURSIVE_DELETE_PATTERN="${3}"
 # Skip syncing tags
 SKIP_TAGS="${4}"
+# last published upstream hash of this branch
+LAST_PUBLISHED_UPSTREAM_HASH="${5}"
 
-readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG SUBDIR SOURCE_REPO_NAME BASE_PACKAGE IS_LIBRARY RECURSIVE_DELETE_PATTERN SKIP_TAGS
+readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG SUBDIR SOURCE_REPO_NAME BASE_PACKAGE IS_LIBRARY RECURSIVE_DELETE_PATTERN SKIP_TAGS LAST_PUBLISHED_UPSTREAM_HASH
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 source "${SCRIPT_DIR}"/util.sh
@@ -100,9 +102,15 @@ else
     git rm -q --ignore-unmatch -rf .
 fi
 
-# sync_repo cherry-picks the commits that change
-# k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
-sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
+# sync if upstream changed
+UPSTREAM_HASH=$(git rev-parse upstream/${SRC_BRANCH})
+if [ "${UPSTREAM_HASH}" != "${LAST_PUBLISHED_UPSTREAM_HASH}" ]; then
+    # sync_repo cherry-picks the commits that change
+    # k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
+    sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
+else
+    echo "Skipping sync because upstream/${SRC_BRANCH} did not change since last sync."
+fi
 
 # add tags.
 LAST_BRANCH=$(git rev-parse --abbrev-ref HEAD)
