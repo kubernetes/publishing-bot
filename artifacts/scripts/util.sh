@@ -183,7 +183,7 @@ sync_repo() {
         # create and checkout new, empty master branch. We only need this non-orphan case for the master
         # as that usually exists for new repos.
         if [ ${orphan} = true ]; then
-            git checkout -q ${dst_branch} --orphan
+            git checkout -q --orphan ${dst_branch}
         else
             git checkout -q ${dst_branch}
         fi
