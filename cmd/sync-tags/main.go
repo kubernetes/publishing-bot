@@ -162,12 +162,7 @@ func main() {
 		glog.Fatalf("Failed to iterate through %s tags: %v", *sourceRemote, err)
 	}
 
-	// compute kube commit map
-	fmt.Printf("Computing mapping from kube commits to the local branch.\n")
-	sourceCommitsToDstCommits, err := git.SourceCommitToDstCommits(r, *commitMsgTag, bFirstParents, kFirstParents)
-	if err != nil {
-		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
-	}
+	var sourceCommitsToDstCommits map[plumbing.Hash]plumbing.Hash
 
 	// create or update tags from kTagCommits as local tags with the given prefix
 	createdTags := []string{}
@@ -189,10 +184,8 @@ func main() {
 			continue
 		}
 
-		// map kube commit to local branch
-		bh, found := sourceCommitsToDstCommits[tag.Target]
-		if !found {
-			// this means that the tag is not on the current source branch
+		// skip if it already exists in origin
+		if _, found := bTagCommits[bName]; found {
 			continue
 		}
 
@@ -201,9 +194,19 @@ func main() {
 			continue
 		}
 
-		// skip if it already exists in origin
-		if _, found := bTagCommits[bName]; found {
-			fmt.Printf("Ignoring already published tag %s.\n", bName)
+		// lazily compute kube commit map
+		if sourceCommitsToDstCommits == nil {
+			fmt.Printf("Computing mapping from kube commits to the local branch.\n")
+			sourceCommitsToDstCommits, err = git.SourceCommitToDstCommits(r, *commitMsgTag, bFirstParents, kFirstParents)
+			if err != nil {
+				glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
+			}
+		}
+
+		// map kube commit to local branch
+		bh, found := sourceCommitsToDstCommits[tag.Target]
+		if !found {
+			// this means that the tag is not on the current source branch
 			continue
 		}
 
