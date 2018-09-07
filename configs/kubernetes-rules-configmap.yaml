@@ -888,7 +888,7 @@ data:
         - repository: client-go
           branch: master
       - source:
-          branch: master
+          branch: release-1.12
           dir: staging/src/k8s.io/sample-cli-plugin
         name: release-1.12
         dependencies:
