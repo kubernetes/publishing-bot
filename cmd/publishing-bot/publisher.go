@@ -27,6 +27,8 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	gogit "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
@@ -54,50 +56,72 @@ func New(cfg *config.Config, baseRepoPath string) *PublisherMunger {
 func (p *PublisherMunger) updateSourceRepo() (string, error) {
 	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
 
-	cmd := exec.Command("git", "fetch", "origin")
-	cmd.Dir = repoDir
-	if err := p.plog.Run(cmd); err != nil {
-		return "", err
+	// fetch origin
+	glog.Infof("Fetching origin at %s.", repoDir)
+	r, err := gogit.PlainOpen(repoDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to open repo at %s: %v", repoDir, err)
+	}
+	if err := r.Fetch(&gogit.FetchOptions{Progress: os.Stdout}); err != nil && err != gogit.NoErrAlreadyUpToDate {
+		return "", fmt.Errorf("failed to fetch at %s: %v", repoDir, err)
 	}
 
-	cmd = exec.Command("git", "rev-parse", "HEAD")
-	cmd.Dir = repoDir
-	hash, err := cmd.CombinedOutput()
+	// checkout head
+	glog.Infof("Checking out HEAD at %s.", repoDir)
+	w, err := r.Worktree()
 	if err != nil {
-		return "", fmt.Errorf("failed running %v on %q repo: %v", strings.Join(cmd.Args, " "), p.config.SourceRepo, err)
+		return "", fmt.Errorf("failed to open worktree at %s: %v", repoDir, err)
+	}
+	head, err := r.Head()
+	if err != nil {
+		return "", fmt.Errorf("failed to get head at %s: %v", repoDir, err)
+	}
+	if err := w.Checkout(&gogit.CheckoutOptions{Hash: head.Hash()}); err != nil {
+		return "", fmt.Errorf("failed to checkout HEAD at %s: %v", repoDir, err)
+	}
+
+	// create/update local branch for all origin branches. Those are fetches into the destination repos later (as upstream/<branch>).
+	bs, err := r.Branches()
+	if err != nil {
+		return "", fmt.Errorf("failed to get branches: %v", err)
+	}
+	glog.Infof("Updating local branches at %s.", repoDir)
+	if err = bs.ForEach(func(ref *plumbing.Reference) error {
+		name := ref.Name().String()
+		if !strings.Contains(name, "origin/") || ref.Type() != plumbing.HashReference {
+			return nil
+		}
+
+		localBranch := plumbing.NewHashReference(plumbing.ReferenceName(strings.TrimPrefix(name, "origin/")), ref.Hash())
+		if err := r.Storer.SetReference(localBranch); err != nil {
+			return fmt.Errorf("failed to create reference %s pointing to %s", localBranch.Name(), localBranch.Hash().String())
+		}
+		return nil
+	}); err != nil {
+		return "", fmt.Errorf("failed to process branches: %v", err)
+	}
+
+	return head.Hash().String(), nil
+}
+
+// update the active rules
+func (p *PublisherMunger) updateRules() error {
+	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
+
+	glog.Infof("Checking out master at %s.", repoDir)
+	cmd := exec.Command("git", "checkout", "master")
+	cmd.Dir = repoDir
+	if _, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to checkout master: %v", err)
 	}
 
 	rules, err := config.LoadRules(p.config.RulesFile)
 	if err != nil {
-		return "", err
+		return err
 	}
 	p.reposRules = *rules
-	glog.Infof("Loaded %d repository rules from %s", len(p.reposRules.Rules), p.config.RulesFile)
-
-	// update source repo branches that are needed by other repos.
-	for _, repoRule := range p.reposRules.Rules {
-		for _, branchRule := range repoRule.Branches {
-			if p.skippedBranch(branchRule.Source.Branch) {
-				continue
-			}
-
-			src := branchRule.Source
-			// we assume src.repo is always kubernetes
-			cmd := exec.Command("git", "branch", "-f", src.Branch, fmt.Sprintf("origin/%s", src.Branch))
-			cmd.Dir = repoDir
-			if err := p.plog.Run(cmd); err == nil {
-				continue
-			}
-			// probably the error is because we cannot do `git branch -f` while
-			// current branch is src.branch, so try `git reset --hard` instead.
-			cmd = exec.Command("git", "reset", "--hard", fmt.Sprintf("origin/%s", src.Branch))
-			cmd.Dir = repoDir
-			if err := p.plog.Run(cmd); err != nil {
-				return "", err
-			}
-		}
-	}
-	return strings.Trim(string(hash), " \t\n"), nil
+	glog.Infof("Loaded %d repository rules from %s.", len(p.reposRules.Rules), p.config.RulesFile)
+	return nil
 }
 
 func (p *PublisherMunger) skippedBranch(b string) bool {
@@ -322,17 +346,22 @@ func (p *PublisherMunger) Run() (string, string, error) {
 	if err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), newUpstreamHash, err
+		return p.plog.Logs(), "", err
+	}
+	if err := p.updateRules(); err != nil { // this comes after the source update because we might fetch the rules from there.
+		p.plog.Errorf("%v", err)
+		p.plog.Flush()
+		return p.plog.Logs(), "", err
 	}
 	if err := p.construct(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), newUpstreamHash, err
+		return p.plog.Logs(), "", err
 	}
 	if err := p.publish(newUpstreamHash); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), newUpstreamHash, err
+		return p.plog.Logs(), "", err
 	}
 	return p.plog.Logs(), newUpstreamHash, nil
 }
