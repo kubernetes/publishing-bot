@@ -102,14 +102,21 @@ else
     git rm -q --ignore-unmatch -rf .
 fi
 
+# fetch upstream kube and checkout $src_branch, name it filtered-branch
+echo "Fetching upstream changes."
+git remote rm upstream >/dev/null || true
+git remote add upstream "${SOURCE_REMOTE}" >/dev/null
+git fetch -q upstream --no-tags
+
 # sync if upstream changed
 UPSTREAM_HASH=$(git rev-parse upstream/${SRC_BRANCH})
 if [ "${UPSTREAM_HASH}" != "${LAST_PUBLISHED_UPSTREAM_HASH}" ]; then
+    echo "Upstream branch upstream/${SRC_BRANCH} moved from '${LAST_PUBLISHED_UPSTREAM_HASH}' to '${UPSTREAM_HASH}'. We have to sync."
     # sync_repo cherry-picks the commits that change
     # k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
-    sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${SOURCE_REMOTE}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
+    sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
 else
-    echo "Skipping sync because upstream/${SRC_BRANCH} did not change since last sync."
+    echo "Skipping sync because upstream/${SRC_BRANCH} at ${UPSTREAM_HASH} did not change since last sync."
 fi
 
 # add tags.
