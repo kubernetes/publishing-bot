@@ -129,18 +129,17 @@ sync_repo() {
     local subdirectory="${3}"
     local src_branch="${4}"
     local dst_branch="${5}"
-    local kubernetes_remote="${6}"
-    local deps="${7:-""}"
-    local required_packages="${8:-""}"
-    local base_package="${9:-"k8s.io"}"
+    local deps="${6:-""}"
+    local required_packages="${7:-""}"
+    local base_package="${8:-"k8s.io"}"
+    local is_library="${9}"
 
     shift 9
 
-    local is_library="${1}"
-    local recursive_delete_pattern="${2}"
+    local recursive_delete_pattern="${1}"
 
     local commit_msg_tag="${source_repo_name^}-commit"
-    readonly subdirectory src_branch dst_branch kubernetes_remote deps is_library
+    readonly subdirectory src_branch dst_branch deps is_library
 
     local new_branch="false"
     local orphan="false"
@@ -156,10 +155,7 @@ sync_repo() {
         echo "Starting at existing ${dst_branch} commit $(git rev-parse HEAD)."
     fi
 
-    # fetch upstream kube and checkout $src_branch, name it filtered-branch
-    git remote rm upstream >/dev/null || true
-    git remote add upstream "${kubernetes_remote}" >/dev/null
-    git fetch -q upstream --no-tags
+    # checkout $src_branch, name it filtered-branch
     git branch -D filtered-branch >/dev/null || true
     git branch -f upstream-branch upstream/"${src_branch}"
     echo "Checked out source commit $(git rev-parse upstream-branch)."
