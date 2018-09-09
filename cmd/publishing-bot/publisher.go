@@ -52,40 +52,41 @@ func New(cfg *config.Config, baseRepoPath string) *PublisherMunger {
 	}
 }
 
-// update the local checkout of the source repository
-func (p *PublisherMunger) updateSourceRepo() (string, error) {
+// update the local checkout of the source repository. It returns the branch heads.
+func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
 
 	// fetch origin
 	glog.Infof("Fetching origin at %s.", repoDir)
 	r, err := gogit.PlainOpen(repoDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to open repo at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to open repo at %s: %v", repoDir, err)
 	}
 	if err := r.Fetch(&gogit.FetchOptions{Progress: os.Stdout}); err != nil && err != gogit.NoErrAlreadyUpToDate {
-		return "", fmt.Errorf("failed to fetch at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to fetch at %s: %v", repoDir, err)
 	}
 
 	// checkout head
 	glog.Infof("Checking out HEAD at %s.", repoDir)
 	w, err := r.Worktree()
 	if err != nil {
-		return "", fmt.Errorf("failed to open worktree at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to open worktree at %s: %v", repoDir, err)
 	}
 	head, err := r.Head()
 	if err != nil {
-		return "", fmt.Errorf("failed to get head at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to get head at %s: %v", repoDir, err)
 	}
 	if err := w.Checkout(&gogit.CheckoutOptions{Hash: head.Hash()}); err != nil {
-		return "", fmt.Errorf("failed to checkout HEAD at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to checkout HEAD at %s: %v", repoDir, err)
 	}
 
 	// create/update local branch for all origin branches. Those are fetches into the destination repos later (as upstream/<branch>).
 	refs, err := r.Storer.IterReferences()
 	if err != nil {
-		return "", fmt.Errorf("failed to get branches: %v", err)
+		return nil, fmt.Errorf("failed to get branches: %v", err)
 	}
 	glog.Infof("Updating local branches at %s.", repoDir)
+	heads := map[string]plumbing.Hash{}
 	if err = refs.ForEach(func(ref *plumbing.Reference) error {
 		name := ref.Name().String()
 
@@ -98,12 +99,15 @@ func (p *PublisherMunger) updateSourceRepo() (string, error) {
 		if err := r.Storer.SetReference(localBranch); err != nil {
 			return fmt.Errorf("failed to create reference %s pointing to %s", localBranch.Name(), localBranch.Hash().String())
 		}
+
+		heads[localBranch.Name().String()] = localBranch.Hash()
+
 		return nil
 	}); err != nil {
-		return "", fmt.Errorf("failed to process branches: %v", err)
+		return nil, fmt.Errorf("failed to process branches: %v", err)
 	}
 
-	return head.Hash().String(), nil
+	return heads, nil
 }
 
 // update the active rules
@@ -292,7 +296,7 @@ func prependPath(p string) func(string) string {
 }
 
 // publish to remotes.
-func (p *PublisherMunger) publish(newUpstreamHash string) error {
+func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) error {
 	if p.config.DryRun {
 		p.plog.Infof("Skipping push in dry-run mode")
 		return nil
@@ -324,7 +328,11 @@ func (p *PublisherMunger) publish(newUpstreamHash string) error {
 				return err
 			}
 
-			if err := ioutil.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(newUpstreamHash), 0644); err != nil {
+			upstreamBranchHead, ok := newUpstreamHeads[branchRule.Source.Branch]
+			if !ok {
+				return fmt.Errorf("no upstream branch %q found", branchRule.Source.Branch)
+			}
+			if err := ioutil.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(upstreamBranchHead.String()), 0644); err != nil {
 				return err
 			}
 		}
@@ -336,7 +344,7 @@ func publishedFileName(repo, branch string) string {
 	return fmt.Sprintf("published-%s-%s", repo, branch)
 }
 
-// Run constructs the repos and pushes them.
+// Run constructs the repos and pushes them. It returns logs and the last master hash.
 func (p *PublisherMunger) Run() (string, string, error) {
 	buf := bytes.NewBuffer(nil)
 	var err error
@@ -344,7 +352,7 @@ func (p *PublisherMunger) Run() (string, string, error) {
 		return "", "", err
 	}
 
-	newUpstreamHash, err := p.updateSourceRepo()
+	newUpstreamHeads, err := p.updateSourceRepo()
 	if err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
@@ -360,10 +368,16 @@ func (p *PublisherMunger) Run() (string, string, error) {
 		p.plog.Flush()
 		return p.plog.Logs(), "", err
 	}
-	if err := p.publish(newUpstreamHash); err != nil {
+	if err := p.publish(newUpstreamHeads); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
 		return p.plog.Logs(), "", err
 	}
-	return p.plog.Logs(), newUpstreamHash, nil
+
+	var masterHead string
+	if h, ok := newUpstreamHeads["master"]; ok {
+		masterHead = h.String()
+	}
+
+	return p.plog.Logs(), masterHead, nil
 }
