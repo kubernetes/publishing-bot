@@ -95,7 +95,8 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 			return nil
 		}
 
-		localBranch := plumbing.NewHashReference(plumbing.ReferenceName(strings.TrimPrefix(name, originPrefix)), ref.Hash())
+		shortName := strings.TrimPrefix(name, originPrefix)
+		localBranch := plumbing.NewHashReference(plumbing.ReferenceName("refs/heads/"+shortName), ref.Hash())
 		if err := r.Storer.SetReference(localBranch); err != nil {
 			return fmt.Errorf("failed to create reference %s pointing to %s", localBranch.Name(), localBranch.Hash().String())
 		}
