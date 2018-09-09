@@ -104,8 +104,11 @@ fi
 
 # fetch upstream kube and checkout $src_branch, name it filtered-branch
 echo "Fetching upstream changes."
-git remote rm upstream >/dev/null || true
-git remote add upstream "${SOURCE_REMOTE}" >/dev/null
+if git remote | grep -w -q upstream; then
+    git remote set-url upstream "${SOURCE_REMOTE}" >/dev/null
+else
+    git remote add upstream "${SOURCE_REMOTE}" >/dev/null
+fi
 git fetch -q upstream --no-tags
 
 # sync if upstream changed
