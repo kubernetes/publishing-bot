@@ -154,7 +154,13 @@ func main() {
 		kFirstParentCommits[kc.Hash.String()] = struct{}{}
 	}
 	for name, kh := range kTagCommits {
-		if _, ok := kFirstParentCommits[kh.String()]; !ok {
+		// ignore non-annotated tags
+		tag, err := r.TagObject(kh)
+		if err != nil {
+			delete(kTagCommits, name)
+		}
+
+		if _, ok := kFirstParentCommits[tag.Target.String()]; !ok {
 			delete(kTagCommits, name)
 		}
 	}
