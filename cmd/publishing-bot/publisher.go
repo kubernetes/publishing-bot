@@ -81,18 +81,20 @@ func (p *PublisherMunger) updateSourceRepo() (string, error) {
 	}
 
 	// create/update local branch for all origin branches. Those are fetches into the destination repos later (as upstream/<branch>).
-	bs, err := r.Branches()
+	refs, err := r.Storer.IterReferences()
 	if err != nil {
 		return "", fmt.Errorf("failed to get branches: %v", err)
 	}
 	glog.Infof("Updating local branches at %s.", repoDir)
-	if err = bs.ForEach(func(ref *plumbing.Reference) error {
+	if err = refs.ForEach(func(ref *plumbing.Reference) error {
 		name := ref.Name().String()
-		if !strings.Contains(name, "origin/") || ref.Type() != plumbing.HashReference {
+
+		originPrefix := "refs/remotes/origin/"
+		if !strings.Contains(name, originPrefix) || ref.Type() != plumbing.HashReference {
 			return nil
 		}
 
-		localBranch := plumbing.NewHashReference(plumbing.ReferenceName(strings.TrimPrefix(name, "origin/")), ref.Hash())
+		localBranch := plumbing.NewHashReference(plumbing.ReferenceName(strings.TrimPrefix(name, originPrefix)), ref.Hash())
 		if err := r.Storer.SetReference(localBranch); err != nil {
 			return fmt.Errorf("failed to create reference %s pointing to %s", localBranch.Name(), localBranch.Hash().String())
 		}
