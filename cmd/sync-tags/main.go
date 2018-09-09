@@ -106,20 +106,6 @@ func main() {
 		*publishBranch = localBranch
 	}
 
-	// get first-parent commit list of local branch
-	bRevision, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/heads/%s", localBranch)))
-	if err != nil {
-		glog.Fatalf("Failed to open branch %s: %v", localBranch, err)
-	}
-	bHead, err := cache.CommitObject(r, *bRevision)
-	if err != nil {
-		glog.Fatalf("Failed to open branch %s head: %v", localBranch, err)
-	}
-	bFirstParents, err := git.FirstParentList(r, bHead)
-	if err != nil {
-		glog.Fatalf("Failed to get branch %s first-parent list: %v", localBranch, err)
-	}
-
 	// get first-parent commit list of upstream branch
 	kUpdateBranch, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/remotes/%s/%s", *sourceRemote, *sourceBranch)))
 	if err != nil {
@@ -134,32 +120,43 @@ func main() {
 		glog.Fatalf("Failed to get upstream branch %s first-parent list: %v", *sourceBranch, err)
 	}
 
-	// delete annotated remote tags locally
+	// delete remote tags locally
 	fmt.Printf("Removing all local copies of origin and %s tags.\n", *sourceRemote)
-	if err := removeRemoteTags(r, []string{"origin", *sourceRemote}); err != nil {
+	if err := removeRemoteTags(r, "origin", *sourceRemote); err != nil {
 		glog.Fatalf("Failed to iterate through tags: %v", err)
 	}
 
-	// fetch tags
-	fmt.Printf("Fetching tags from remote %q.\n", "origin")
-	err = fetchTags(r, "origin")
-	if err != nil {
-		glog.Fatalf("Failed to fetch tags for %q: %v", "origin", err)
-	}
+	// get upstream tags
 	fmt.Printf("Fetching tags from remote %q.\n", *sourceRemote)
 	err = fetchTags(r, *sourceRemote)
 	if err != nil {
 		glog.Fatalf("Failed to fetch tags for %q: %v", *sourceRemote, err)
 	}
+	kTagCommits, err := remoteTags(r, *sourceRemote)
+	if err != nil {
+		glog.Fatalf("Failed to iterate through %s tags: %v", *sourceRemote, err)
+	}
 
-	// get all annotated tags
+	// get all origin tags
+	fmt.Printf("Fetching tags from remote %q.\n", "origin")
+	err = fetchTags(r, "origin")
+	if err != nil {
+		glog.Fatalf("Failed to fetch tags for %q: %v", "origin", err)
+	}
 	bTagCommits, err := remoteTags(r, "origin")
 	if err != nil {
 		glog.Fatalf("Failed to iterate through origin tags: %v", err)
 	}
-	kTagCommits, err := remoteTags(r, *sourceRemote)
-	if err != nil {
-		glog.Fatalf("Failed to iterate through %s tags: %v", *sourceRemote, err)
+
+	// filter tags by source branch
+	kFirstParentCommits := map[string]struct{}{}
+	for _, kc := range kFirstParents {
+		kFirstParentCommits[kc.Hash.String()] = struct{}{}
+	}
+	for name, kh := range kTagCommits {
+		if _, ok := kFirstParentCommits[kh.String()]; !ok {
+			delete(kTagCommits, name)
+		}
 	}
 
 	var sourceCommitsToDstCommits map[plumbing.Hash]plumbing.Hash
@@ -196,7 +193,19 @@ func main() {
 
 		// lazily compute kube commit map
 		if sourceCommitsToDstCommits == nil {
-			fmt.Printf("Computing mapping from kube commits to the local branch.\n")
+			fmt.Printf("Computing mapping from kube commits to the local branch because %q seems to be relevant.\n", bName)
+			bRevision, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/heads/%s", localBranch)))
+			if err != nil {
+				glog.Fatalf("Failed to open branch %s: %v", localBranch, err)
+			}
+			bHead, err := cache.CommitObject(r, *bRevision)
+			if err != nil {
+				glog.Fatalf("Failed to open branch %s head: %v", localBranch, err)
+			}
+			bFirstParents, err := git.FirstParentList(r, bHead)
+			if err != nil {
+				glog.Fatalf("Failed to get branch %s first-parent list: %v", localBranch, err)
+			}
 			sourceCommitsToDstCommits, err = git.SourceCommitToDstCommits(r, *commitMsgTag, bFirstParents, kFirstParents)
 			if err != nil {
 				glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
@@ -288,7 +297,7 @@ func remoteTags(r *gogit.Repository, remote string) (map[string]plumbing.Hash, e
 	return tagCommits, err
 }
 
-func removeRemoteTags(r *gogit.Repository, remotes []string) error {
+func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 	refs, err := r.Storer.IterReferences()
 	if err != nil {
 		glog.Fatalf("Failed to get tags: %v", err)
