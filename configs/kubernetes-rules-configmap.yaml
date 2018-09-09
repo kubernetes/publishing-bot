@@ -964,7 +964,7 @@ data:
       branches:
       - source:
           branch: master
-          dir: staging/src/k8s.io/kube-scheduler
+          dir: staging/src/k8s.io/kube-controller-manager
         name: master
         dependencies:
         - repository: apimachinery
@@ -973,7 +973,7 @@ data:
           branch: master
       - source:
           branch: release-1.12
-          dir: staging/src/k8s.io/kube-scheduler
+          dir: staging/src/k8s.io/kube-controller-manager
         name: release-1.12
         dependencies:
         - repository: apimachinery
