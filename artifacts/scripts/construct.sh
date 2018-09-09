@@ -83,7 +83,7 @@ source "${SCRIPT_DIR}"/util.sh
 echo "Running garbage collection."
 git gc --auto
 echo "Fetching from origin."
-git fetch origin --no-tags
+git fetch origin --no-tags --prune
 echo "Cleaning up checkout."
 git rebase --abort >/dev/null || true
 git reset -q --hard
@@ -109,7 +109,7 @@ if git remote | grep -w -q upstream; then
 else
     git remote add upstream "${SOURCE_REMOTE}" >/dev/null
 fi
-git fetch -q upstream --no-tags
+git fetch -q upstream --no-tags --prune
 
 # sync if upstream changed
 UPSTREAM_HASH=$(git rev-parse upstream/${SRC_BRANCH})
