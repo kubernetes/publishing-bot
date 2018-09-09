@@ -158,8 +158,10 @@ func main() {
 		tag, err := r.TagObject(kh)
 		if err != nil {
 			delete(kTagCommits, name)
+			continue
 		}
 
+		// delete tag not on the source branch
 		if _, ok := kFirstParentCommits[tag.Target.String()]; !ok {
 			delete(kTagCommits, name)
 		}
