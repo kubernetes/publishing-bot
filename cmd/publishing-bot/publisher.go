@@ -62,7 +62,10 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open repo at %s: %v", repoDir, err)
 	}
-	if err := r.Fetch(&gogit.FetchOptions{Progress: os.Stdout}); err != nil && err != gogit.NoErrAlreadyUpToDate {
+	if err := r.Fetch(&gogit.FetchOptions{
+		Tags:     gogit.AllTags,
+		Progress: os.Stdout,
+	}); err != nil && err != gogit.NoErrAlreadyUpToDate {
 		return nil, fmt.Errorf("failed to fetch at %s: %v", repoDir, err)
 	}
 
