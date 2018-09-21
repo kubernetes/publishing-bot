@@ -835,6 +835,8 @@ data:
           branch: master
         - repository: client-go
           branch: master
+        - repository: apiextensions-apiserver
+          branch: master
       - source:
           branch: release-1.12
           dir: staging/src/k8s.io/csi-api
@@ -846,6 +848,8 @@ data:
           branch: release-1.12
         - repository: client-go
           branch: release-9.0
+        - repository: apiextensions-apiserver
+          branch: release-1.12
     - destination: cli-runtime
       library: true
       branches:
