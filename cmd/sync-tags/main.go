@@ -209,16 +209,16 @@ func main() {
 
 		// lazily compute kube commit map
 		if sourceCommitsToDstCommits == nil {
-			fmt.Printf("Computing mapping from kube commits to the local branch because %q seems to be relevant.\n", bName)
 			bRevision, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/heads/%s", localBranch)))
 			if err != nil {
 				glog.Fatalf("Failed to open branch %s: %v", localBranch, err)
 			}
-			bHead, err := cache.CommitObject(r, *bRevision)
+			fmt.Printf("Computing mapping from kube commits to the local branch %q at %s because %q seems to be relevant.\n", localBranch, bRevision.String(), bName)
+			bHeadCommit, err := cache.CommitObject(r, *bRevision)
 			if err != nil {
 				glog.Fatalf("Failed to open branch %s head: %v", localBranch, err)
 			}
-			bFirstParents, err := git.FirstParentList(r, bHead)
+			bFirstParents, err := git.FirstParentList(r, bHeadCommit)
 			if err != nil {
 				glog.Fatalf("Failed to get branch %s first-parent list: %v", localBranch, err)
 			}
@@ -262,6 +262,7 @@ func main() {
 			if err != nil {
 				glog.Fatalf("Failed to get working tree: %v", err)
 			}
+			fmt.Printf("Checking out branch tag commit %s.\n", bh.String())
 			if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
 				glog.Fatalf("Failed to checkout %v: %v", bh, err)
 			}
