@@ -17,11 +17,14 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/golang/glog"
@@ -66,6 +69,7 @@ func main() {
 	prefix := flag.String("prefix", "kubernetes-", "a string to put in front of upstream tags")
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
+	mappingOutputFile := flag.String("mapping-output-file", "", "a file name to write the source->dest hash mapping to ({{.Tag}} is substituted with the tag name, {{.Branch}} with the local branch name)")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -164,6 +168,8 @@ func main() {
 
 	var sourceCommitsToDstCommits map[plumbing.Hash]plumbing.Hash
 
+	mappingFilesWritten := map[string]bool{}
+
 	// create or update tags from kTagCommits as local tags with the given prefix
 	createdTags := []string{}
 	for name, kh := range kTagCommits {
@@ -220,6 +226,24 @@ func main() {
 		if !found {
 			// this means that the tag is not on the current source branch
 			continue
+		}
+
+		// store source->dest hash mapping for debugging
+		if *mappingOutputFile != "" {
+			fname := mappingOutputFileName(*mappingOutputFile, localBranch, bName)
+			if !mappingFilesWritten[fname] {
+				fmt.Printf("Writing source->dest hash mapping to %q\n", fname)
+				f, err := os.Create(*mappingOutputFile)
+				if err != nil {
+					glog.Fatal(f)
+				}
+				if err := writeKubeCommitMapping(f, r, sourceCommitsToDstCommits, kFirstParents); err != nil {
+					glog.Fatal(err)
+				}
+				defer f.Close()
+
+				mappingFilesWritten[fname] = true
+			}
 		}
 
 		// update Godeps.json to point to actual tagged version in the dependencies. This version might differ
@@ -357,4 +381,39 @@ func fetchTags(r *gogit.Repository, remote string) error {
 		}
 		return err
 	*/
+}
+
+func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Hash]plumbing.Hash, kFirstParents []*object.Commit) error {
+	for _, kc := range kFirstParents {
+		msg := strings.SplitN(kc.Message, "\n", 2)[0]
+		var err error
+		if dh, ok := m[kc.Hash]; ok {
+			_, err = fmt.Fprintf(w, "%s <not-found> %s\n", kc.Hash, msg)
+		} else {
+			_, err = fmt.Fprintf(w, "%s %s %s\n", kc.Hash, dh, msg)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func mappingOutputFileName(fnameTpl string, branch, tag string) string {
+	tpl, err := template.New("mapping-output-file").Parse(fnameTpl)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if err := tpl.Execute(&buf, struct {
+		Tag    string
+		Branch string
+	}{
+		Tag:    tag,
+		Branch: branch,
+	}); err != nil {
+		glog.Fatal(err)
+	}
+	return string(buf.Bytes())
 }
