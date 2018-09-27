@@ -240,7 +240,7 @@ func main() {
 			fname := mappingOutputFileName(*mappingOutputFile, localBranch, bName)
 			if !mappingFilesWritten[fname] {
 				fmt.Printf("Writing source->dest hash mapping to %q\n", fname)
-				f, err := os.Create(*mappingOutputFile)
+				f, err := os.Create(fname)
 				if err != nil {
 					glog.Fatal(f)
 				}
@@ -396,9 +396,9 @@ func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Has
 		msg := strings.SplitN(kc.Message, "\n", 2)[0]
 		var err error
 		if dh, ok := m[kc.Hash]; ok {
-			_, err = fmt.Fprintf(w, "%s <not-found> %s\n", kc.Hash, msg)
-		} else {
 			_, err = fmt.Fprintf(w, "%s %s %s\n", kc.Hash, dh, msg)
+		} else {
+			_, err = fmt.Fprintf(w, "%s <not-found> %s\n", kc.Hash, msg)
 		}
 		if err != nil {
 			return err
