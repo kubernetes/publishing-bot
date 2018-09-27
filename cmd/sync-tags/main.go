@@ -17,11 +17,14 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/golang/glog"
@@ -63,10 +66,11 @@ func main() {
 	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
 	sourceRemote := flag.String("source-remote", "", "the source repo remote (e.g. upstream")
 	sourceBranch := flag.String("source-branch", "", "the source repo branch (not qualified, just the name; defaults to equal <branch>)")
-	publishBranch := flag.String("branch", "", "a (not qualified) branch name")
 	prefix := flag.String("prefix", "kubernetes-", "a string to put in front of upstream tags")
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
+	skipFetch := flag.Bool("skip-fetch", false, "skip fetching tags")
+	mappingOutputFile := flag.String("mapping-output-file", "", "a file name to write the source->dest hash mapping to ({{.Tag}} is substituted with the tag name, {{.Branch}} with the local branch name)")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -102,10 +106,6 @@ func main() {
 		glog.Fatalf("Failed to get current branch.")
 	}
 
-	if *publishBranch == "" {
-		*publishBranch = localBranch
-	}
-
 	// get first-parent commit list of upstream branch
 	kUpdateBranch, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/remotes/%s/%s", *sourceRemote, *sourceBranch)))
 	if err != nil {
@@ -121,16 +121,20 @@ func main() {
 	}
 
 	// delete remote tags locally
-	fmt.Printf("Removing all local copies of origin and %s tags.\n", *sourceRemote)
-	if err := removeRemoteTags(r, "origin", *sourceRemote); err != nil {
-		glog.Fatalf("Failed to iterate through tags: %v", err)
+	if !*skipFetch {
+		fmt.Printf("Removing all local copies of origin and %s tags.\n", *sourceRemote)
+		if err := removeRemoteTags(r, "origin", *sourceRemote); err != nil {
+			glog.Fatalf("Failed to iterate through tags: %v", err)
+		}
 	}
 
 	// get upstream tags
-	fmt.Printf("Fetching tags from remote %q.\n", *sourceRemote)
-	err = fetchTags(r, *sourceRemote)
-	if err != nil {
-		glog.Fatalf("Failed to fetch tags for %q: %v", *sourceRemote, err)
+	if !*skipFetch {
+		fmt.Printf("Fetching tags from remote %q.\n", *sourceRemote)
+		err = fetchTags(r, *sourceRemote)
+		if err != nil {
+			glog.Fatalf("Failed to fetch tags for %q: %v", *sourceRemote, err)
+		}
 	}
 	kTagCommits, err := remoteTags(r, *sourceRemote)
 	if err != nil {
@@ -138,10 +142,12 @@ func main() {
 	}
 
 	// get all origin tags
-	fmt.Printf("Fetching tags from remote %q.\n", "origin")
-	err = fetchTags(r, "origin")
-	if err != nil {
-		glog.Fatalf("Failed to fetch tags for %q: %v", "origin", err)
+	if !*skipFetch {
+		fmt.Printf("Fetching tags from remote %q.\n", "origin")
+		err = fetchTags(r, "origin")
+		if err != nil {
+			glog.Fatalf("Failed to fetch tags for %q: %v", "origin", err)
+		}
 	}
 	bTagCommits, err := remoteTags(r, "origin")
 	if err != nil {
@@ -168,6 +174,8 @@ func main() {
 	}
 
 	var sourceCommitsToDstCommits map[plumbing.Hash]plumbing.Hash
+
+	mappingFilesWritten := map[string]bool{}
 
 	// create or update tags from kTagCommits as local tags with the given prefix
 	createdTags := []string{}
@@ -201,16 +209,16 @@ func main() {
 
 		// lazily compute kube commit map
 		if sourceCommitsToDstCommits == nil {
-			fmt.Printf("Computing mapping from kube commits to the local branch because %q seems to be relevant.\n", bName)
 			bRevision, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/heads/%s", localBranch)))
 			if err != nil {
 				glog.Fatalf("Failed to open branch %s: %v", localBranch, err)
 			}
-			bHead, err := cache.CommitObject(r, *bRevision)
+			fmt.Printf("Computing mapping from kube commits to the local branch %q at %s because %q seems to be relevant.\n", localBranch, bRevision.String(), bName)
+			bHeadCommit, err := cache.CommitObject(r, *bRevision)
 			if err != nil {
 				glog.Fatalf("Failed to open branch %s head: %v", localBranch, err)
 			}
-			bFirstParents, err := git.FirstParentList(r, bHead)
+			bFirstParents, err := git.FirstParentList(r, bHeadCommit)
 			if err != nil {
 				glog.Fatalf("Failed to get branch %s first-parent list: %v", localBranch, err)
 			}
@@ -227,6 +235,24 @@ func main() {
 			continue
 		}
 
+		// store source->dest hash mapping for debugging
+		if *mappingOutputFile != "" {
+			fname := mappingOutputFileName(*mappingOutputFile, localBranch, bName)
+			if !mappingFilesWritten[fname] {
+				fmt.Printf("Writing source->dest hash mapping to %q\n", fname)
+				f, err := os.Create(*mappingOutputFile)
+				if err != nil {
+					glog.Fatal(f)
+				}
+				if err := writeKubeCommitMapping(f, r, sourceCommitsToDstCommits, kFirstParents); err != nil {
+					glog.Fatal(err)
+				}
+				defer f.Close()
+
+				mappingFilesWritten[fname] = true
+			}
+		}
+
 		// update Godeps.json to point to actual tagged version in the dependencies. This version might differ
 		// from the one currently in Godeps.json because the other repo could have gotten more commit for this
 		// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
@@ -236,6 +262,7 @@ func main() {
 			if err != nil {
 				glog.Fatalf("Failed to get working tree: %v", err)
 			}
+			fmt.Printf("Checking out branch tag commit %s.\n", bh.String())
 			if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
 				glog.Fatalf("Failed to checkout %v: %v", bh, err)
 			}
@@ -362,4 +389,39 @@ func fetchTags(r *gogit.Repository, remote string) error {
 		}
 		return err
 	*/
+}
+
+func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Hash]plumbing.Hash, kFirstParents []*object.Commit) error {
+	for _, kc := range kFirstParents {
+		msg := strings.SplitN(kc.Message, "\n", 2)[0]
+		var err error
+		if dh, ok := m[kc.Hash]; ok {
+			_, err = fmt.Fprintf(w, "%s <not-found> %s\n", kc.Hash, msg)
+		} else {
+			_, err = fmt.Fprintf(w, "%s %s %s\n", kc.Hash, dh, msg)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func mappingOutputFileName(fnameTpl string, branch, tag string) string {
+	tpl, err := template.New("mapping-output-file").Parse(fnameTpl)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if err := tpl.Execute(&buf, struct {
+		Tag    string
+		Branch string
+	}{
+		Tag:    tag,
+		Branch: branch,
+	}); err != nil {
+		glog.Fatal(err)
+	}
+	return string(buf.Bytes())
 }

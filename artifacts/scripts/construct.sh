@@ -136,6 +136,7 @@ if [ -z "${SKIP_TAGS}" ]; then
                --source-remote upstream --source-branch "${SRC_BRANCH}" \
                --push-script ${PUSH_SCRIPT} \
                --dependencies "${DEPS}" \
+               --mapping-output-file "../tag-${REPO}-{{.Tag}}-mapping" \
                -alsologtostderr \
                "${EXTRA_ARGS[@]-}"
     if [ "${LAST_HEAD}" != "$(git rev-parse ${LAST_BRANCH})" ]; then
