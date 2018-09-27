@@ -69,6 +69,7 @@ func main() {
 	prefix := flag.String("prefix", "kubernetes-", "a string to put in front of upstream tags")
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
+	skipFetch := flag.Bool("skip-fetch", false, "skip fetching tags")
 	mappingOutputFile := flag.String("mapping-output-file", "", "a file name to write the source->dest hash mapping to ({{.Tag}} is substituted with the tag name, {{.Branch}} with the local branch name)")
 
 	flag.Usage = Usage
@@ -120,16 +121,20 @@ func main() {
 	}
 
 	// delete remote tags locally
-	fmt.Printf("Removing all local copies of origin and %s tags.\n", *sourceRemote)
-	if err := removeRemoteTags(r, "origin", *sourceRemote); err != nil {
-		glog.Fatalf("Failed to iterate through tags: %v", err)
+	if !*skipFetch {
+		fmt.Printf("Removing all local copies of origin and %s tags.\n", *sourceRemote)
+		if err := removeRemoteTags(r, "origin", *sourceRemote); err != nil {
+			glog.Fatalf("Failed to iterate through tags: %v", err)
+		}
 	}
 
 	// get upstream tags
-	fmt.Printf("Fetching tags from remote %q.\n", *sourceRemote)
-	err = fetchTags(r, *sourceRemote)
-	if err != nil {
-		glog.Fatalf("Failed to fetch tags for %q: %v", *sourceRemote, err)
+	if !*skipFetch {
+		fmt.Printf("Fetching tags from remote %q.\n", *sourceRemote)
+		err = fetchTags(r, *sourceRemote)
+		if err != nil {
+			glog.Fatalf("Failed to fetch tags for %q: %v", *sourceRemote, err)
+		}
 	}
 	kTagCommits, err := remoteTags(r, *sourceRemote)
 	if err != nil {
@@ -137,10 +142,12 @@ func main() {
 	}
 
 	// get all origin tags
-	fmt.Printf("Fetching tags from remote %q.\n", "origin")
-	err = fetchTags(r, "origin")
-	if err != nil {
-		glog.Fatalf("Failed to fetch tags for %q: %v", "origin", err)
+	if !*skipFetch {
+		fmt.Printf("Fetching tags from remote %q.\n", "origin")
+		err = fetchTags(r, "origin")
+		if err != nil {
+			glog.Fatalf("Failed to fetch tags for %q: %v", "origin", err)
+		}
 	}
 	bTagCommits, err := remoteTags(r, "origin")
 	if err != nil {
