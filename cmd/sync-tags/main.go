@@ -63,7 +63,6 @@ func main() {
 	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
 	sourceRemote := flag.String("source-remote", "", "the source repo remote (e.g. upstream")
 	sourceBranch := flag.String("source-branch", "", "the source repo branch (not qualified, just the name; defaults to equal <branch>)")
-	publishBranch := flag.String("branch", "", "a (not qualified) branch name")
 	prefix := flag.String("prefix", "kubernetes-", "a string to put in front of upstream tags")
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
@@ -100,10 +99,6 @@ func main() {
 	localBranch := h.Name().Short()
 	if localBranch == "" {
 		glog.Fatalf("Failed to get current branch.")
-	}
-
-	if *publishBranch == "" {
-		*publishBranch = localBranch
 	}
 
 	// get first-parent commit list of upstream branch
