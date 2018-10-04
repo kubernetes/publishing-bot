@@ -50,6 +50,7 @@ repos=(
     kubelet
     kube-scheduler
     kube-controller-manager
+    cluster-bootstrap
 )
 
 repo_count=${#repos[@]}
