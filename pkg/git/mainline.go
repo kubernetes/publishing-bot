@@ -72,7 +72,7 @@ func MergePoints(r *gogit.Repository, mainLine []*object.Commit) (map[plumbing.H
 		mainLinePos[c.Hash] = i
 	}
 
-	bestMergePoints := map[plumbing.Hash]int{}
+	earliestMergePoints := map[plumbing.Hash]int{} // the earlist mainline commit index a given commit was merged into the mainline
 	seen := map[plumbing.Hash]*object.Commit{}
 
 	// pos is the position of the current mainline commit, h
@@ -85,11 +85,11 @@ func MergePoints(r *gogit.Repository, mainLine []*object.Commit) (map[plumbing.H
 
 		// was h seen before as descendent of a mainline commit? It must have had
 		// a better position as we saw it earlier.
-		if _, seenBefore := bestMergePoints[h]; seenBefore {
+		if _, seenBefore := earliestMergePoints[h]; seenBefore {
 			return nil
 		}
 
-		bestMergePoints[h] = pos
+		earliestMergePoints[h] = pos
 
 		// resolve hash
 		c := seen[h]
@@ -114,8 +114,9 @@ func MergePoints(r *gogit.Repository, mainLine []*object.Commit) (map[plumbing.H
 	}
 
 	// recursively enumerate all reachable commits
-	for pos, c := range mainLine {
-		bestMergePoints[c.Hash] = pos
+	for pos := len(mainLine) - 1; pos >= 0; pos-- {
+		c := mainLine[pos]
+		earliestMergePoints[c.Hash] = pos
 		seen[c.Hash] = c
 		for _, ph := range c.ParentHashes {
 			err := visit(pos, ph)
@@ -128,7 +129,7 @@ func MergePoints(r *gogit.Repository, mainLine []*object.Commit) (map[plumbing.H
 	// map commit hash to best merge point on mainline
 	result := map[plumbing.Hash]*object.Commit{}
 	for _, c := range seen {
-		result[c.Hash] = mainLine[bestMergePoints[c.Hash]]
+		result[c.Hash] = mainLine[earliestMergePoints[c.Hash]]
 	}
 
 	return result, nil
