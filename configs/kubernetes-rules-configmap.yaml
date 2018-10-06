@@ -38,10 +38,12 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/code-generator
         name: release-1.11
+        go: 1.10.2
       - source:
           branch: release-1.12
           dir: staging/src/k8s.io/code-generator
         name: release-1.12
+        go: 1.10.4
     - destination: apimachinery
       library: true
       branches:
@@ -75,10 +77,12 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/apimachinery
         name: release-1.11
+        go: 1.10.2
       - source:
           branch: release-1.12
           dir: staging/src/k8s.io/apimachinery
         name: release-1.12
+        go: 1.10.4
     - destination: api
       library: true
       branches:
@@ -116,6 +120,7 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/api
         name: release-1.11
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.11
@@ -123,6 +128,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/api
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -189,6 +195,7 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/client-go
         name: release-8.0
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.11
@@ -198,6 +205,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/client-go
         name: release-9.0
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -278,6 +286,7 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/apiserver
         name: release-1.11
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.11
@@ -289,6 +298,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/apiserver
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -378,6 +388,7 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/kube-aggregator
         name: release-1.11
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.11
@@ -391,6 +402,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/kube-aggregator
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -498,6 +510,7 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/sample-apiserver
         name: release-1.11
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.11
@@ -515,6 +528,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/sample-apiserver
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -589,6 +603,7 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/sample-controller
         name: release-1.11
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.11
@@ -604,6 +619,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/sample-controller
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -711,6 +727,7 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/apiextensions-apiserver
         name: release-1.11
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.11
@@ -728,6 +745,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/apiextensions-apiserver
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -803,6 +821,7 @@ data:
           branch: release-1.11
           dir: staging/src/k8s.io/metrics
         name: release-1.11
+        go: 1.10.2
         dependencies:
         - repository: apimachinery
           branch: release-1.11
@@ -814,6 +833,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/metrics
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -841,6 +861,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/csi-api
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -868,6 +889,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/cli-runtime
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: api
           branch: release-1.12
@@ -895,6 +917,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/sample-cli-plugin
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: api
           branch: release-1.12
@@ -918,6 +941,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/kube-proxy
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -937,6 +961,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/kubelet
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -958,6 +983,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/kube-scheduler
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
@@ -979,6 +1005,7 @@ data:
           branch: release-1.12
           dir: staging/src/k8s.io/kube-controller-manager
         name: release-1.12
+        go: 1.10.4
         dependencies:
         - repository: apimachinery
           branch: release-1.12
