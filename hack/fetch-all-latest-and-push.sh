@@ -51,6 +51,7 @@ repos=(
     kube-scheduler
     kube-controller-manager
     cluster-bootstrap
+    cloud-provider
 )
 
 repo_count=${#repos[@]}
