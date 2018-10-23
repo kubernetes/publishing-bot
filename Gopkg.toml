@@ -39,9 +39,7 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/go-git.v4"
-  # version = "4.0.0-rc15""
-  branch = "sttts-gpgsig"
-  source = "github.com/sttts/go-git"
+  version = "v4.7.1"
 
 [prune]
   go-tests = true
