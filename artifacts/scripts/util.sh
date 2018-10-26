@@ -518,6 +518,7 @@ sync_repo() {
 function pick-merge-as-single-commit() {
     grep -F -q -x "$1" <<EOF
 25ebf875b4235cb8f43be2aec699d62e78339cec
+8014d73345233c773891f26008e55dc3b5232c7c
 EOF
 }
 
