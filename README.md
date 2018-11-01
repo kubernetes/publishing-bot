@@ -68,4 +68,3 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on how to contrib
 ## Known issues
 
 1. Testing: currently we rely on manual testing. We should set up CI for it.
-2. Automate release process (tracked at https://github.com/kubernetes/kubernetes/issues/49011): when kubernetes release, automatic update the configuration of the publishing robot. This probably means that the config must move into the Kubernetes repo, e.g. as a `.publishing.yaml` file.
