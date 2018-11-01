@@ -79,7 +79,7 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get head at %s: %v", repoDir, err)
 	}
-	if err := w.Checkout(&gogit.CheckoutOptions{Hash: head.Hash()}); err != nil {
+	if err := w.Checkout(&gogit.CheckoutOptions{Hash: head.Hash(), Force: true}); err != nil {
 		return nil, fmt.Errorf("failed to checkout HEAD at %s: %v", repoDir, err)
 	}
 
