@@ -1,4 +1,0 @@
-language: go
-go:
-  - 1.11.1
-go_import_path: k8s.io/publishing-bot
