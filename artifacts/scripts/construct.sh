@@ -80,8 +80,14 @@ readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 source "${SCRIPT_DIR}"/util.sh
 
-echo "Creating .git/info/attributes file to override .gitattributes files."
-echo "* -text" > .git/info/attributes
+if [ ! -f .git/info/attributes ]; then
+    echo "Creating .git/info/attributes file to override .gitattributes files."
+    mkdir -p .git/info
+    echo "* -text" >> .git/info/attributes
+    # switch over to new file endings
+    rm -r *
+    git checkout .
+fi
 echo "Running garbage collection."
 git gc --auto
 echo "Fetching from origin."

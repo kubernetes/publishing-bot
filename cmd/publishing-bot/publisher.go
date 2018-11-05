@@ -69,6 +69,31 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 		return nil, fmt.Errorf("failed to fetch at %s: %v", repoDir, err)
 	}
 
+	// disable text conversion
+	// TODO: remove when go-git supports text conversion to be consistent with cli git
+	attrFile := filepath.Join(repoDir, ".git", "info", "attributes")
+	if _, err := os.Stat(attrFile); os.IsNotExist(err) {
+		glog.Infof("Disabling text conversion at %s.", repoDir)
+		os.MkdirAll(filepath.Join(repoDir, ".git", "info"), 0755)
+		if err := ioutil.WriteFile(attrFile, []byte(`
+* -text
+`), 0644); err != nil {
+			return nil, fmt.Errorf("failed to create .git/info/attributes: %v", err)
+		}
+
+		fis, err := ioutil.ReadDir(repoDir)
+		if err != nil {
+			return nil, err
+		}
+		for _, fi := range fis {
+			if fi.Name() != ".git" {
+				if err := os.RemoveAll(filepath.Join(repoDir, fi.Name())); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
 	// checkout head
 	glog.Infof("Checking out HEAD at %s.", repoDir)
 	w, err := r.Worktree()
@@ -79,7 +104,7 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get head at %s: %v", repoDir, err)
 	}
-	if err := w.Checkout(&gogit.CheckoutOptions{Hash: head.Hash()}); err != nil {
+	if err := w.Checkout(&gogit.CheckoutOptions{Hash: head.Hash(), Force: true}); err != nil {
 		return nil, fmt.Errorf("failed to checkout HEAD at %s: %v", repoDir, err)
 	}
 
