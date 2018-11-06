@@ -7,11 +7,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 	yaml "gopkg.in/yaml.v2"
-
-	"strings"
 
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
@@ -19,7 +18,7 @@ import (
 const (
 	depCommit        = "7c44971bbb9f0ed87db40b601f2d9fe4dffb750d"
 	godepCommit      = "tags/v80"
-	DefaultGoVersion = "1.11.1"
+	DefaultGoVersion = "1.11.2"
 )
 
 var (
