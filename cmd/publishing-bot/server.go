@@ -37,32 +37,40 @@ type Server struct {
 	config   config.Config
 }
 
-type HealthResponse struct {
-	Successful   *bool      `json:"successful,omitempty"`
-	Time         *time.Time `json:"time,omitempty"`
-	UpstreamHash string     `json:"upstreamHash,omitempty"`
-
-	LastSuccessfulTime         *time.Time `json:"lastSuccessfulTime,omitempty"`
-	LastFailureTime            *time.Time `json:"lastFailureTime,omitempty"`
-	LastSuccessfulUpstreamHash string     `json:"lastSuccessfulUpstreamHash,omitempty"`
-
-	Issue string `json:"issue,omitempty"`
+type BranchStatus struct {
+	Name string `json:"name"`
+	Head string `json:"head"`
 }
 
-func (h *Server) SetHealth(healthy bool, hash string) {
+type LastSyncStatus struct {
+	Branches      []BranchStatus `json:"branches"`
+	Duration      string         `json:"durationSeconds"`
+	LastSyncError string         `json:"syncError"`
+}
+
+type HealthResponse struct {
+	Successful *bool      `json:"successful,omitempty"`
+	ServerTime *time.Time `json:"serverTime,omitempty"`
+
+	LastSyncStatus     *LastSyncStatus `json:"lastSyncStatus,omitempty"`
+	LastSuccessfulTime *time.Time      `json:"lastSuccessfulTime,omitempty"`
+	LastFailureTime    *time.Time      `json:"lastFailureTime,omitempty"`
+
+	Issue string `json:"issueUrl,omitempty"`
+}
+
+func (h *Server) SetHealth(healthy bool, health *LastSyncStatus) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	h.response.Successful = &healthy
 	now := time.Now()
-	h.response.Time = &now
-	h.response.UpstreamHash = hash
+	h.response.ServerTime = &now
 
-	if healthy {
-		h.response.LastSuccessfulTime = h.response.Time
-		h.response.LastSuccessfulUpstreamHash = h.response.UpstreamHash
+	if len(health.LastSyncError) > 0 || !healthy {
+		h.response.LastFailureTime = h.response.ServerTime
 	} else {
-		h.response.LastFailureTime = h.response.Time
+		h.response.LastSuccessfulTime = h.response.ServerTime
 	}
 }
 

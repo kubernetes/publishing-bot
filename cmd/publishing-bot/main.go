@@ -175,17 +175,17 @@ func main() {
 			token := strings.Trim(string(bs), " \t\n")
 
 			// run
-			logs, hash, err := publisher.Run()
-			server.SetHealth(err == nil, hash)
+			logs, healthz, err := publisher.Run()
+			server.SetHealth(err == nil, healthz)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 					githubIssueErrorf("Failed to report logs on github issue: %v", err)
-					server.SetHealth(false, hash)
+					server.SetHealth(false, healthz)
 				}
 			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 				githubIssueErrorf("Failed to close issue: %v", err)
-				server.SetHealth(false, hash)
+				server.SetHealth(false, healthz)
 			}
 		} else {
 			// run

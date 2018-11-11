@@ -25,6 +25,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	gogit "gopkg.in/src-d/go-git.v4"
@@ -374,39 +375,52 @@ func publishedFileName(repo, branch string) string {
 }
 
 // Run constructs the repos and pushes them. It returns logs and the last master hash.
-func (p *PublisherMunger) Run() (string, string, error) {
+func (p *PublisherMunger) Run() (string, *LastSyncStatus, error) {
 	buf := bytes.NewBuffer(nil)
+	status := &LastSyncStatus{}
+
+	// measure the duration of the sync
+	startTime := time.Now()
+	defer func() {
+		status.Duration = fmt.Sprintf("%f", time.Now().Sub(startTime).Seconds())
+	}()
+
 	var err error
 	if p.plog, err = NewPublisherLog(buf, path.Join(p.baseRepoPath, "run.log")); err != nil {
-		return "", "", err
+		status.LastSyncError = err.Error()
+		return "", status, err
 	}
 
 	newUpstreamHeads, err := p.updateSourceRepo()
 	if err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), "", err
+		status.LastSyncError = fmt.Sprintf("update source repo failed: %v", err)
+		return p.plog.Logs(), status, err
 	}
 	if err := p.updateRules(); err != nil { // this comes after the source update because we might fetch the rules from there.
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), "", err
+		status.LastSyncError = fmt.Sprintf("update rules failed: %v", err)
+		return p.plog.Logs(), status, err
 	}
 	if err := p.construct(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), "", err
+		status.LastSyncError = fmt.Sprintf("construct repo failed: %v", err)
+		return p.plog.Logs(), status, err
 	}
 	if err := p.publish(newUpstreamHeads); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
-		return p.plog.Logs(), "", err
+		status.LastSyncError = fmt.Sprintf("publishing failed: %v", err)
+		return p.plog.Logs(), status, err
 	}
 
-	var masterHead string
-	if h, ok := newUpstreamHeads["master"]; ok {
-		masterHead = h.String()
+	for branchName, head := range newUpstreamHeads {
+		branch := BranchStatus{Name: branchName, Head: head.String()}
+		status.Branches = append(status.Branches, branch)
 	}
 
-	return p.plog.Logs(), masterHead, nil
+	return p.plog.Logs(), status, nil
 }
