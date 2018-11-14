@@ -65,7 +65,7 @@ SOURCE_REPO_NAME="${9}"
 shift 9
 
 # base package name (eg. k8s.io)
-BASE_PACKAGE="${1-k8s.io}"
+BASE_PACKAGE="${1:-k8s.io}"
 # If ${REPO} is a library
 IS_LIBRARY="${2}"
 # A ls-files pattern like "*/BUILD *.ext pkg/foo.go Makefile"
