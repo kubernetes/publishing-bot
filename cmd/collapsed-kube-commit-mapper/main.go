@@ -36,7 +36,7 @@ func Usage() {
 commit hash with its corresponding commit hash in the current branch
 (which is the result of a "git filter-branch --sub-directory"). It is
 expected that the commit messages on the current branch contain a
-"Kubernetes-commit: <upstream commit>" line for the directly corresonding
+"Kubernetes-commit: <upstream commit>" line for the directly corresponding
 commit. Note, that a number of k8s.io/kubernetes mainline commits might
 be collapsed during filtering:
 
