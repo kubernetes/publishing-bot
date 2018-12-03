@@ -17,7 +17,7 @@ MAINTAINER Chao Xu <xuchao@google.com>
 RUN apt-get update \
  && apt-get install -y -qq git=1:2.1.4-2.1+deb8u6 \
  && apt-get install -y -qq mercurial \
- && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig \
+ && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig gcc \
  && rm -rf /var/lib/apt/lists/*
 
 ENV GOPATH="/go-workspace"
