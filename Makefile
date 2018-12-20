@@ -42,7 +42,7 @@ update-deps:
 .PHONY: update-deps
 
 init-deploy:
-	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true rc publisher
+	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true rs publisher
 	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true pod publisher
 	while $(KUBECTL) get pod -n "$(NAMESPACE)" publisher -a &>/dev/null; do echo -n .; sleep 1; done
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/storage-class.yaml || true
@@ -58,6 +58,6 @@ run: init-deploy
 
 deploy: init-deploy
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/service.yaml
-	{ cat artifacts/manifests/rc.yaml && sed 's/^/      /' artifacts/manifests/podspec.yaml; } | \
+	{ cat artifacts/manifests/rs.yaml && sed 's/^/      /' artifacts/manifests/podspec.yaml; } | \
 	$(call prepare_spec) | sed 's/-interval=0/-interval=$(INTERVAL)/g' | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -

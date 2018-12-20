@@ -52,7 +52,7 @@ $ make run CONFIG=configs/<yourconfig> TOKEN=<github-token>
 $ make deploy CONFIG=configs/<yourconfig> TOKEN=<github-token>
 ```
 
-  to run a ReplicationController that publishes every 24h (you can change the `INTERVAL` config value for different intervals).
+  to run a ReplicaSet that publishes every 24h (you can change the `INTERVAL` config value for different intervals).
 
 This will not push to your org, but runs in dry-run mode. To run with a push, add `DRYRUN=false` to your `make` command line.
 
