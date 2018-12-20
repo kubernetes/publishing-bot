@@ -52,6 +52,7 @@ repos=(
     kube-controller-manager
     cluster-bootstrap
     cloud-provider
+    node-api
 )
 
 repo_count=${#repos[@]}

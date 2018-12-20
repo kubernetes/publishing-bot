@@ -1255,3 +1255,17 @@ data:
           branch: release-1.13
         - repository: client-go
           branch: release-10.0
+    - destination: node-api
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/node-api
+        name: master
+        dependencies:
+        - repository: api
+          branch: master
+        - repository: apimachinery
+          branch: master
+        - repository: client-go
+          branch: master
