@@ -1,11 +1,12 @@
-apiVersion: v1
-kind: ReplicationController
+apiVersion: apps/v1
+kind: ReplicaSet
 metadata:
   name: publisher
 spec:
   replicas: 1
   selector:
-    name: publisher
+    matchLabels:
+      name: publisher
   template:
     metadata:
       labels:
