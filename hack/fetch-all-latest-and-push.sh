@@ -53,6 +53,7 @@ repos=(
     cluster-bootstrap
     cloud-provider
     node-api
+    component-base
 )
 
 repo_count=${#repos[@]}
