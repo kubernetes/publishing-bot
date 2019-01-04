@@ -33,27 +33,27 @@ if [ "$#" -ge 2 ]; then
 fi
 GITHUB_HOST=${GITHUB_HOST:-github.com}
 repos=(
-    apimachinery
     api
-    client-go
-    apiserver
-    kube-aggregator
-    sample-apiserver
-    sample-controller
     apiextensions-apiserver
-    metrics
-    code-generator
-    csi-api
-    sample-cli-plugin
+    apimachinery
+    apiserver
+    client-go
     cli-runtime
-    kube-proxy
-    kubelet
-    kube-scheduler
-    kube-controller-manager
-    cluster-bootstrap
     cloud-provider
-    node-api
+    cluster-bootstrap
+    code-generator
     component-base
+    csi-api
+    kube-aggregator
+    kube-controller-manager
+    kubelet
+    kube-proxy
+    kube-scheduler
+    metrics
+    node-api
+    sample-apiserver
+    sample-cli-plugin
+    sample-controller
 )
 
 repo_count=${#repos[@]}
