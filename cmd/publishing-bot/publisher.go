@@ -154,6 +154,10 @@ func (p *PublisherMunger) updateRules() error {
 	if err != nil {
 		return err
 	}
+	if err := config.Validate(rules); err != nil {
+		return err
+	}
+
 	p.reposRules = *rules
 	glog.Infof("Loaded %d repository rules from %s.", len(p.reposRules.Rules), p.config.RulesFile)
 	return nil

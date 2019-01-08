@@ -115,6 +115,9 @@ func main() {
 	if err != nil {
 		glog.Fatalf("Failed to load rules: %v", err)
 	}
+	if err := config.Validate(rules); err != nil {
+		glog.Fatalf("Invalid rules: %v", err)
+	}
 
 	goVersions := []string{DefaultGoVersion}
 	for _, rule := range rules.Rules {

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
@@ -114,4 +115,41 @@ func readFromUrl(u *url.URL) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	return ioutil.ReadAll(resp.Body)
+}
+
+func validateRepoOrder(rules *RepositoryRules) (errs []error) {
+	indices := map[string]int{}
+	for i, r := range rules.Rules {
+		indices[r.DestinationRepository] = i
+	}
+
+	for i, r := range rules.Rules {
+		for _, br := range r.Branches {
+			for _, d := range br.Dependencies {
+				if j, ok := indices[d.Repository]; !ok {
+					errs = append(errs, fmt.Errorf("unknown dependency %q in repository rules of %q", d.Repository, r.DestinationRepository))
+				} else if j > i {
+					errs = append(errs, fmt.Errorf("repository %q cannot depend on %q later in the rules file", r.DestinationRepository, d.Repository))
+				}
+			}
+		}
+	}
+	return errs
+}
+
+func Validate(rules *RepositoryRules) error {
+	errs := []error{}
+
+	errs = append(errs, validateRepoOrder(rules)...)
+
+	msgs := []string{}
+	for _, err := range errs {
+		if err != nil {
+			msgs = append(msgs, err.Error())
+		}
+	}
+	if len(msgs) > 0 {
+		return fmt.Errorf("validation errors:\n- %s", strings.Join(msgs, "\n- "))
+	}
+	return nil
 }

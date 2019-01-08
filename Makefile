@@ -41,7 +41,11 @@ update-deps:
 	glide update --strip-vendor
 .PHONY: update-deps
 
-init-deploy:
+validate:
+	go run ./cmd/validate-rules <(sed '1,/config: /d;s/^    //' $(CONFIG)-rules-configmap.yaml)
+.PHONY: validate
+
+init-deploy: validate
 	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true rs publisher
 	$(KUBECTL) delete -n "$(NAMESPACE)" --ignore-not-found=true pod publisher
 	while $(KUBECTL) get pod -n "$(NAMESPACE)" publisher -a &>/dev/null; do echo -n .; sleep 1; done
