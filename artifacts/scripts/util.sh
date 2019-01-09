@@ -445,7 +445,7 @@ sync_repo() {
                 # reset Godeps.json?
                 local squash_commits=1
                 if godep-changes ${f_commit}; then
-                    reset-godeps ${f_commit}^
+                    reset-godeps $(state-before-commit ${f_commit})
                     squash_commits=2 # squash the cherry-pick into the godep reset commit below
                     dst_needs_godeps_update=true
                 fi
@@ -604,7 +604,15 @@ function godep-changes() {
     if [ -n "${2:-}" ]; then
         ! git diff --exit-code --quiet ${1} ${2} -- Godeps/Godeps.json
     else
-        ! git diff --exit-code --quiet ${1}^ ${1} -- Godeps/Godeps.json
+        ! git diff --exit-code --quiet $(state-before-commit ${1}) ${1} -- Godeps/Godeps.json
+    fi
+}
+
+function state-before-commit() {
+    if git ref-parse --verify ${1}^1 &>/dev/null; then
+        echo ${1}^
+    else
+        printf '' | git hash-object -t tree --stdin
     fi
 }
 
