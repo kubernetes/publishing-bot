@@ -19,6 +19,7 @@ package git
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -37,9 +38,9 @@ import (
 //  |  / |
 //  C'<--C
 //  w    |
-//  v    |
-//       B
-//       A - initial commit
+//  v<-, |
+//     |-B
+//      `A - initial commit
 //
 func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirstParents, kFirstParents []*object.Commit) (map[plumbing.Hash]plumbing.Hash, error) {
 	// compute merge point table
@@ -50,7 +51,10 @@ func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirst
 
 	// convert dstFirstParents to HashesWithKubeHashes
 	directKubeHashToDstMainLineHash := map[plumbing.Hash]plumbing.Hash{}
+	firstDstCommit := plumbing.ZeroHash
 	for _, c := range dstFirstParents {
+		firstDstCommit = c.Hash
+
 		// kh might be a non-mainline-merge (because we had used branch commits as kube hashes long ago)
 		kh := SourceHash(c, commitMsgTag)
 		if kh == plumbing.ZeroHash {
@@ -67,7 +71,7 @@ func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirst
 	}
 
 	// fill up mainlineKubeHashes in dstMainlineCommits with collapsed kube commits
-	dst := plumbing.ZeroHash
+	dst := firstDstCommit
 	kubeHashToDstMainLineHash := map[plumbing.Hash]plumbing.Hash{}
 	for i := len(kFirstParents) - 1; i >= 0; i-- {
 		kc := kFirstParents[i]
@@ -78,8 +82,8 @@ func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirst
 			kubeHashToDstMainLineHash[kc.Hash] = dst
 		}
 	}
-	if dst == plumbing.ZeroHash {
-		return nil, fmt.Errorf("no upstream mainline commit found on branch")
+	if dst == firstDstCommit {
+		glog.Warningf("no upstream mainline commit found on branch")
 	}
 
 	return kubeHashToDstMainLineHash, nil

@@ -50,18 +50,20 @@ be collapsed during filtering:
      x       / ,D
      |      / / |
      C'<----**--C
-     w          |
-     v          |
-                B
-                A
+     j          |
+     i <----*   |
+             \--B
+              '-A
 
 The sorted output looks like this:
 
-    <sha of E> <sha of C'>
+    <sha of A> <sha of i>
+    <sha of B> <sha of j>
     <sha of C> <sha of C'>
-    <sha of G> <sha of F'>
     <sha of D> <sha of C'>
+    <sha of E> <sha of C'>
     <sha of F> <sha of F'>
+    <sha of G> <sha of F'>
     <sha of H> <sha of H'>
     ...
 
