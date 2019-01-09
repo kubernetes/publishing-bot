@@ -196,18 +196,15 @@ func cloneForkRepo(cfg config.Config, repoName string) {
 		setUrlCmd.Dir = repoDir
 		run(setUrlCmd)
 		os.Remove(filepath.Join(repoDir, ".git", "index.lock"))
-		return
+	} else {
+		glog.Infof("Cloning fork repository %s ...", forkRepoLocation)
+		run(exec.Command("git", "clone", forkRepoLocation))
 	}
 
-	glog.Infof("Cloning fork repository %s ...", forkRepoLocation)
-	run(exec.Command("git", "clone", forkRepoLocation))
-
-	// TODO: This can be set as an env variable for the container
+	// set user in repo because old git version (compare https://github.com/git/git/commit/92bcbb9b338dd27f0fd4245525093c4bce867f3d) still look up user ids without
 	setUsernameCmd := exec.Command("git", "config", "user.name", os.Getenv("GIT_COMMITTER_NAME"))
 	setUsernameCmd.Dir = repoDir
 	run(setUsernameCmd)
-
-	// TODO: This can be set as an env variable for the container
 	setEmailCmd := exec.Command("git", "config", "user.email", os.Getenv("GIT_COMMITTER_EMAIL"))
 	setEmailCmd.Dir = repoDir
 	run(setEmailCmd)
