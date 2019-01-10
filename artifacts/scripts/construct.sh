@@ -85,8 +85,7 @@ if [ ! -f .git/info/attributes ]; then
     mkdir -p .git/info
     echo "* -text" >> .git/info/attributes
     # switch over to new file endings
-    rm -r *
-    git checkout .
+    rm -r * && git checkout . || true
 fi
 echo "Running garbage collection."
 git gc --auto

@@ -243,6 +243,20 @@ data:
         godep restore
         go build ./...
         go test $(go list ./... | grep -v /vendor/)
+    - destination: component-base
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/component-base
+        name: master
+        dependencies:
+        - repository: api
+          branch: master
+        - repository: apimachinery
+          branch: master
+        - repository: client-go
+          branch: master
     - destination: apiserver
       library: true
       branches:
@@ -256,6 +270,8 @@ data:
         - repository: api
           branch: master
         - repository: client-go
+          branch: master
+        - repository: component-base
           branch: master
       # - source:
       #     branch: release-1.6
@@ -360,6 +376,8 @@ data:
         - repository: client-go
           branch: master
         - repository: apiserver
+          branch: master
+        - repository: component-base
           branch: master
       # - source:
       #     branch: release-1.6
@@ -482,6 +500,8 @@ data:
         - repository: apiserver
           branch: master
         - repository: code-generator
+          branch: master
+        - repository: component-base
           branch: master
         required-packages:
         - k8s.io/code-generator
@@ -636,6 +656,8 @@ data:
         - repository: client-go
           branch: master
         - repository: code-generator
+          branch: master
+        - repository: component-base
           branch: master
         required-packages:
         - k8s.io/code-generator
@@ -1057,6 +1079,8 @@ data:
           branch: master
         - repository: client-go
           branch: master
+        - repository: component-base
+          branch: master
       - source:
           branch: release-1.12
           dir: staging/src/k8s.io/sample-cli-plugin
@@ -1094,6 +1118,8 @@ data:
         name: master
         dependencies:
         - repository: apimachinery
+          branch: master
+        - repository: component-base
           branch: master
       - source:
           branch: release-1.12
@@ -1155,6 +1181,8 @@ data:
           branch: master
         - repository: apiserver
           branch: master
+        - repository: component-base
+          branch: master
       - source:
           branch: release-1.12
           dir: staging/src/k8s.io/kube-scheduler
@@ -1186,6 +1214,8 @@ data:
         - repository: apimachinery
           branch: master
         - repository: apiserver
+          branch: master
+        - repository: component-base
           branch: master
       - source:
           branch: release-1.12
