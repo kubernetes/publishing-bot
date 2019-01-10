@@ -97,7 +97,7 @@ func MergePoints(r *gogit.Repository, mainLine []*object.Commit) (map[plumbing.H
 			var err error
 			c, err = cache.CommitObject(r, h)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get %s: %v", h.String(), err)
 			}
 			seen[h] = c
 		}
