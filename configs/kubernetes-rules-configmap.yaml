@@ -1299,3 +1299,15 @@ data:
           branch: master
         - repository: client-go
           branch: master
+    - destination: csi-translation-lib
+      library: true
+      branches:
+      - source:
+          branch: master
+          dir: staging/src/k8s.io/csi-translation-lib
+        name: master
+        dependencies:
+        - repository: api
+          branch: master
+        - repository: apimachinery
+          branch: master
