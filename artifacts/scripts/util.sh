@@ -609,7 +609,7 @@ function godep-changes() {
 }
 
 function state-before-commit() {
-    if git ref-parse --verify ${1}^1 &>/dev/null; then
+    if git rev-parse --verify ${1}^1 &>/dev/null; then
         echo ${1}^
     else
         printf '' | git hash-object -t tree --stdin
