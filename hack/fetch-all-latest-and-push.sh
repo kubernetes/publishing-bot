@@ -44,6 +44,7 @@ repos=(
     code-generator
     component-base
     csi-api
+    csi-translation-lib
     kube-aggregator
     kube-controller-manager
     kubelet
