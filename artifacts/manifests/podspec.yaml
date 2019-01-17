@@ -30,7 +30,6 @@ containers:
   - /publishing-bot
   - --alsologtostderr
   - --config=/etc/munge-config/config
-  - --rules-file=/etc/publisher-rules/config
   - --token-file=/etc/secret-volume/token
   - --interval=0
   - --server-port=8080
