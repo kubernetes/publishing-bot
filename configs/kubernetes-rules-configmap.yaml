@@ -767,6 +767,8 @@ data:
           branch: master
         - repository: code-generator
           branch: master
+        - repository: component-base
+          branch: master
         required-packages:
         - k8s.io/code-generator
       # - source:
@@ -1148,6 +1150,8 @@ data:
         - repository: apimachinery
           branch: master
         - repository: api
+          branch: master
+        - repository: component-base
           branch: master
       - source:
           branch: release-1.12
