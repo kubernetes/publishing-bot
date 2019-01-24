@@ -10,6 +10,10 @@ data:
     # the github org or user to publish the new repos to
     target-org: <your-github-org-or-user>
 
+    # file path or URL
+    rules-file: /etc/publisher-rules/config
+    # rules-file: https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
+
     # the github issue number in the source repo to publish logs to on errors. You must be
     # able to write to that issue. So you probably should create it with the bot user.
     # REMEMBER: do not run the bot with a user that can close arbitrary issues in the
