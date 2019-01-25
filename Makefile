@@ -57,9 +57,7 @@ init-deploy: validate
 	$(KUBECTL) get StorageClass ssd
 	sed 's/TOKEN/$(shell echo "$(TOKEN)" | base64 | tr -d '\n')/g' artifacts/manifests/secret.yaml | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f $(CONFIG)-configmap.yaml
-	if [ -f $(CONFIG)-rules-configmap.yaml ]; then \
-	  $(KUBECTL) apply -n "$(NAMESPACE)" -f $(CONFIG)-rules-configmap.yaml; \
-	fi
+	$(KUBECTL) apply -n "$(NAMESPACE)" -f $(CONFIG)-rules-configmap.yaml; \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/pvc.yaml
 
 run: init-deploy
