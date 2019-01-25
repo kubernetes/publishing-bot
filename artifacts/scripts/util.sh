@@ -336,7 +336,9 @@ sync_repo() {
             local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "${commit_msg_tag}: ${k_pending_merge_commit}")" HEAD^{tree})
             # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. Godeps.json did not change.
             git reset -q --hard ${dst_new_merge}
-            fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}" "${recursive_delete_pattern}"
+            if ! skip-godep-update ${k_pending_merge_commit}; then
+                fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}" "${recursive_delete_pattern}"
+            fi
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -380,11 +382,11 @@ sync_repo() {
             squash ${squash_commits}
 
             # if there is no pending merge commit, update Godeps.json because this could be a target of tag
-            if [ -z "${k_pending_merge_commit}" ]; then
+            if ! skip-godep-update ${k_mainline_commit} && [ -z "${k_pending_merge_commit}" ]; then
                 fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
-                dst_needs_godeps_update=false
-                dst_merge_point_commit=$(git rev-parse HEAD)
             fi
+            dst_needs_godeps_update=false
+            dst_merge_point_commit=$(git rev-parse HEAD)
         else
             # find **latest** (in the sense of least distance to ${f_mainline_commit}) common ancestor of both parents
             # of ${f_mainline_commit}. If the PR had no merge commits, this is the actual fork point. If there have been
@@ -484,7 +486,9 @@ sync_repo() {
             # we would end up with "base B + change B" which misses the change A changes.
             amend-godeps-at ${f_mainline_commit}
 
-            fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
+            if ! skip-godep-update ${k_mainline_commit}; then
+                fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
+            fi
             dst_needs_godeps_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
@@ -520,6 +524,15 @@ function pick-merge-as-single-commit() {
 25ebf875b4235cb8f43be2aec699d62e78339cec
 8014d73345233c773891f26008e55dc3b5232c7c
 536cee71b4dcb74fa7c80fdd6a709cdbf970e4a2
+EOF
+}
+
+# if a PR added incorrect godep changes (eg: client-go depending on apiserver), godeps update will fail.
+# so we skip godeps generation for these commits.
+function skip-godep-update() {
+    grep -F -q -x "$1" <<EOF
+e2a017327c1af628f4f0069cbd49865ad1e81975
+fd0df59f5ba786cb25329e3a9d2793ad4227ed87
 EOF
 }
 
