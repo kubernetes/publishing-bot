@@ -18,7 +18,7 @@ import (
 const (
 	depCommit        = "7c44971bbb9f0ed87db40b601f2d9fe4dffb750d"
 	godepCommit      = "tags/v80"
-	DefaultGoVersion = "1.11.4"
+	DefaultGoVersion = "1.11.5"
 )
 
 var (
