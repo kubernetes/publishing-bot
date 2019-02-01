@@ -194,6 +194,11 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 // constructs all the repos, but does not push the changes to remotes.
 func (p *PublisherMunger) construct() error {
 	sourceRemote := filepath.Join(p.baseRepoPath, p.config.SourceRepo, ".git")
+
+	if err := installGoVersions(&p.reposRules); err != nil {
+		return err
+	}
+
 	for _, repoRule := range p.reposRules.Rules {
 		if repoRule.Skip {
 			continue
