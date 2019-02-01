@@ -16,9 +16,8 @@ import (
 )
 
 const (
-	depCommit        = "7c44971bbb9f0ed87db40b601f2d9fe4dffb750d"
-	godepCommit      = "tags/v80"
-	DefaultGoVersion = "1.11.5"
+	depCommit   = "7c44971bbb9f0ed87db40b601f2d9fe4dffb750d"
+	godepCommit = "tags/v80"
 )
 
 var (
@@ -119,31 +118,6 @@ func main() {
 		glog.Fatalf("Invalid rules: %v", err)
 	}
 
-	goVersions := []string{DefaultGoVersion}
-	for _, rule := range rules.Rules {
-		for _, branch := range rule.Branches {
-			if branch.GoVersion != "" {
-				found := false
-				for _, v := range goVersions {
-					if v == branch.GoVersion {
-						found = true
-					}
-				}
-				if !found {
-					goVersions = append(goVersions, branch.GoVersion)
-				}
-			}
-		}
-	}
-	for _, v := range goVersions {
-		installGoVersion(v, filepath.Join(SystemGoPath, "go-"+v))
-	}
-	goLink, target := filepath.Join(SystemGoPath, "go"), filepath.Join(SystemGoPath, "go-"+DefaultGoVersion)
-	os.Remove(goLink)
-	if err := os.Symlink(target, goLink); err != nil {
-		glog.Fatalf("Failed to link %s to %s: %s", goLink, target, err)
-	}
-
 	if err := os.MkdirAll(BaseRepoPath, os.ModePerm); err != nil {
 		glog.Fatalf("Failed to create source repo directory %s: %v", BaseRepoPath, err)
 	}
@@ -158,31 +132,6 @@ func main() {
 	cloneSourceRepo(cfg, *skipGodep)
 	for _, rule := range rules.Rules {
 		cloneForkRepo(cfg, rule.DestinationRepository)
-	}
-}
-
-func installGoVersion(v string, pth string) {
-	if s, err := os.Stat(pth); err != nil && !os.IsNotExist(err) {
-		glog.Fatal(err)
-	} else if err == nil {
-		if s.IsDir() {
-			glog.Infof("Found existing go %s at %s", v, pth)
-			return
-		}
-		glog.Fatalf("Expected %s to be a directory", pth)
-	}
-
-	glog.Infof("Installing go %s to %s", v, pth)
-	tmpPath, err := ioutil.TempDir(SystemGoPath, "go-tmp-")
-	if err != nil {
-		glog.Fatal(err)
-	}
-	defer os.RemoveAll(tmpPath)
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -SLf https://storage.googleapis.com/golang/go%s.linux-amd64.tar.gz | tar -xz --strip 1 -C %s", v, tmpPath))
-	cmd.Dir = tmpPath
-	run(cmd)
-	if err := os.Rename(tmpPath, pth); err != nil {
-		glog.Fatal(err)
 	}
 }
 
