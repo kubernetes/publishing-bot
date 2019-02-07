@@ -13,6 +13,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
+	"k8s.io/publishing-bot/pkg/golang"
 )
 
 const (
@@ -120,6 +121,10 @@ func main() {
 
 	if err := os.MkdirAll(BaseRepoPath, os.ModePerm); err != nil {
 		glog.Fatalf("Failed to create source repo directory %s: %v", BaseRepoPath, err)
+	}
+
+	if err := golang.InstallDefaultGoVersion(); err != nil {
+		glog.Fatalf("Failed to install default go version: %v", err)
 	}
 
 	if !*skipGodep {

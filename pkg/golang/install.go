@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package golang
 
 import (
 	"fmt"
@@ -32,7 +32,13 @@ import (
 const defaultGoVersion = "1.11.5"
 
 // installGoVersions download and unpacks the specified Golang versions to $GOPATH/
-func installGoVersions(rules *config.RepositoryRules) error {
+func InstallDefaultGoVersion() error {
+	var empty config.RepositoryRules
+	return InstallGoVersions(&empty)
+}
+
+// installGoVersions download and unpacks the specified Golang versions to $GOPATH/
+func InstallGoVersions(rules *config.RepositoryRules) error {
 	goVersions := []string{defaultGoVersion}
 	for _, rule := range rules.Rules {
 		for _, branch := range rule.Branches {

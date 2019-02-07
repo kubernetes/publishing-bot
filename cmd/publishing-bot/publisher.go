@@ -31,6 +31,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
+	"k8s.io/publishing-bot/pkg/golang"
 )
 
 // PublisherMunger publishes content from one repository to another one.
@@ -195,7 +196,7 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 func (p *PublisherMunger) construct() error {
 	sourceRemote := filepath.Join(p.baseRepoPath, p.config.SourceRepo, ".git")
 
-	if err := installGoVersions(&p.reposRules); err != nil {
+	if err := golang.InstallGoVersions(&p.reposRules); err != nil {
 		return err
 	}
 
