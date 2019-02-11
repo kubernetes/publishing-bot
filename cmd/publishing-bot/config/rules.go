@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -81,8 +82,10 @@ func LoadRules(ruleFile string) (*RepositoryRules, error) {
 		err     error
 	)
 	if ruleUrl, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleUrl.Host) > 0 {
+		glog.Infof("loading rules file from url : %s", ruleUrl)
 		content, err = readFromUrl(ruleUrl)
 	} else {
+		glog.Infof("loading rules file : %s", ruleFile)
 		content, err = ioutil.ReadFile(ruleFile)
 		if err != nil {
 			return nil, err
@@ -118,6 +121,7 @@ func readFromUrl(u *url.URL) ([]byte, error) {
 }
 
 func validateRepoOrder(rules *RepositoryRules) (errs []error) {
+	glog.Infof("validating repository order")
 	indices := map[string]int{}
 	for i, r := range rules.Rules {
 		indices[r.DestinationRepository] = i
