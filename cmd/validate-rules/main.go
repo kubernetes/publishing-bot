@@ -18,24 +18,22 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
-
+	"github.com/golang/glog"
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
 func main() {
 	flag.Parse()
+	flag.Set("alsologtostderr", "true")
 
 	for _, f := range flag.Args() {
 		rules, err := config.LoadRules(f)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Cannot load rules file %q: %v\n", f, err)
-			os.Exit(1)
+			glog.Fatalf("Cannot load rules file %q: %v", f, err)
 		}
 		if err := config.Validate(rules); err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid rules file %q: %v\n", f, err)
-			os.Exit(1)
+			glog.Fatalf("Invalid rules file %q: %v", f, err)
 		}
+		glog.Infof("validation successful")
 	}
 }
