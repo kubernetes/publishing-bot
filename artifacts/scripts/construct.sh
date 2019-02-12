@@ -87,6 +87,10 @@ if [ ! -f .git/info/attributes ]; then
     # switch over to new file endings
     rm -r * && git checkout . || true
 fi
+
+git config user.email "$GIT_COMMITTER_EMAIL"
+git config user.name "$GIT_COMMITTER_NAME"
+
 echo "Running garbage collection."
 git gc --auto
 echo "Fetching from origin."

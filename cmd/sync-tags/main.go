@@ -354,6 +354,14 @@ func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 }
 
 func createAnnotatedTag(h plumbing.Hash, name string, date time.Time, message string) error {
+	setUsernameCmd := exec.Command("git", "config", "user.name", publishingBot.Name)
+	if err := setUsernameCmd.Run(); err != nil {
+		return fmt.Errorf("Unable to set global configuration: %v", err)
+	}
+	setEmailCmd := exec.Command("git", "config", "user.email", publishingBot.Email)
+	if err := setEmailCmd.Run(); err != nil {
+		return fmt.Errorf("Unable to set global configuration: %v", err)
+	}
 	cmd := exec.Command("git", "tag", "-a", "-m", message, name, h.String())
 	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_COMMITTER_DATE=%s", date.Format(rfc2822)))
 	cmd.Stdout = os.Stdout
