@@ -23,6 +23,7 @@ import (
 	"os"
 
 	"github.com/golang/glog"
+	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/yaml.v2"
 
 	"strings"
@@ -163,6 +164,7 @@ func main() {
 	}
 
 	for {
+		waitfor := *interval
 		last := time.Now()
 		publisher := New(&cfg, baseRepoPath)
 
@@ -183,6 +185,13 @@ func main() {
 					githubIssueErrorf("Failed to report logs on github issue: %v", err)
 					server.SetHealth(false, hash)
 				}
+				if strings.HasSuffix(err.Error(), memory.ErrRefHasChanged.Error()) {
+					// TODO: If the issue is just "reference has changed concurrently",
+					// then let us wait for 5 minutes and try again. We really need to dig
+					// into the problem and fix the flakiness
+					glog.Infof("Waiting for 5 minutes")
+					waitfor = uint(5 * (time.Second * 60))
+				}
 			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 				githubIssueErrorf("Failed to close issue: %v", err)
 				server.SetHealth(false, hash)
@@ -202,7 +211,7 @@ func main() {
 
 		select {
 		case <-runChan:
-		case <-time.After(time.Duration(int(*interval)-int(time.Since(last).Seconds())) * time.Second):
+		case <-time.After(time.Duration(int(waitfor)-int(time.Since(last).Seconds())) * time.Second):
 		}
 	}
 }
