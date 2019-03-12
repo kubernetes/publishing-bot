@@ -189,9 +189,7 @@ func main() {
 			}
 		} else {
 			// run
-			_, hash, err := publisher.Run()
-			server.SetHealth(err == nil, hash)
-			if err != nil {
+			if _, _, err := publisher.Run(); err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 			}
 		}
