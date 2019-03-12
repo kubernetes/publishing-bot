@@ -357,6 +357,8 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 		if err := os.Chdir(dstDir); err != nil {
 			return err
 		}
+
+		p.plog.Infof("Pushing branches for %s", repoRules.DestinationRepository)
 		for _, branchRule := range repoRules.Branches {
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
