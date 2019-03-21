@@ -24,6 +24,7 @@ build:
 	$(call build_cmd,publishing-bot)
 	$(call build_cmd,sync-tags)
 	$(call build_cmd,init-repo)
+	$(call build_cmd,godeps-gen)
 .PHONY: build
 
 build-image: build
