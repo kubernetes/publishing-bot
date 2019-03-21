@@ -86,7 +86,7 @@ set -o xtrace
 #   │─┘
 #   M─┐ Merge pull request #51154 from RenaudWasTaken/gRPC-updated-1-3-0
 #   │ o Bumped gRPC version to 1.3.0
-#   │ o sync: reset Godeps/Godeps.json
+#   │ o sync: reset go.mod
 #   │─┘
 #
 # Master Merges
@@ -107,7 +107,7 @@ set -o xtrace
 #   │ │─┘
 #   │ I─┐ Merge pull request #51795 from dims/bug-fix-51755
 #   │ │ o Bug Fix - Adding an allowed address pair wipes port security groups
-#   │ │ o sync: reset Godeps/Godeps.json
+#   │ │ o sync: reset go.mod
 #   │ │─┘
 #
 # Code Conventions
@@ -271,7 +271,7 @@ sync_repo() {
 
     # apply all PRs
     local k_pending_merge_commit=""
-    local dst_needs_godeps_update=${new_branch} # has there been a godeps reset which requires a complete godeps update?
+    local dst_needs_gomod_update=${new_branch} # has there been a go.mod reset which requires a complete go.mod update?
     local dst_merge_point_commit=$(git rev-parse HEAD) # the ${dst_branch} HEAD after the last applied f_mainline_commit
     for f_mainline_commit in ${f_mainline_commits} FLUSH_PENDING_MERGE_COMMIT; do
         local k_mainline_commit=""
@@ -315,8 +315,8 @@ sync_repo() {
                     echo "Cherry-picking source master-merge  ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
 
                     # cherry-pick the difference on the filtered mainline
-                    reset-godeps ${f_pending_merge_commit}^1 # unconditionally reset godeps
-                    dst_needs_godeps_update=true
+                    reset-gomod ${f_pending_merge_commit}^1 # unconditionally reset go.mod
+                    dst_needs_gomod_update=true
                     if ! GIT_COMMITTER_DATE="$(commit-date ${f_pending_merge_commit})" git cherry-pick --keep-redundant-commits -m 1 ${f_pending_merge_commit} >/dev/null; then
                         echo
                         show-working-dir-status
@@ -334,12 +334,12 @@ sync_repo() {
             fi
             local date=$(commit-date ${k_pending_merge_commit}) # author and committer date is equal for PR merges
             local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "${commit_msg_tag}: ${k_pending_merge_commit}")" HEAD^{tree})
-            # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. Godeps.json did not change.
+            # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. go.mod did not change.
             git reset -q --hard ${dst_new_merge}
-            if ! skip-godep-update ${k_pending_merge_commit}; then
-                fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true "${commit_msg_tag}" "${recursive_delete_pattern}"
+            if ! skip-gomod-update ${k_pending_merge_commit}; then
+                fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_gomod_update} true "${commit_msg_tag}" "${recursive_delete_pattern}"
             fi
-            dst_needs_godeps_update=false
+            dst_needs_gomod_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
         k_pending_merge_commit="${k_new_pending_merge_commit}"
@@ -363,12 +363,12 @@ sync_repo() {
                 echo "Cherry-picking k8s.io/kubernetes single-commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
             fi
 
-            # reset Godeps.json?
+            # reset go.mod?
             local squash_commits=1
-            if godep-changes ${f_mainline_commit}; then
-                reset-godeps ${f_mainline_commit}^
-                squash_commits=2 # squash the cherry-pick into the godep reset commit below
-                dst_needs_godeps_update=true
+            if gomod-changes ${f_mainline_commit}; then
+                reset-gomod ${f_mainline_commit}^
+                squash_commits=2 # squash the cherry-pick into the go.mod reset commit below
+                dst_needs_gomod_update=true
             fi
 
             # finally cherry-pick
@@ -378,14 +378,14 @@ sync_repo() {
                 return 1
             fi
 
-            # potentially squash godep reset commit
+            # potentially squash go.mod reset commit
             squash ${squash_commits}
 
-            # if there is no pending merge commit, update Godeps.json because this could be a target of tag
-            if ! skip-godep-update ${k_mainline_commit} && [ -z "${k_pending_merge_commit}" ]; then
-                fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
+            # if there is no pending merge commit, update go.mod because this could be a target of a tag
+            if ! skip-gomod-update ${k_mainline_commit} && [ -z "${k_pending_merge_commit}" ]; then
+                fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_gomod_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
             fi
-            dst_needs_godeps_update=false
+            dst_needs_gomod_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         else
             # find **latest** (in the sense of least distance to ${f_mainline_commit}) common ancestor of both parents
@@ -421,12 +421,12 @@ sync_repo() {
             if [ -n "${f_latest_merge_commit}" ]; then
                 echo "Cherry-picking squashed k8s.io/kubernetes branch-commits $(kube-commit ${commit_msg_tag} ${f_latest_branch_point_commit})..$(kube-commit ${commit_msg_tag} ${f_latest_merge_commit}) because the last one is a merge: $(commit-subject ${f_latest_merge_commit})"
 
-                # reset Godeps.json?
+                # reset go.mod?
                 local squash_commits=1
-                if godep-changes ${f_latest_branch_point_commit} ${f_latest_merge_commit}; then
-                    reset-godeps ${f_latest_branch_point_commit}
-                    squash_commits=2 # squash the cherry-pick into the godep reset commit below
-                    dst_needs_godeps_update=true
+                if gomod-changes ${f_latest_branch_point_commit} ${f_latest_merge_commit}; then
+                    reset-gomod ${f_latest_branch_point_commit}
+                    squash_commits=2 # squash the cherry-pick into the go.mod reset commit below
+                    dst_needs_gomod_update=true
                 fi
 
                 if ! git diff ${f_latest_branch_point_commit} ${f_latest_merge_commit} | git apply --index; then
@@ -437,19 +437,19 @@ sync_repo() {
                 git commit -q -m "sync: squashed up to merge $(kube-commit ${commit_msg_tag} ${f_latest_merge_commit}) in ${k_mainline_commit}" --date "$(commit-date ${f_latest_merge_commit})" --author "$(commit-author ${f_latest_merge_commit})"
                 ensure-clean-working-dir
 
-                # potentially squash godep reset commit
+                # potentially squash go.mod reset commit
                 squash ${squash_commits}
 
                 # we start cherry-picking now from f_latest_merge_commit up to the actual Github merge into the mainline
                 f_first_pick_base=${f_latest_merge_commit}
             fi
             for f_commit in $(git log --format='%H' --reverse ${f_first_pick_base}..${f_mainline_commit}^2); do
-                # reset Godeps.json?
+                # reset go.mod?
                 local squash_commits=1
-                if godep-changes ${f_commit}; then
-                    reset-godeps $(state-before-commit ${f_commit})
-                    squash_commits=2 # squash the cherry-pick into the godep reset commit below
-                    dst_needs_godeps_update=true
+                if gomod-changes ${f_commit}; then
+                    reset-gomod $(state-before-commit ${f_commit})
+                    squash_commits=2 # squash the cherry-pick into the go.mod reset commit below
+                    dst_needs_gomod_update=true
                 fi
 
                 echo "Cherry-picking k8s.io/kubernetes branch-commit $(kube-commit ${commit_msg_tag} ${f_commit}): $(commit-subject ${f_commit})."
@@ -460,7 +460,7 @@ sync_repo() {
                 fi
                 ensure-clean-working-dir
 
-                # potentially squash godep reset commit
+                # potentially squash go.mod reset commit
                 squash ${squash_commits}
             done
 
@@ -481,30 +481,30 @@ sync_repo() {
             #   │─┘ │ base A                       │ o change A
             #   │───┘ base B                       │─┘
             #
-            # Compare that with amending f_mainline_commit's Godeps.json into the HEAD,
+            # Compare that with amending f_mainline_commit's go.mod into the HEAD,
             # we get result B in the linearized version as well. In contrast with this,
             # we would end up with "base B + change B" which misses the change A changes.
-            amend-godeps-at ${f_mainline_commit}
+            amend-gomod-at ${f_mainline_commit}
 
-            if ! skip-godep-update ${k_mainline_commit}; then
-                fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_godeps_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
+            if ! skip-gomod-update ${k_mainline_commit}; then
+                fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_gomod_update} true ${commit_msg_tag} "${recursive_delete_pattern}"
             fi
-            dst_needs_godeps_update=false
+            dst_needs_gomod_update=false
             dst_merge_point_commit=$(git rev-parse HEAD)
         fi
 
         ensure-clean-working-dir
     done
 
-    # get consistent and complete godeps on each sync. Skip if nothing changed.
+    # get consistent and complete go.mod on each sync. Skip if nothing changed.
     # NOTE: we cannot skip collapsed-kube-commit-mapper below because its
     #       output depends on upstream's HEAD.
-    echo "Fixing up godeps after a complete sync"
+    echo "Fixing up go.mod after a complete sync"
     if [ $(git rev-parse HEAD) != "${dst_old_head}" ] || [ "${new_branch}" = "true" ]; then
-        fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" true true ${commit_msg_tag} "${recursive_delete_pattern}"
+        fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" true true ${commit_msg_tag} "${recursive_delete_pattern}"
     else
-        # update godeps without squashing because it would mutate a published commit
-        fix-godeps "${deps}" "${required_packages}" "${base_package}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
+        # update go.mod without squashing because it would mutate a published commit
+        fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
     fi
 
     # create look-up file for collapsed upstream commits
@@ -527,19 +527,19 @@ function pick-merge-as-single-commit() {
 EOF
 }
 
-# if a PR added incorrect godep changes (eg: client-go depending on apiserver), godeps update will fail.
-# so we skip godeps generation for these commits.
-function skip-godep-update() {
+# if a PR added incorrect go.mod changes (eg: client-go depending on apiserver), go.mod update will fail.
+# so we skip go.mod generation for these commits.
+function skip-gomod-update() {
     grep -F -q -x "$1" <<EOF
 e2a017327c1af628f4f0069cbd49865ad1e81975
 fd0df59f5ba786cb25329e3a9d2793ad4227ed87
 EOF
 }
 
-# amend-godeps-at checks out the Godeps.json at the given commit and amend it to the previous commit.
-function amend-godeps-at() {
-    if [ -f Godeps/Godeps.json ]; then
-        git checkout ${f_mainline_commit} Godeps/Godeps.json # reset to mainline state which is guaranteed to be correct
+# amend-gomod-at checks out the go.mod at the given commit and amend it to the previous commit.
+function amend-gomod-at() {
+    if [ -f go.mod ]; then
+        git checkout ${f_mainline_commit} go.mod # reset to mainline state which is guaranteed to be correct
         git commit --amend --no-edit -q
     fi
 }
@@ -613,11 +613,11 @@ function show-working-dir-status() {
     git status | sed 's/^/    /'
 }
 
-function godep-changes() {
+function gomod-changes() {
     if [ -n "${2:-}" ]; then
-        ! git diff --exit-code --quiet ${1} ${2} -- Godeps/Godeps.json
+        ! git diff --exit-code --quiet ${1} ${2} -- go.mod
     else
-        ! git diff --exit-code --quiet $(state-before-commit ${1}) ${1} -- Godeps/Godeps.json
+        ! git diff --exit-code --quiet $(state-before-commit ${1}) ${1} -- go.mod
     fi
 }
 
@@ -687,8 +687,8 @@ function apply-recursive-delete-pattern() {
     fi
 }
 
-function fix-godeps() {
-    if [ "${PUBLISHER_BOT_SKIP_GODEPS:-}" = true ]; then
+function fix-gomod() {
+    if [ "${PUBLISHER_BOT_SKIP_GOMOD:-}" = true ]; then
         return 0
     fi
 
@@ -696,21 +696,21 @@ function fix-godeps() {
     local required_packages="${2}"
     local base_package="${3}"
     local is_library="${4}"
-    local needs_godeps_update="${5}"
+    local needs_gomod_update="${5}"
     local squash="${6:-true}"
     local commit_msg_tag="${7}"
     local recursive_delete_pattern="${8}"
 
     local dst_old_commit=$(git rev-parse HEAD)
-    if [ "${needs_godeps_update}" = true ]; then
-        # run godeps restore+save
-        update_full_godeps "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
-    elif [ -f Godeps/Godeps.json ]; then
-        # update the Godeps.json quickly by just updating the dependency hashes
+    if [ "${needs_gomod_update}" = true ]; then
+        # run go.mod restore+save
+        update_full_gomod "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
+    elif [ -f go.mod ]; then
+        # update the go.mod quickly by just updating the dependency hashes
         # Note: this is a compromise between correctness and completeness. It's neither 100%
         #       of these, but good enough for go get and vendoring tools.
         checkout-deps-to-kube-commit "${commit_msg_tag}" "${deps}"
-        update-deps-in-godep-json "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
+        update-deps-in-gomod "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
     fi
 
     # remove vendor/ on non-master branches for libraries
@@ -744,40 +744,40 @@ function fix-godeps() {
     # required packages above could have added files to be deleted according to delete pattern
     apply-recursive-delete-pattern "${recursive_delete_pattern}"
 
-    # squash godep commits, either into ${dst_old_commit} or into _one_ new commit
+    # squash go.mod commits, either into ${dst_old_commit} or into _one_ new commit
     if git diff --exit-code ${dst_old_commit} &>/dev/null; then
-        echo "Remove redundant godep commits on-top of ${dst_old_commit}."
+        echo "Remove redundant go.mod commits on-top of ${dst_old_commit}."
         git reset --soft -q ${dst_old_commit}
     elif [ "${squash}" = true ]; then
-        echo "Amending last merge with godep changes."
+        echo "Amending last merge with go.mod changes."
         git reset --soft -q ${dst_old_commit}
         git commit -q --amend --allow-empty -C ${dst_old_commit}
     else
-        echo "Squashing godep commits into one."
+        echo "Squashing go.mod commits into one."
         local old_head="$(git rev-parse HEAD)"
         git reset --soft -q ${dst_old_commit}
-        git commit -q --allow-empty -m "sync: update godeps"
+        git commit -q --allow-empty -m "sync: update go.mod"
     fi
 
     ensure-clean-working-dir
 }
 
-# Reset Godeps.json to what it looked like in the given commit $1. Always create a
+# Reset go.mod to what it looked like in the given commit $1. Always create a
 # commit, even an empty one.
-function reset-godeps() {
+function reset-gomod() {
     local f_clean_commit=${1}
 
-    # checkout or delete Godeps/Godeps.json
-    if [ -n "$(git ls-tree ${f_clean_commit}^{tree} Godeps)" ]; then
-        git checkout ${f_clean_commit} Godeps
-        git add Godeps
-    elif [ -d Godeps ]; then
-        rm -rf Godeps
-        git rm -rf Godeps
+    # checkout or delete go.mod
+    if [ -n "$(git ls-tree ${f_clean_commit}^{tree} go.mod)" ]; then
+        git checkout ${f_clean_commit} go.mod
+        git add go.mod
+    elif [ -d go.mod ]; then
+        rm -f go.mod
+        git rm -f go.mod
     fi
 
-    # commit Godeps/Godeps.json unconditionally
-    git commit -q -m "sync: reset Godeps/Godeps.json" --allow-empty
+    # commit go.mod unconditionally
+    git commit -q -m "sync: reset go.mod" --allow-empty
 }
 
 # Squash the last $1 commits into one, with the commit message of the last.
@@ -787,7 +787,7 @@ function squash() {
     GIT_COMMITTER_DATE=$(committer-date ${head}) git commit --allow-empty -q -C ${head}
 }
 
-# This function updates vendor/ and Godeps/Godeps.json.
+# This function updates vendor/ and go.mod.
 #
 # "deps" lists the dependent k8s.io/* repos and branches. For example, if the
 # function is handling the release-1.6 branch of k8s.io/apiserver, deps is
@@ -802,7 +802,7 @@ function squash() {
 # This function assumes to be called at the root of the repository that's going to be published.
 # This function assumes the branch that need update is checked out.
 # This function assumes it's the last step in the publishing process that's going to generate commits.
-function update_full_godeps() {
+function update_full_gomod() {
     local deps="${1:-""}"
     local base_package="${2}"
     local is_library="${3}"
@@ -823,8 +823,8 @@ function update_full_godeps() {
         popd >/dev/null
     done
 
-    if [ ! -f Godeps/Godeps.json ]; then
-        echo "No Godeps/Godeps.json found. Skipping godeps completely until upstream adds it."
+    if [ ! -f go.mod ]; then
+        echo "No go.mod found. Skipping go.mod completely until upstream adds it."
         return 0
     fi
 
@@ -899,7 +899,7 @@ function update_full_godeps() {
 }
 
 # update the dependencies to the version checked out
-update-deps-in-godep-json() {
+update-deps-in-gomod() {
     if [ ! -f Godeps/Godeps.json ]; then
         return 0
     fi
@@ -931,7 +931,7 @@ update-deps-in-godep-json() {
             # revert changes and fall back to full vendoring
             echo "Found new dependency k8s.io/${dep}. Switching to full vendoring."
             git checkout -q HEAD Godeps/Godeps.json
-            update_full_godeps "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
+            update_full_gomod "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
             return $?
         else
             echo "Ignoring k8s.io/${dep} dependency because it seems not to be used."
