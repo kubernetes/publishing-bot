@@ -97,6 +97,7 @@ echo "Fetching from origin."
 git fetch origin --no-tags --prune
 echo "Cleaning up checkout."
 git rebase --abort >/dev/null || true
+rm -f .git/index.lock || true
 git reset -q --hard
 git clean -q -f -f -d
 git checkout -q $(git rev-parse HEAD) || true
