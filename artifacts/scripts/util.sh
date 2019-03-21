@@ -367,7 +367,12 @@ sync_repo() {
             local squash_commits=1
             if gomod-changes ${f_mainline_commit}; then
                 reset-gomod ${f_mainline_commit}^
-                squash_commits=2 # squash the cherry-pick into the go.mod reset commit below
+                squash_commits=$[${squash_commits} + 1] # squash the cherry-pick into the go.mod reset commit below
+                dst_needs_gomod_update=true
+            fi
+            if godeps-changes ${f_mainline_commit}; then
+                reset-godeps ${f_mainline_commit}^
+                squash_commits=$[${squash_commits} + 1]
                 dst_needs_gomod_update=true
             fi
 
@@ -425,7 +430,12 @@ sync_repo() {
                 local squash_commits=1
                 if gomod-changes ${f_latest_branch_point_commit} ${f_latest_merge_commit}; then
                     reset-gomod ${f_latest_branch_point_commit}
-                    squash_commits=2 # squash the cherry-pick into the go.mod reset commit below
+                    squash_commits=$[${squash_commits} + 1] # squash the cherry-pick into the go.mod reset commit below
+                    dst_needs_gomod_update=true
+                fi
+                if godeps-changes ${f_latest_branch_point_commit} ${f_latest_merge_commit}; then
+                    reset-godeps ${f_latest_branch_point_commit}
+                    squash_commits=$[${squash_commits} + 1]
                     dst_needs_gomod_update=true
                 fi
 
@@ -448,7 +458,12 @@ sync_repo() {
                 local squash_commits=1
                 if gomod-changes ${f_commit}; then
                     reset-gomod $(state-before-commit ${f_commit})
-                    squash_commits=2 # squash the cherry-pick into the go.mod reset commit below
+                    squash_commits=$[${squash_commits} + 1] # squash the cherry-pick into the go.mod reset commit below
+                    dst_needs_gomod_update=true
+                fi
+                if godeps-changes ${f_commit}; then
+                    reset-godeps $(state-before-commit ${f_commit})
+                    squash_commits=$[${squash_commits} + 1]
                     dst_needs_gomod_update=true
                 fi
 
@@ -621,6 +636,14 @@ function gomod-changes() {
     fi
 }
 
+function godeps-changes() {
+    if [ -n "${2:-}" ]; then
+        ! git diff --exit-code --quiet ${1} ${2} -- Godeps/Godeps.json
+    else
+        ! git diff --exit-code --quiet $(state-before-commit ${1}) ${1} -- Godeps/Godeps.json
+    fi
+}
+
 function state-before-commit() {
     if git rev-parse --verify ${1}^1 &>/dev/null; then
         echo ${1}^
@@ -702,47 +725,41 @@ function fix-gomod() {
     local recursive_delete_pattern="${8}"
 
     local dst_old_commit=$(git rev-parse HEAD)
-    if [ "${needs_gomod_update}" = true ]; then
-        # run go.mod restore+save
-        update_full_gomod "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
-    elif [ -f go.mod ]; then
-        # update the go.mod quickly by just updating the dependency hashes
-        # Note: this is a compromise between correctness and completeness. It's neither 100%
-        #       of these, but good enough for go get and vendoring tools.
-        checkout-deps-to-kube-commit "${commit_msg_tag}" "${deps}"
-        update-deps-in-gomod "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
+    if [ -f go.mod ]; then
+        checkout-deps-to-kube-commit "${commit_msg_tag}" "${deps}" "${base_package}"
+        update-deps-in-gomod "${deps}" "${base_package}"
+
+        # generate Godeps/Godeps.json from go.mod
+        if [ "${PUBLISHER_BOT_GENERATE_GODEPS:-}" == true ]; then
+            mkdir -p Godeps
+            echo "Resolving dependencies for Godeps.json generation"
+            GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go list -m -json all > /tmp/go-list
+            /godeps-gen /tmp/go-list Godeps/Godeps.json
+            git add Godeps go.mod # go.mod is surprisingly written: EOF newline
+            if ! git-index-clean; then
+                git commit -q -m "sync: update Godeps/Godeps.json"
+            fi
+        fi
     fi
 
-    # remove vendor/ on non-master branches for libraries
-    if [ "$(git rev-parse --abbrev-ref HEAD)" != master ] && [ -d vendor/ ] && [ "${is_library}" = "true" ]; then
-        echo "Removing vendor/ on non-master branch because this is a library"
+    # remove Godeps/Godeps.json
+    if [ ! -f go.mod ] || [ "${PUBLISHER_BOT_GENERATE_GODEPS:-}" != true ]; then
+        if [ -d Godeps ]; then
+            git rm -q -rf Godeps
+            if ! git-index-clean; then
+                git commit -q -m "sync: remove Godeps/"
+            fi
+        fi
+    fi
+
+    # remove vendor/ when switching from Godeps to go.mod
+    if [ -d vendor/ ]; then
+        echo "Removing vendor/ from Godeps era"
         git rm -q -rf vendor/
         if ! git-index-clean; then
             git commit -q -m "sync: remove vendor/"
         fi
     fi
-
-    # copy required packages into vendor/
-    if [ -n "${required_packages}" ]; then
-        IFS=',' read -a pkg_array <<< "${required_packages}"
-        local pkg_count=${#pkg_array[@]}
-        for (( i=0; i<${pkg_count}; i++ )); do
-            local pkg="${pkg_array[i]%%:*}"
-            rm -rf "vendor/${pkg}"
-            mkdir -p "vendor/${pkg}"
-            cp -ax "${GOPATH}/src/${pkg%/}/"* "vendor/${pkg%/}/" # skip hidden files like .git
-        done
-        git add "vendor/${pkg}"
-
-        # check if there are new contents
-        if ! git-index-clean; then
-           echo "Committing vendor/ with required packages: ${required_packages}"
-           git commit -q -m "sync: update required packages"
-        fi
-    fi
-
-    # required packages above could have added files to be deleted according to delete pattern
-    apply-recursive-delete-pattern "${recursive_delete_pattern}"
 
     # squash go.mod commits, either into ${dst_old_commit} or into _one_ new commit
     if git diff --exit-code ${dst_old_commit} &>/dev/null; then
@@ -771,13 +788,31 @@ function reset-gomod() {
     if [ -n "$(git ls-tree ${f_clean_commit}^{tree} go.mod)" ]; then
         git checkout ${f_clean_commit} go.mod
         git add go.mod
-    elif [ -d go.mod ]; then
+    elif [ -f go.mod ]; then
         rm -f go.mod
         git rm -f go.mod
     fi
 
     # commit go.mod unconditionally
     git commit -q -m "sync: reset go.mod" --allow-empty
+}
+
+# Reset Godeps/Godeps.json to what it looked like in the given commit $1. Always create a
+# commit, even an empty one.
+function reset-godeps() {
+    local f_clean_commit=${1}
+
+    # checkout or delete go.mod
+    if [ -n "$(git ls-tree ${f_clean_commit}^{tree} Godeps/Godeps.json)" ]; then
+        git checkout ${f_clean_commit} Godeps/Godeps.json
+        git add Godeps/Godeps.json
+    elif [ -d Godeps ]; then
+        rm -f Godeps/Godeps.json
+        git rm -f Godeps/Godeps.json
+    fi
+
+    # commit go.mod unconditionally
+    git commit -q -m "sync: reset Godeps/Godeps.json" --allow-empty
 }
 
 # Squash the last $1 commits into one, with the commit message of the last.
@@ -787,7 +822,7 @@ function squash() {
     GIT_COMMITTER_DATE=$(committer-date ${head}) git commit --allow-empty -q -C ${head}
 }
 
-# This function updates vendor/ and go.mod.
+# update-deps-in-gomod updates go.mod according to checked out versions of dependencies.
 #
 # "deps" lists the dependent k8s.io/* repos and branches. For example, if the
 # function is handling the release-1.6 branch of k8s.io/apiserver, deps is
@@ -795,165 +830,47 @@ function squash() {
 # are expected to be separated by ",", and the name of the dependent repo and
 # the branch name are expected to be separated by ":".
 #
-# "is_library" indicates if the repo being published is a library.
-#
-# To avoid repeated godep restore, repositories should share the GOPATH.
-#
 # This function assumes to be called at the root of the repository that's going to be published.
-# This function assumes the branch that need update is checked out.
+# This function assumes the branch that need update is checked out, for the current repo and for dependencies.
 # This function assumes it's the last step in the publishing process that's going to generate commits.
-function update_full_gomod() {
-    local deps="${1:-""}"
-    local base_package="${2}"
-    local is_library="${3}"
-    local commit_msg_tag="${4}"
-
-    ensure-clean-working-dir
-
-    # clean up k8s.io/* checkouts. If any is dirty, we will fail here because godep restore is unhappy. This
-    # can even include non-dependencies if the dependencies changed.
-    for d in $../*; do
-        if [ ! -d ${d} ]; then
-            continue
-        fi
-        pushd ${d} >/dev/null
-            git rebase --abort &>/dev/null || true
-            git reset --hard -q
-            git clean -f -f -d -q
-        popd >/dev/null
-    done
-
+update-deps-in-gomod() {
     if [ ! -f go.mod ]; then
-        echo "No go.mod found. Skipping go.mod completely until upstream adds it."
         return 0
     fi
 
-    # remove dependencies from Godeps/Godeps.json
-    echo "Removing ${base_package}/* dependencies from Godeps.json"
-    local dep=""
-    local branch=""
-    local depbranch=""
-    for depbranch in ${deps//,/ } $(basename "${PWD}"); do # due to a bug in kube's update-staging-godeps script we have reflexive dependencies. Remove them as well.
-        IFS=: read dep branch <<<"${depbranch}"
-        jq '.Deps |= map(select(.ImportPath | (startswith("'${base_package}/${dep}'/") or . == "'${base_package}/${dep}'") | not))' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
-        mv Godeps/Godeps.json.clean Godeps/Godeps.json
-    done
+    local deps_array=()
+    IFS=',' read -a deps_array <<< "${1}"
+    local dep_count=${#deps_array[@]}
+    local base_package=${2}
 
-    echo "Running godep restore."
-    godep restore
-
-    # checkout k8s.io/* dependencies
-    checkout-deps-to-kube-commit "${commit_msg_tag}" "${deps}"
-
-    # recreate vendor/ and Godeps/Godeps.json
-    rm -rf ./Godeps
-    rm -rf ./vendor
-
-    echo "Running godep save."
-    godep save ./...
-
-    # restore all other files of Godeps/ (like OWNERS), but preserve the new Godeps.json
-    cp Godeps/Godeps.json Godeps/Godeps.json.preserve
-    git checkout HEAD Godeps/ # this does not delete new files
-    mv Godeps/Godeps.json.preserve Godeps/Godeps.json
-
-    # remove Comment from each dependency and use tabs
-    jq 'del(.Deps[].Comment)' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
-    mv Godeps/Godeps.json.clean Godeps/Godeps.json
-
-    if [ "${is_library}" = "true" ]; then
-        if [ "$(git rev-parse --abbrev-ref HEAD)" != master ]; then
-            echo "Removing complete vendor/ on non-master branch because this is a library."
-            rm -rf vendor/
-        else
-            echo "Removing k8s.io/*, gofuzz, go-openapi and glog from vendor/ because this is a library."
-            # glog uses global variables, it panics when multiple copies are compiled.
-            rm -rf ./vendor/github.com/golang/glog
-            # this ensures users who get the repository via `go get` won't end up with
-            # multiple copies of k8s.io/ repos. The only copy will be the one in the
-            # GOPATH.
-            # Godeps.json has a complete, up-to-date list of dependencies, so
-            # Godeps.json will be the ground truth for users using godep/glide/dep.
-            rm -rf ./vendor/k8s.io
-            # see https://github.com/kubernetes/kubernetes/issues/45693
-            rm -rf ./vendor/github.com/google/gofuzz
-            # go-openapi is shared between apiserver and apimachinery
-            rm -rf ./vendor/github.com/go-openapi
-        fi
+    # drop peer references
+    if grep -q "// BEGIN STAGING REPLACE" go.mod; then
+    	sed -i '/\/\/ BEGIN STAGING REPLACE/,/\/\/ END STAGING REPLACE/d' your_file
     fi
 
-    git add Godeps/Godeps.json
-    git clean -f Godeps # clean possible new files missing in branch (e.g. README)
-    git add vendor/ --ignore-errors &>/dev/null || true
+    for (( i=0; i<${dep_count}; i++ )); do
+        local dep="${deps_array[i]%%:*}"
+        local dep_commit=$(cd ../${dep}; gomod-pseudo-version)
+        echo "Updating ${base_package}/${dep} to point to ${dep_commit}"
+	sed -i -e "s,\\b${base_package}/${dep} .*,${base_package}/${dep} ${dep_commit}," go.mod
+    done
+
+    git add go.mod
 
     # check if there are new contents
     if git-index-clean; then
-        echo "Godeps.json hasn't changed!"
+        echo "go.mod hasn't changed!"
     else
-        echo "Committing vendor/ and Godeps/Godeps.json."
-        git commit -q -m "sync: update godeps"
+        echo "Committing go.mod"
+        git commit -q -m "sync: update go.mod"
     fi
 
     # nothing should be left
     ensure-clean-working-dir
 }
 
-# update the dependencies to the version checked out
-update-deps-in-gomod() {
-    if [ ! -f Godeps/Godeps.json ]; then
-        return 0
-    fi
-
-    local base_package=${2}
-    local is_library=${3}
-    local deps=${1}
-    local commit_msg_tag="${4}"
-    local deps_array=()
-    IFS=',' read -a deps_array <<< "${1}"
-    local dep_count=${#deps_array[@]}
-    for (( i=0; i<${dep_count}; i++ )); do
-        local dep="${deps_array[i]%%:*}"
-        local dep_commit=$(cd ../${dep}; git rev-parse HEAD)
-        if [ -z "${dep_commit}" ]; then
-            echo "Couldn't find kube commit for current HEAD. Odd."
-            return 1
-        fi
-
-        # get old dependency hash in Godeps/Godeps.json
-        local old_dep_commit=$(jq -r '.Deps[] | select(.ImportPath | startswith("'${base_package}/${dep}'/") or . == "'${base_package}/${dep}'") | .Rev' Godeps/Godeps.json | tail -n 1)
-        if [ -n "${old_dep_commit}" ]; then
-            if [ "${old_dep_commit}" != "${dep_commit}" ]; then
-                # it existed before => replace with the new value
-                echo "Updating k8s.io/${dep} dependency to ${dep_commit}."
-                sed -i "s/${old_dep_commit}/${dep_commit}/g" Godeps/Godeps.json
-            fi
-        elif git grep -w -q "k8s.io/${dep}"; then
-            # revert changes and fall back to full vendoring
-            echo "Found new dependency k8s.io/${dep}. Switching to full vendoring."
-            git checkout -q HEAD Godeps/Godeps.json
-            update_full_gomod "${deps}" "${base_package}" "${is_library}" "${commit_msg_tag}"
-            return $?
-        else
-            echo "Ignoring k8s.io/${dep} dependency because it seems not to be used."
-        fi
-    done
-
-    # due to a bug we have xxxx revisions for reflexive dependencies. Remove them.
-    jq '.Deps |= map(select(.ImportPath | (startswith("'${base_package}/$(basename "${PWD}")'/") or . == "'${base_package}/$(basename "${PWD}")'") | not))' Godeps/Godeps.json | indent-godeps > Godeps/Godeps.json.clean
-    mv Godeps/Godeps.json.clean Godeps/Godeps.json
-
-    git add Godeps/Godeps.json
-
-    # check if there are new contents
-    if git-index-clean; then
-        echo "Godeps.json hasn't changed!"
-    else
-        echo "Committing Godeps/Godeps.json."
-        git commit -q -m "sync: update godeps"
-    fi
-
-    # nothing should be left
-    ensure-clean-working-dir
+gomod-pseudo-version() {
+    TZ=GMT git show -q --pretty='format:v0.0.0-%cd-%h' --date='format:%Y%m%d%H%M%S' --abbrev=12
 }
 
 # checkout the dependencies to the versions corresponding to the kube commit of HEAD
@@ -961,6 +878,7 @@ checkout-deps-to-kube-commit() {
     local commit_msg_tag="${1}"
     local deps=()
     IFS=',' read -a deps <<< "${2}"
+    local base_package=${3}
 
     # get last k8s.io/kubernetes commit on HEAD ...
     local k_last_kube_commit="$(last-kube-commit ${commit_msg_tag} HEAD)"
@@ -990,6 +908,26 @@ checkout-deps-to-kube-commit() {
         pushd ../${dep} >/dev/null
             echo "Checking out k8s.io/${dep} to ${dep_commit}"
             git checkout -q "${dep_commit}"
+
+            echo "Downloading go mod dependencies..."
+            go mod download
+
+            local pseudo_version=$(gomod-pseudo-version)
+            local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
+            if [ -f "${cache_dir}/list" ] && grep -q "${pseudo_version}" "${cache_dir}/list"; then
+            	echo "Pseudo version ${pseudo_version} is already packaged up."
+            else
+            	echo "Packaging up pseudo version ${pseudo_version} into go mod cache..."
+            	mkdir -p "${cache_dir}"
+            	echo "module ${base_package}/${dep}" > "${cache_dir}/${pseudo_version}.mod"
+                echo "{\"Version\":\"${pseudo_version}\",\"Name\":\"$(git rev-parse HEAD)\",\"Short\":\"$(git show -q --abbrev=12 --pretty='format:%h' HEAD)\",\"Time\":\"$(TZ=GMT git show -q --pretty='format:%cd' --date='format:%Y-%m-%dT%H:%M:%SZ')\"}" > "${cache_dir}/${pseudo_version}.info"
+                pushd "${GOPATH}/src" >/dev/null
+                mv "${base_package}/${dep}" "${base_package}/${dep}@${pseudo_version}"
+                zip -y -x "${base_package}/${dep}@${pseudo_version}/.git/*" -q -r "${cache_dir}/${pseudo_version}.zip" "${base_package}/${dep}@${pseudo_version}"
+                mv "${base_package}/${dep}@${pseudo_version}" "${base_package}/${dep}"
+                popd >/dev/null
+                echo "${pseudo_version}" >> "${cache_dir}/list"
+            fi
         popd >/dev/null
     done
 }

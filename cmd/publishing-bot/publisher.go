@@ -288,8 +288,11 @@ func (p *PublisherMunger) construct() error {
 				lastPublishedUpstreamHash,
 			)
 			cmd.Env = append([]string(nil), branchEnv...) // make mutable
-			if p.reposRules.SkipGodeps {
-				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_SKIP_GODEPS=true")
+			if !p.reposRules.SkipGodeps {
+				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_GENERATE_GODEPS=true")
+			}
+			if p.reposRules.SkipGomod {
+				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_SKIP_GOMOD=true")
 			}
 			if err := p.plog.Run(cmd); err != nil {
 				return err
@@ -300,6 +303,8 @@ func (p *PublisherMunger) construct() error {
 				p.plog.Infof("Running smoke tests for branch %s", branchRule.Name)
 				cmd := exec.Command("/bin/bash", "-xec", repoRule.SmokeTest)
 				cmd.Env = append([]string(nil), branchEnv...) // make mutable
+				cmd.Env = append(cmd.Env, "GO111MODULE=on")
+				cmd.Env = append(cmd.Env, fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
 				if err := p.plog.Run(cmd); err != nil {
 					// do not clean up to allow debugging with kubectl-exec.
 					return err
