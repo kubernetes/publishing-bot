@@ -215,12 +215,16 @@ func run(c *exec.Cmd) {
 }
 
 func cloneSourceRepo(cfg config.Config, runGodepRestore bool) {
+	repoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
+
 	if _, err := os.Stat(filepath.Join(BaseRepoPath, cfg.SourceRepo)); err == nil {
-		glog.Infof("Source repository %q already cloned, skipping", cfg.SourceRepo)
+		glog.Infof("Source repository %q already cloned, only setting remote", cfg.SourceRepo)
+		remoteCmd := exec.Command("git", "remote", "set-url", "origin", repoLocation)
+		remoteCmd.Dir = filepath.Join(BaseRepoPath, cfg.SourceRepo)
+		run(remoteCmd)
 		return
 	}
 
-	repoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
 	glog.Infof("Cloning source repository %s ...", repoLocation)
 	cloneCmd := exec.Command("git", "clone", repoLocation)
 	run(cloneCmd)
