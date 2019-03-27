@@ -43,6 +43,7 @@ repos=(
     cluster-bootstrap
     code-generator
     component-base
+    cri-api
     csi-api
     csi-translation-lib
     kube-aggregator
