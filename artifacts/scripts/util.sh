@@ -843,19 +843,26 @@ update-deps-in-gomod() {
     local dep_count=${#deps_array[@]}
     local base_package=${2}
 
-    # drop peer references
-    if grep -q "// BEGIN STAGING REPLACE" go.mod; then
-    	sed -i '/\/\/ BEGIN STAGING REPLACE/,/\/\/ END STAGING REPLACE/d' your_file
-    fi
-
     for (( i=0; i<${dep_count}; i++ )); do
         local dep="${deps_array[i]%%:*}"
         local dep_commit=$(cd ../${dep}; gomod-pseudo-version)
         echo "Updating ${base_package}/${dep} to point to ${dep_commit}"
-	sed -i -e "s,\\b${base_package}/${dep} .*,${base_package}/${dep} ${dep_commit}," go.mod
+        GO111MODULE=on go mod edit -fmt -require "${base_package}/${dep}@${dep_commit}"
+        GO111MODULE=on go mod edit -fmt -replace "${base_package}/${dep}=${base_package}/${dep}@${dep_commit}"
     done
 
-    git add go.mod
+    GO111MODULE=on go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("../")) | "-dropreplace \(.Old.Path)"' | GO111MODULE=on xargs -L 100 go mod edit -fmt
+    
+    GO111MODULE=on go mod download
+    GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go mod tidy
+
+    git add go.mod go.sum
+
+    # double check that we got all dependencies
+    if grep 000000000000 go.sum; then
+        echo "Invalid go.mod created. Failing."
+        exit 1
+    fi
 
     # check if there are new contents
     if git-index-clean; then
@@ -919,7 +926,7 @@ checkout-deps-to-kube-commit() {
             else
             	echo "Packaging up pseudo version ${pseudo_version} into go mod cache..."
             	mkdir -p "${cache_dir}"
-            	echo "module ${base_package}/${dep}" > "${cache_dir}/${pseudo_version}.mod"
+            	cp go.mod "${cache_dir}/${pseudo_version}.mod"
                 echo "{\"Version\":\"${pseudo_version}\",\"Name\":\"$(git rev-parse HEAD)\",\"Short\":\"$(git show -q --abbrev=12 --pretty='format:%h' HEAD)\",\"Time\":\"$(TZ=GMT git show -q --pretty='format:%cd' --date='format:%Y-%m-%dT%H:%M:%SZ')\"}" > "${cache_dir}/${pseudo_version}.info"
                 pushd "${GOPATH}/src" >/dev/null
                 mv "${base_package}/${dep}" "${base_package}/${dep}@${pseudo_version}"
