@@ -7,6 +7,6 @@ data:
     source-org: kubernetes
     source-repo: kubernetes
     target-org: kubernetes
-    rules-file: https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
-    github-issue: 56876
+    rules-file: https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules-godeps.yaml
+    github-issue: 75960
     dry-run: false
