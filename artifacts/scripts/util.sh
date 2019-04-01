@@ -554,7 +554,7 @@ EOF
 # amend-gomod-at checks out the go.mod at the given commit and amend it to the previous commit.
 function amend-gomod-at() {
     if [ -f go.mod ]; then
-        git checkout ${f_mainline_commit} go.mod # reset to mainline state which is guaranteed to be correct
+        git checkout ${f_mainline_commit} go.mod go.sum # reset to mainline state which is guaranteed to be correct
         git commit --amend --no-edit -q
     fi
 }
@@ -630,9 +630,9 @@ function show-working-dir-status() {
 
 function gomod-changes() {
     if [ -n "${2:-}" ]; then
-        ! git diff --exit-code --quiet ${1} ${2} -- go.mod
+        ! git diff --exit-code --quiet ${1} ${2} -- go.mod go.sum
     else
-        ! git diff --exit-code --quiet $(state-before-commit ${1}) ${1} -- go.mod
+        ! git diff --exit-code --quiet $(state-before-commit ${1}) ${1} -- go.mod go.sum
     fi
 }
 
@@ -735,7 +735,7 @@ function fix-gomod() {
             echo "Resolving dependencies for Godeps.json generation"
             GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go list -m -json all > /tmp/go-list
             /godeps-gen /tmp/go-list Godeps/Godeps.json
-            git add Godeps go.mod # go.mod is surprisingly written: EOF newline
+            git add Godeps go.mod go.sum # go.mod is surprisingly written: EOF newline
             if ! git-index-clean; then
                 git commit -q -m "sync: update Godeps/Godeps.json"
             fi
@@ -786,11 +786,11 @@ function reset-gomod() {
 
     # checkout or delete go.mod
     if [ -n "$(git ls-tree ${f_clean_commit}^{tree} go.mod)" ]; then
-        git checkout ${f_clean_commit} go.mod
-        git add go.mod
+        git checkout ${f_clean_commit} go.mod go.sum
+        git add go.mod go.sum
     elif [ -f go.mod ]; then
-        rm -f go.mod
-        git rm -f go.mod
+        rm -f go.mod go.sum
+        git rm -f go.mod go.sum
     fi
 
     # commit go.mod unconditionally
