@@ -190,7 +190,7 @@ func main() {
 					// then let us wait for 5 minutes and try again. We really need to dig
 					// into the problem and fix the flakiness
 					glog.Infof("Waiting for 5 minutes")
-					waitfor = uint(5 * (time.Second * 60))
+					waitfor = uint(5 * 60)
 				}
 			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 				githubIssueErrorf("Failed to close issue: %v", err)
