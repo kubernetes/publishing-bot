@@ -1,4 +1,4 @@
-DOCKER_REPO = sttts/k8s-publishing-bot
+DOCKER_REPO = sttts/k8s-publishing-bot-godeps
 NAMESPACE = k8s-publishing-bot-godeps
 SCHEDULE = * */4 * * *
 INTERVAL = 14400
