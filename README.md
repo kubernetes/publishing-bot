@@ -10,7 +10,7 @@ The publishing bot publishes the code in `k8s.io/kubernetes/staging` to their ow
 
 It pulls the latest k8s.io/kubernetes changes and runs `git filter-branch` to distill the commits that affect a staging repo. Then it cherry-picks merged PRs with their feature branch commits to the target repo. It records the SHA1 of the last cherrypicked commits in `Kubernetes-sha: <sha>` lines in the commit messages.
 
-The robot is also responsible to update the `Godeps/Godeps.json` and the `vendor/` directory for the target repos.
+The robot is also responsible to update the `go-mod` and the `vendor/` directory for the target repos, and to create a fake (sparse and repo level based) `Godeps/Godeps.json`.
 
 ## Playbook
 

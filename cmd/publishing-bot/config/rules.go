@@ -67,6 +67,7 @@ type RepositoryRule struct {
 type RepositoryRules struct {
 	SkippedSourceBranches []string         `yaml:"skip-source-branches"`
 	SkipGodeps            bool             `yaml:"skip-godeps"`
+	SkipGomod             bool             `yaml:"skip-gomod"`
 	SkipTags              bool             `yaml:"skip-tags"`
 	Rules                 []RepositoryRule `yaml:"rules"`
 

@@ -17,7 +17,7 @@ MAINTAINER Stefan Schimanski <sttts@redhat.com>
 RUN apt-get update \
  && apt-get install -y -qq git=1:2.11.0-3+deb9u4 \
  && apt-get install -y -qq mercurial \
- && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig gcc \
+ && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig gcc zip \
  && rm -rf /var/lib/apt/lists/*
 
 ENV GOPATH="/go-workspace"
@@ -35,6 +35,8 @@ ADD _output/publishing-bot /publishing-bot
 ADD _output/collapsed-kube-commit-mapper /collapsed-kube-commit-mapper
 ADD _output/sync-tags /sync-tags
 ADD _output/init-repo /init-repo
+
+ADD _output/godeps-gen /godeps-gen
 ADD artifacts/scripts/ /publish_scripts
 
 CMD ["/publishing-bot", "--dry-run", "--token-file=/token"]
