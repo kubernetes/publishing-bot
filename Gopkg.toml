@@ -39,7 +39,9 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/go-git.v4"
-  version = "v4.9.1"
+  # version = "v4.9.1"
+  branch = "display-sha-for-flake"
+  source = "github.com/nikhita/go-git"
 
 [prune]
   go-tests = true

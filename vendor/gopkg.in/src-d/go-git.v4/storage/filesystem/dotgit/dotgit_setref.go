@@ -3,6 +3,7 @@ package dotgit
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
@@ -74,7 +75,8 @@ func (d *DotGit) setRefNorwfs(fileName, content string, old *plumbing.Reference)
 		}
 
 		if ref.Hash() != old.Hash() {
-			return fmt.Errorf("reference has changed concurrently")
+			debug.PrintStack()
+			return fmt.Errorf("reference has changed concurrently for %s from %s to %s", old.Name().String(), old.Hash().String(), ref.Hash().String())
 		}
 	}
 

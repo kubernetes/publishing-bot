@@ -3,6 +3,7 @@ package memory
 
 import (
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"gopkg.in/src-d/go-git.v4/config"
@@ -258,7 +259,8 @@ func (r ReferenceStorage) CheckAndSetReference(ref, old *plumbing.Reference) err
 	if old != nil {
 		tmp := r[ref.Name()]
 		if tmp != nil && tmp.Hash() != old.Hash() {
-			return ErrRefHasChanged
+			debug.PrintStack()
+			return fmt.Errorf("%s for %s from %s to %s", ErrRefHasChanged, ref.Name().String(), old.Hash().String(), tmp.Hash().String())
 		}
 	}
 	r[ref.Name()] = ref
