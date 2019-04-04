@@ -225,7 +225,8 @@
   version = "v4.3.0"
 
 [[projects]]
-  digest = "1:ec6e0d2808407909b1f1b7322d1e2d0d803566117283a8e7aa2f66f03693793f"
+  branch = "display-sha-for-flake"
+  digest = "1:6a1b6a411e393e65a5a511084b4faeebe017e4b7f26ee46fab2d1ff305d7dee0"
   name = "gopkg.in/src-d/go-git.v4"
   packages = [
     ".",
@@ -270,8 +271,8 @@
     "utils/merkletrie/noder",
   ]
   pruneopts = "UT"
-  revision = "a1f6ef44dfed1253ef7f3bc049f66b15f8fc2ab2"
-  version = "v4.9.1"
+  revision = "14601945d087604738e835a95323f0e0213f48b3"
+  source = "github.com/nikhita/go-git"
 
 [[projects]]
   digest = "1:78d374b493e747afa9fbb2119687e3740a7fb8d0ebabddfef0a012593aaecbb3"
@@ -301,6 +302,7 @@
     "gopkg.in/src-d/go-git.v4",
     "gopkg.in/src-d/go-git.v4/plumbing",
     "gopkg.in/src-d/go-git.v4/plumbing/object",
+    "gopkg.in/src-d/go-git.v4/storage/memory",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"
