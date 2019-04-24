@@ -51,6 +51,7 @@ repos=(
     kubelet
     kube-proxy
     kube-scheduler
+    legacy-cloud-providers
     metrics
     node-api
     sample-apiserver
