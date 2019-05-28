@@ -439,12 +439,14 @@ sync_repo() {
                     dst_needs_gomod_update=true
                 fi
 
-                if ! git diff ${f_latest_branch_point_commit} ${f_latest_merge_commit} | git apply --index; then
-                    echo
-                    show-working-dir-status
-                    return 1
+                if ! git diff --quiet --exit-code ${f_latest_branch_point_commit} ${f_latest_merge_commit}; then
+                    if ! git diff ${f_latest_branch_point_commit} ${f_latest_merge_commit}  | git apply --index; then
+                        echo
+                        show-working-dir-status
+                        return 1
+                    fi
                 fi
-                git commit -q -m "sync: squashed up to merge $(kube-commit ${commit_msg_tag} ${f_latest_merge_commit}) in ${k_mainline_commit}" --date "$(commit-date ${f_latest_merge_commit})" --author "$(commit-author ${f_latest_merge_commit})"
+                git commit --allow-empty -q -m "sync: squashed up to merge $(kube-commit ${commit_msg_tag} ${f_latest_merge_commit}) in ${k_mainline_commit}" --date "$(commit-date ${f_latest_merge_commit})" --author "$(commit-author ${f_latest_merge_commit})"
                 ensure-clean-working-dir
 
                 # potentially squash go.mod reset commit
