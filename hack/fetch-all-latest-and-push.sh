@@ -48,6 +48,7 @@ repos=(
     csi-translation-lib
     kube-aggregator
     kube-controller-manager
+    kubectl
     kubelet
     kube-proxy
     kube-scheduler
