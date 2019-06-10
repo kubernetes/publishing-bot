@@ -33,7 +33,6 @@ WORKDIR "/"
 
 ADD _output/publishing-bot /publishing-bot
 ADD _output/collapsed-kube-commit-mapper /collapsed-kube-commit-mapper
-ADD _output/sync-tags /sync-tags
 ADD _output/init-repo /init-repo
 ADD artifacts/scripts/ /publish_scripts
 
