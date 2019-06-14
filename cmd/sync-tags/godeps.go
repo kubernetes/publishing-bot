@@ -45,7 +45,7 @@ type Godeps struct {
 
 // updateGodepsJsonWithTaggedDependencies gets the dependencies at the given tag and fills Godeps.json. If anything
 // is changed, it commit the changes. Returns true if Godeps.json changed.
-func updateGodepsJsonWithTaggedDependencies(r *gogit.Repository, tag string, depsRepo []string) (bool, error) {
+func updateGodepsJsonWithTaggedDependencies(tag string, depsRepo []string) (bool, error) {
 	bs, err := ioutil.ReadFile("Godeps/Godeps.json")
 	if os.IsNotExist(err) {
 		return false, nil
