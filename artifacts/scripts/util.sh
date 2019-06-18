@@ -920,7 +920,7 @@ checkout-deps-to-kube-commit() {
             git checkout -q "${dep_commit}"
 
             echo "Downloading go mod dependencies..."
-            go mod download
+            GO111MODULE=on go mod download
 
             local pseudo_version=$(gomod-pseudo-version)
             local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"

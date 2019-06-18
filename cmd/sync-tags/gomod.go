@@ -55,6 +55,14 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 		rev := commit.String()
 		pseudoVersion := fmt.Sprintf("v0.0.0-%s-%s", commitTime.UTC().Format("20060102150405"), rev[:12])
 
+		downloadCommand := exec.Command("go", "mod", "download")
+		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on")
+		downloadCommand.Stdout = os.Stdout
+		downloadCommand.Stderr = os.Stderr
+		if err := downloadCommand.Run(); err != nil {
+			return changed, fmt.Errorf("Error running go mod download for %s: %v", depPkg, err)
+		}
+
 		if err := packageDepToGoModCache(depPath, depPkg, rev, pseudoVersion, commitTime); err != nil {
 			return changed, fmt.Errorf("failed to package %s dependency: %v", depPkg, err)
 		}
@@ -75,11 +83,11 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 			return changed, fmt.Errorf("Unable to pin %s in the replace section of go.mod to %s: %v", depPkg, pseudoVersion, err)
 		}
 
-		downloadCommand := exec.Command("go", "mod", "download")
-		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on")
-		downloadCommand.Stdout = os.Stdout
-		downloadCommand.Stderr = os.Stderr
-		if err := downloadCommand.Run(); err != nil {
+		downloadCommand2 := exec.Command("go", "mod", "download")
+		downloadCommand2.Env = append(os.Environ(), "GO111MODULE=on")
+		downloadCommand2.Stdout = os.Stdout
+		downloadCommand2.Stderr = os.Stderr
+		if err := downloadCommand2.Run(); err != nil {
 			return changed, fmt.Errorf("Error running go mod download for pseudo-version %s for %s: %v", pseudoVersion, depPkg, err)
 		}
 
