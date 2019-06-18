@@ -61,24 +61,32 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 
 		requireCommand := exec.Command("go", "mod", "edit", "-fmt", "-require", fmt.Sprintf("%s@%s", depPkg, pseudoVersion))
 		requireCommand.Env = append(os.Environ(), "GO111MODULE=on")
+		requireCommand.Stdout = os.Stdout
+		requireCommand.Stderr = os.Stderr
 		if err := requireCommand.Run(); err != nil {
 			return changed, fmt.Errorf("Unable to pin %s in the require section of go.mod to %s: %v", depPkg, pseudoVersion, err)
 		}
 
 		replaceCommand := exec.Command("go", "mod", "edit", "-fmt", "-replace", fmt.Sprintf("%s=%s@%s", depPkg, depPkg, pseudoVersion))
 		replaceCommand.Env = append(os.Environ(), "GO111MODULE=on")
+		replaceCommand.Stdout = os.Stdout
+		replaceCommand.Stderr = os.Stderr
 		if err := replaceCommand.Run(); err != nil {
 			return changed, fmt.Errorf("Unable to pin %s in the replace section of go.mod to %s: %v", depPkg, pseudoVersion, err)
 		}
 
 		downloadCommand := exec.Command("go", "mod", "download")
 		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on")
+		downloadCommand.Stdout = os.Stdout
+		downloadCommand.Stderr = os.Stderr
 		if err := downloadCommand.Run(); err != nil {
 			return changed, fmt.Errorf("Error running go mod download for pseudo-version %s for %s: %v", pseudoVersion, depPkg, err)
 		}
 
 		tidyCommand := exec.Command("go", "mod", "tidy")
 		tidyCommand.Env = append(os.Environ(), "GO111MODULE=on", "GOPOXY=file://${GOPATH}/pkg/mod/cache/download")
+		tidyCommand.Stdout = os.Stdout
+		tidyCommand.Stderr = os.Stderr
 		if err := tidyCommand.Run(); err != nil {
 			return changed, fmt.Errorf("Unable to run go mod tidy for %s at %s: %v", depPkg, rev, err)
 		}
@@ -152,6 +160,8 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersion string, commi
 
 	zipCommand := exec.Command("zip", "-y", "-x", fmt.Sprintf("%s/.git/*", depPathPseudoVersion), "-q", "-r", zipFile, depPathPseudoVersion)
 	zipCommand.Dir = zipDir
+	zipCommand.Stdout = os.Stdout
+	zipCommand.Stderr = os.Stderr
 	if err := zipCommand.Run(); err != nil {
 		return fmt.Errorf("Unable to create zip file for %s: %v", depPkg, err)
 	}
