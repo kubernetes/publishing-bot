@@ -932,9 +932,7 @@ checkout-deps-to-kube-commit() {
             	cp go.mod "${cache_dir}/${pseudo_version}.mod"
                 echo "{\"Version\":\"${pseudo_version}\",\"Name\":\"$(git rev-parse HEAD)\",\"Short\":\"$(git show -q --abbrev=12 --pretty='format:%h' HEAD)\",\"Time\":\"$(TZ=GMT git show -q --pretty='format:%cd' --date='format:%Y-%m-%dT%H:%M:%SZ')\"}" > "${cache_dir}/${pseudo_version}.info"
                 pushd "${GOPATH}/src" >/dev/null
-                mv "${base_package}/${dep}" "${base_package}/${dep}@${pseudo_version}"
-                zip -y -x "${base_package}/${dep}@${pseudo_version}/.git/*" -q -r "${cache_dir}/${pseudo_version}.zip" "${base_package}/${dep}@${pseudo_version}"
-                mv "${base_package}/${dep}@${pseudo_version}" "${base_package}/${dep}"
+                /gomod-zip --package-name="${base_package}/${dep}" --pseudo-version="${pseudo_version}"
                 popd >/dev/null
                 echo "${pseudo_version}" >> "${cache_dir}/list"
             fi

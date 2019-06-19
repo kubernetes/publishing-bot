@@ -25,6 +25,7 @@ build:
 	$(call build_cmd,sync-tags)
 	$(call build_cmd,init-repo)
 	$(call build_cmd,godeps-gen)
+	$(call build_cmd,gomod-zip)
 .PHONY: build
 
 build-image: build
