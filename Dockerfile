@@ -37,6 +37,7 @@ ADD _output/sync-tags /sync-tags
 ADD _output/init-repo /init-repo
 
 ADD _output/godeps-gen /godeps-gen
+ADD _output/gomod-zip /gomod-zip
 ADD artifacts/scripts/ /publish_scripts
 
 CMD ["/publishing-bot", "--dry-run", "--token-file=/token"]

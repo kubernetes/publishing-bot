@@ -880,7 +880,7 @@ update-deps-in-gomod() {
 }
 
 gomod-pseudo-version() {
-    TZ=GMT git show -q --pretty='format:v0.0.0-%cd-%h' --date='format:%Y%m%d%H%M%S' --abbrev=12
+    TZ=GMT git show -q --pretty='format:v0.0.0-%cd-%h' --date='format-local:%Y%m%d%H%M%S' --abbrev=12
 }
 
 # checkout the dependencies to the versions corresponding to the kube commit of HEAD
@@ -920,7 +920,7 @@ checkout-deps-to-kube-commit() {
             git checkout -q "${dep_commit}"
 
             echo "Downloading go mod dependencies..."
-            go mod download
+            GO111MODULE=on go mod download
 
             local pseudo_version=$(gomod-pseudo-version)
             local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
@@ -930,11 +930,9 @@ checkout-deps-to-kube-commit() {
             	echo "Packaging up pseudo version ${pseudo_version} into go mod cache..."
             	mkdir -p "${cache_dir}"
             	cp go.mod "${cache_dir}/${pseudo_version}.mod"
-                echo "{\"Version\":\"${pseudo_version}\",\"Name\":\"$(git rev-parse HEAD)\",\"Short\":\"$(git show -q --abbrev=12 --pretty='format:%h' HEAD)\",\"Time\":\"$(TZ=GMT git show -q --pretty='format:%cd' --date='format:%Y-%m-%dT%H:%M:%SZ')\"}" > "${cache_dir}/${pseudo_version}.info"
+                echo "{\"Version\":\"${pseudo_version}\",\"Name\":\"$(git rev-parse HEAD)\",\"Short\":\"$(git show -q --abbrev=12 --pretty='format:%h' HEAD)\",\"Time\":\"$(TZ=GMT git show -q --pretty='format:%cd' --date='format-local:%Y-%m-%dT%H:%M:%SZ')\"}" > "${cache_dir}/${pseudo_version}.info"
                 pushd "${GOPATH}/src" >/dev/null
-                mv "${base_package}/${dep}" "${base_package}/${dep}@${pseudo_version}"
-                zip -y -x "${base_package}/${dep}@${pseudo_version}/.git/*" -q -r "${cache_dir}/${pseudo_version}.zip" "${base_package}/${dep}@${pseudo_version}"
-                mv "${base_package}/${dep}@${pseudo_version}" "${base_package}/${dep}"
+                /gomod-zip --package-name="${base_package}/${dep}" --pseudo-version="${pseudo_version}"
                 popd >/dev/null
                 echo "${pseudo_version}" >> "${cache_dir}/list"
             fi

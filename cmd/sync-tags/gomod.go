@@ -55,32 +55,52 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 		rev := commit.String()
 		pseudoVersion := fmt.Sprintf("v0.0.0-%s-%s", commitTime.UTC().Format("20060102150405"), rev[:12])
 
+		// in case the pseudoVersion has not changed, running go mod download will help
+		// in avoiding packaging it up if the pseudoVersion has been published already
+		downloadCommand := exec.Command("go", "mod", "download")
+		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on")
+		downloadCommand.Stdout = os.Stdout
+		downloadCommand.Stderr = os.Stderr
+		if err := downloadCommand.Run(); err != nil {
+			return changed, fmt.Errorf("error running go mod download for %s: %v", depPkg, err)
+		}
+
+		// check if we have the pseudoVersion published already. if we don't, package it up
+		// and save to local mod download cache.
 		if err := packageDepToGoModCache(depPath, depPkg, rev, pseudoVersion, commitTime); err != nil {
 			return changed, fmt.Errorf("failed to package %s dependency: %v", depPkg, err)
 		}
 
 		requireCommand := exec.Command("go", "mod", "edit", "-fmt", "-require", fmt.Sprintf("%s@%s", depPkg, pseudoVersion))
 		requireCommand.Env = append(os.Environ(), "GO111MODULE=on")
+		requireCommand.Stdout = os.Stdout
+		requireCommand.Stderr = os.Stderr
 		if err := requireCommand.Run(); err != nil {
-			return changed, fmt.Errorf("Unable to pin %s in the require section of go.mod to %s: %v", depPkg, pseudoVersion, err)
+			return changed, fmt.Errorf("unable to pin %s in the require section of go.mod to %s: %v", depPkg, pseudoVersion, err)
 		}
 
 		replaceCommand := exec.Command("go", "mod", "edit", "-fmt", "-replace", fmt.Sprintf("%s=%s@%s", depPkg, depPkg, pseudoVersion))
 		replaceCommand.Env = append(os.Environ(), "GO111MODULE=on")
+		replaceCommand.Stdout = os.Stdout
+		replaceCommand.Stderr = os.Stderr
 		if err := replaceCommand.Run(); err != nil {
-			return changed, fmt.Errorf("Unable to pin %s in the replace section of go.mod to %s: %v", depPkg, pseudoVersion, err)
+			return changed, fmt.Errorf("unable to pin %s in the replace section of go.mod to %s: %v", depPkg, pseudoVersion, err)
 		}
 
-		downloadCommand := exec.Command("go", "mod", "download")
-		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on")
-		if err := downloadCommand.Run(); err != nil {
-			return changed, fmt.Errorf("Error running go mod download for pseudo-version %s for %s: %v", pseudoVersion, depPkg, err)
+		downloadCommand2 := exec.Command("go", "mod", "download")
+		downloadCommand2.Env = append(os.Environ(), "GO111MODULE=on")
+		downloadCommand2.Stdout = os.Stdout
+		downloadCommand2.Stderr = os.Stderr
+		if err := downloadCommand2.Run(); err != nil {
+			return changed, fmt.Errorf("error running go mod download for pseudo-version %s for %s: %v", pseudoVersion, depPkg, err)
 		}
 
 		tidyCommand := exec.Command("go", "mod", "tidy")
 		tidyCommand.Env = append(os.Environ(), "GO111MODULE=on", "GOPOXY=file://${GOPATH}/pkg/mod/cache/download")
+		tidyCommand.Stdout = os.Stdout
+		tidyCommand.Stderr = os.Stderr
 		if err := tidyCommand.Run(); err != nil {
-			return changed, fmt.Errorf("Unable to run go mod tidy for %s at %s: %v", depPkg, rev, err)
+			return changed, fmt.Errorf("unable to run go mod tidy for %s at %s: %v", depPkg, rev, err)
 		}
 
 		found[dep] = true
@@ -116,14 +136,26 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersion string, commi
 
 	fmt.Printf("Packaging up pseudo version %s for %s into go mod cache.\n", pseudoVersion, depPkg)
 
+	// create the cache if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(goModFile), os.FileMode(755)); err != nil {
-		return fmt.Errorf("Unable to create %s directory: %v", cacheDir, err)
+		return fmt.Errorf("unable to create %s directory: %v", cacheDir, err)
 	}
 
+	// checkout the dep repo to the commit at the tag
+	checkoutCommand := exec.Command("git", "checkout", commit)
+	checkoutCommand.Dir = fmt.Sprintf("%s/src/%s", os.Getenv("GOPATH"), depPkg)
+	checkoutCommand.Stdout = os.Stdout
+	checkoutCommand.Stderr = os.Stderr
+	if err := checkoutCommand.Run(); err != nil {
+		return fmt.Errorf("failed to checkout %s at %s: %v", depPkg, commit, err)
+	}
+
+	// copy go.mod to pseudoVersion.mod in the cache dir
 	if err := copyFile(fmt.Sprintf("%s/go.mod", depPath), goModFile); err != nil {
-		return fmt.Errorf("Unable to copy %s file to %s to gomod cache for %s: %v", fmt.Sprintf("%s/go.mod", depPath), goModFile, depPkg, err)
+		return fmt.Errorf("unable to copy %s file to %s to gomod cache for %s: %v", fmt.Sprintf("%s/go.mod", depPath), goModFile, depPkg, err)
 	}
 
+	// create pseudoVersion.info file in the cache dir
 	moduleInfo := ModuleInfo{
 		Version: pseudoVersion,
 		Name:    commit,
@@ -133,43 +165,30 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersion string, commi
 
 	moduleFile, err := json.Marshal(moduleInfo)
 	if err != nil {
-		return fmt.Errorf("Error marshaling .info file for %s: %v", depPkg, err)
+		return fmt.Errorf("error marshaling .info file for %s: %v", depPkg, err)
 	}
 	if err := ioutil.WriteFile(fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersion), moduleFile, 0644); err != nil {
 		return fmt.Errorf("failed to write %s file for %s: %v", fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersion), depPkg, err)
 	}
 
-	depPathPseudoVersion := fmt.Sprintf("%s@%s", depPkg, pseudoVersion)
-	zipDir := fmt.Sprintf("%s/src", os.Getenv("GOPATH"))
-	zipFile := fmt.Sprintf("%s/%s.zip", cacheDir, pseudoVersion)
-
-	// this is necessary because every file path in the zip archive must begin with <module>@<version>
-	mvCommand1 := exec.Command("mv", depPkg, depPathPseudoVersion)
-	mvCommand1.Dir = zipDir
-	if err := mvCommand1.Run(); err != nil {
-		return fmt.Errorf("Unable to mv %s to %s: %v", depPkg, depPathPseudoVersion, err)
-	}
-
-	zipCommand := exec.Command("zip", "-y", "-x", fmt.Sprintf("%s/.git/*", depPathPseudoVersion), "-q", "-r", zipFile, depPathPseudoVersion)
-	zipCommand.Dir = zipDir
+	// create the pseudoVersion.zip file in the cache dir. This zip file has the same hash
+	// as of the zip file that would have been created by go mod download.
+	zipCommand := exec.Command("/gomod-zip", "--package-name", depPkg, "--pseudo-version", pseudoVersion)
+	zipCommand.Stdout = os.Stdout
+	zipCommand.Stderr = os.Stderr
 	if err := zipCommand.Run(); err != nil {
-		return fmt.Errorf("Unable to create zip file for %s: %v", depPkg, err)
+		return fmt.Errorf("failed to run gomod-zip for %s at %s: %v", depPkg, pseudoVersion, err)
 	}
 
-	mvCommand2 := exec.Command("mv", depPathPseudoVersion, depPkg)
-	mvCommand2.Dir = zipDir
-	if err := mvCommand2.Run(); err != nil {
-		return fmt.Errorf("Unable to mv %s to %s: %v", depPathPseudoVersion, depPath, err)
-	}
-
+	// append the pseudoVersion to the list file in the cache dir
 	listFile, err := os.OpenFile(fmt.Sprintf("%s/list", cacheDir), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("Unable to open list file in %s: %v", cacheDir, err)
+		return fmt.Errorf("unable to open list file in %s: %v", cacheDir, err)
 	}
 	defer listFile.Close()
 
 	if _, err := listFile.WriteString(fmt.Sprintf("%s\n", pseudoVersion)); err != nil {
-		return fmt.Errorf("Unable to write to list file in %s: %v", cacheDir, err)
+		return fmt.Errorf("unable to write to list file in %s: %v", cacheDir, err)
 	}
 
 	return nil
@@ -197,19 +216,19 @@ func taggedCommitHashAndTime(r *gogit.Repository, tag string) (plumbing.Hash, ti
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
-		return fmt.Errorf("Unable to open %s: %v", src, err)
+		return fmt.Errorf("unable to open %s: %v", src, err)
 	}
 	defer in.Close()
 
 	out, err := os.Create(dst)
 	if err != nil {
-		return fmt.Errorf("Unable to create %s: %v", dst, err)
+		return fmt.Errorf("unable to create %s: %v", dst, err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, in)
 	if err != nil {
-		return fmt.Errorf("Unable to copy %s to %s: %v", src, dst, err)
+		return fmt.Errorf("unable to copy %s to %s: %v", src, dst, err)
 	}
 	return out.Close()
 }
