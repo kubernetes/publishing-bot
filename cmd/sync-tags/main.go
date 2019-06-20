@@ -193,11 +193,6 @@ func main() {
 			continue
 		}
 
-		// temporarily publish only alpha tags
-		if !strings.Contains(bName, "alpha") {
-			continue
-		}
-
 		// ignore old tags
 		if tag.Tagger.When.Before(time.Date(2017, 9, 1, 0, 0, 0, 0, time.UTC)) {
 			//fmt.Printf("Ignoring old tag origin/%s from %v\n", bName, tag.Tagger.When)
