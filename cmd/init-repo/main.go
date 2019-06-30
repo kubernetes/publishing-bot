@@ -142,7 +142,7 @@ func main() {
 }
 
 func cloneForkRepo(cfg config.Config, repoName string) {
-	forkRepoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.TargetOrg, repoName)
+	forkRepoLocation := fmt.Sprintf("https://%s/%s/%s.git", cfg.GithubHost, cfg.TargetOrg, repoName)
 	repoDir := filepath.Join(BaseRepoPath, repoName)
 
 	if _, err := os.Stat(repoDir); err == nil {
@@ -153,7 +153,9 @@ func cloneForkRepo(cfg config.Config, repoName string) {
 		os.Remove(filepath.Join(repoDir, ".git", "index.lock"))
 	} else {
 		glog.Infof("Cloning fork repository %s ...", forkRepoLocation)
-		run(exec.Command("git", "clone", forkRepoLocation))
+		cloneCmd := exec.Command("git", "clone", forkRepoLocation)
+		cloneCmd.Dir = BaseRepoPath
+		run(cloneCmd)
 	}
 
 	// set user in repo because old git version (compare https://github.com/git/git/commit/92bcbb9b338dd27f0fd4245525093c4bce867f3d) still look up user ids without
@@ -244,9 +246,10 @@ func cloneSourceRepo(cfg config.Config, runGodepRestore bool) {
 		return
 	}
 
-	repoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
+	repoLocation := fmt.Sprintf("https://%s/%s/%s.git", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
 	glog.Infof("Cloning source repository %s ...", repoLocation)
 	cloneCmd := exec.Command("git", "clone", repoLocation)
+	cloneCmd.Dir = BaseRepoPath
 	run(cloneCmd)
 
 	if runGodepRestore {
