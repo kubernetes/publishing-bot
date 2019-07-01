@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	depCommit   = "7c44971bbb9f0ed87db40b601f2d9fe4dffb750d"
-	godepCommit = "tags/v80"
+	depCommit      = "7c44971bbb9f0ed87db40b601f2d9fe4dffb750d"
+	godepVersion   = "v80-k8s-r1"
+	k8sGodepCommit = "d5f2096f1a37a31b9f450d601411b8a85b64c624"
 )
 
 var (
@@ -141,7 +142,7 @@ func main() {
 }
 
 func cloneForkRepo(cfg config.Config, repoName string) {
-	forkRepoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.TargetOrg, repoName)
+	forkRepoLocation := fmt.Sprintf("https://%s/%s/%s.git", cfg.GithubHost, cfg.TargetOrg, repoName)
 	repoDir := filepath.Join(BaseRepoPath, repoName)
 
 	if _, err := os.Stat(repoDir); err == nil {
@@ -152,7 +153,9 @@ func cloneForkRepo(cfg config.Config, repoName string) {
 		os.Remove(filepath.Join(repoDir, ".git", "index.lock"))
 	} else {
 		glog.Infof("Cloning fork repository %s ...", forkRepoLocation)
-		run(exec.Command("git", "clone", forkRepoLocation))
+		cloneCmd := exec.Command("git", "clone", forkRepoLocation)
+		cloneCmd.Dir = BaseRepoPath
+		run(cloneCmd)
 	}
 
 	// set user in repo because old git version (compare https://github.com/git/git/commit/92bcbb9b338dd27f0fd4245525093c4bce867f3d) still look up user ids without
@@ -164,22 +167,45 @@ func cloneForkRepo(cfg config.Config, repoName string) {
 	run(setEmailCmd)
 }
 
+// installGodeps installs kubernetes' forked version of godep.
+// We need to install the forked version because godep by default
+// doesn't support bitbucket anymore, but the forked version does.
+// Since the forked godep only exists until 1.14, we first checkout
+// to a commit which supports it.
 func installGodeps() {
-	if _, err := exec.LookPath("godep"); err == nil {
-		glog.Infof("Already installed: godep")
+	godepVersionCmd := exec.Command("godep", "version")
+	version, err := godepVersionCmd.Output()
+	if err == nil && string(version) == godepVersion {
+		glog.Infof("Already installed godep %s", godepVersion)
 		return
 	}
-	glog.Infof("Installing github.com/tools/godep#%s ...", godepCommit)
-	run(exec.Command("go", "get", "github.com/tools/godep"))
 
-	godepDir := filepath.Join(SystemGoPath, "src", "github.com", "tools", "godep")
-	godepCheckoutCmd := exec.Command("git", "checkout", godepCommit)
-	godepCheckoutCmd.Dir = godepDir
-	run(godepCheckoutCmd)
+	// clone k8s.io/kubernetes if it doesn't exist already
+	if _, err := os.Stat(filepath.Join(SystemGoPath, "src", "k8s.io", "kubernetes")); err != nil {
+		if err := os.MkdirAll(BaseRepoPath, os.FileMode(755)); err != nil {
+			glog.Fatalf("unable to create %s directory: %v", BaseRepoPath, err)
+		}
 
-	godepInstallCmd := exec.Command("go", "install", "./...")
-	godepInstallCmd.Dir = godepDir
+		repoLocation := "https://github.com/kubernetes/kubernetes.git"
+		glog.Infof("Cloning repository %s ...", repoLocation)
+		cloneCmd := exec.Command("git", "clone", repoLocation)
+		cloneCmd.Dir = BaseRepoPath
+		run(cloneCmd)
+	}
+
+	k8sCheckOutDir := filepath.Join(SystemGoPath, "src", "k8s.io", "kubernetes")
+	k8sGodepCheckoutCmd := exec.Command("git", "checkout", k8sGodepCommit)
+	k8sGodepCheckoutCmd.Dir = k8sCheckOutDir
+	run(k8sGodepCheckoutCmd)
+
+	glog.Infof("Installing k8s.io/kubernetes/third_party/forked/godep#%s ...", godepVersion)
+	godepInstallCmd := exec.Command("go", "install", "k8s.io/kubernetes/third_party/forked/godep")
 	run(godepInstallCmd)
+
+	// finally, checkout to master to avoid impacting other processes later
+	k8sMasterCheckoutCmd := exec.Command("git", "checkout", "master")
+	k8sMasterCheckoutCmd.Dir = k8sCheckOutDir
+	run(k8sMasterCheckoutCmd)
 }
 
 func installDep() {
@@ -220,9 +246,10 @@ func cloneSourceRepo(cfg config.Config, runGodepRestore bool) {
 		return
 	}
 
-	repoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
+	repoLocation := fmt.Sprintf("https://%s/%s/%s.git", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
 	glog.Infof("Cloning source repository %s ...", repoLocation)
 	cloneCmd := exec.Command("git", "clone", repoLocation)
+	cloneCmd.Dir = BaseRepoPath
 	run(cloneCmd)
 
 	if runGodepRestore {
