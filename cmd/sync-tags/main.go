@@ -72,6 +72,7 @@ func main() {
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
 	skipFetch := flag.Bool("skip-fetch", false, "skip fetching tags")
 	generateGodeps := flag.Bool("generate-godeps", false, "regenerate Godeps.json from go.mod")
+	generateVersionedImports := flag.Bool("generate-versioned-imports", false, "generate versioned imports and pin to versions respecting semver in go.mod")
 	mappingOutputFile := flag.String("mapping-output-file", "", "a file name to write the source->dest hash mapping to ({{.Tag}} is substituted with the tag name, {{.Branch}} with the local branch name)")
 
 	flag.Usage = Usage
@@ -255,6 +256,9 @@ func main() {
 			}
 		}
 
+		// set tagHash to branch head in case there are no new changes later
+		tagHash := bh
+
 		// update go.mod or Godeps.json to point to actual tagged version in the dependencies. This version might differ
 		// from the one currently in go.mod  or Godeps.json because the other repo could have gotten more commit for this
 		// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
@@ -301,7 +305,7 @@ func main() {
 				fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
 				publishingBotNow := publishingBot
 				publishingBotNow.When = time.Now()
-				bh, err = wt.Commit(fmt.Sprintf("Fix dependencies to point to %s tag", bName), &gogit.CommitOptions{
+				tagHash, err = wt.Commit(fmt.Sprintf("Fix dependencies to point to %s tag", bName), &gogit.CommitOptions{
 					All:       true,
 					Author:    &publishingBotNow,
 					Committer: &publishingBotNow,
@@ -313,8 +317,8 @@ func main() {
 		}
 
 		// create prefixed annotated tag
-		fmt.Printf("Tagging %v as %q.\n", bh, bName)
-		err = createAnnotatedTag(bh, bName, tag.Tagger.When, dedent.Dedent(fmt.Sprintf(`
+		fmt.Printf("Tagging %v as %q.\n", tagHash, bName)
+		err = createAnnotatedTag(tagHash, bName, tag.Tagger.When, dedent.Dedent(fmt.Sprintf(`
 			Kubernetes release %s
 
 			Based on https://github.com/kubernetes/kubernetes/releases/tag/%s
@@ -323,6 +327,62 @@ func main() {
 			glog.Fatalf("Failed to create tag %q: %v", bName, err)
 		}
 		createdTags = append(createdTags, bName)
+
+		if *generateVersionedImports {
+			tagParts := strings.Split(name, ".")
+			majorVersion := tagParts[1]
+			patchVersion := tagParts[len(tagParts)-1]
+			versionedTag := fmt.Sprintf("v%s.0.%s", majorVersion, patchVersion)
+
+			wt, err := r.Worktree()
+			if err != nil {
+				glog.Fatalf("Failed to get working tree: %v", err)
+			}
+			fmt.Printf("Checking out branch tag commit %s.\n", bh.String())
+			if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
+				glog.Fatalf("Failed to checkout %v: %v", bh, err)
+			}
+
+			// update main module and it's import paths
+			modUpgradeCmd := exec.Command("mod", "upgrade", "-t", majorVersion)
+			modUpgradeCmd.Env = append(os.Environ(), "GO111MODULE=on", "GOPOXY=file://${GOPATH}/pkg/mod/cache/download")
+			modUpgradeCmd.Stdout = os.Stdout
+			modUpgradeCmd.Stderr = os.Stderr
+			if err := modUpgradeCmd.Run(); err != nil {
+				glog.Fatalf("unable to upgrade main module to v%s: %v", majorVersion, err)
+			}
+
+			if len(dependentRepos) > 0 {
+				fmt.Printf("Updating import paths and checking that dependencies point to the actual tags in %s.\n", strings.Join(dependentRepos, ", "))
+				if err := generateVersionedImportsWithTaggedDependencies(majorVersion, versionedTag, dependentRepos); err != nil {
+					glog.Fatalf("Failed to generate versioned imports for %s: %v", versionedTag, err)
+				}
+			}
+
+			fmt.Printf("Adding extra commit to add versioned imports for %s tag.\n", versionedTag)
+			publishingBotNow := publishingBot
+			publishingBotNow.When = time.Now()
+			versionedTagHash, err := wt.Commit(fmt.Sprintf("Add versioned imports for %s tag", versionedTag), &gogit.CommitOptions{
+				All:       true,
+				Author:    &publishingBotNow,
+				Committer: &publishingBotNow,
+			})
+			if err != nil {
+				glog.Fatalf("Failed to commit changes to add versioned imports %s tag: %v", versionedTag, err)
+			}
+
+			// create prefixed annotated tag
+			fmt.Printf("Tagging %v as %q.\n", versionedTagHash, versionedTag)
+			err = createAnnotatedTag(versionedTagHash, versionedTag, tag.Tagger.When, dedent.Dedent(fmt.Sprintf(`
+			Kubernetes release %s
+
+			Based on https://github.com/kubernetes/kubernetes/releases/tag/%s
+			`, name, name)))
+			if err != nil {
+				glog.Fatalf("Failed to create tag %q: %v", versionedTag, err)
+			}
+			createdTags = append(createdTags, versionedTag)
+		}
 	}
 
 	// write push command for new tags

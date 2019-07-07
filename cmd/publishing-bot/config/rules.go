@@ -69,6 +69,7 @@ type RepositoryRules struct {
 	SkipGodeps            bool             `yaml:"skip-godeps"`
 	SkipGomod             bool             `yaml:"skip-gomod"`
 	SkipTags              bool             `yaml:"skip-tags"`
+	SkipVersionedImports  bool             `yaml:"skip-versioned-imports"`
 	Rules                 []RepositoryRule `yaml:"rules"`
 
 	// ls-files patterns like: */BUILD *.ext pkg/foo.go Makefile

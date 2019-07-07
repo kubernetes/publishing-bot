@@ -62,6 +62,7 @@ func main() {
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
 	skipGodep := flag.Bool("skip-godep", false, `skip godeps installation and godeps-restore`)
 	skipDep := flag.Bool("skip-dep", false, `skip 'dep'' installation`)
+	skipVersionedImports := flag.Bool("skip-versioned-imports", false, `skip generating versioned import paths`)
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -148,6 +149,10 @@ func main() {
 	}
 	if !*skipDep {
 		installDep()
+	}
+
+	if !*skipVersionedImports {
+		installMod()
 	}
 
 	cloneSourceRepo(cfg, *skipGodep)
@@ -251,4 +256,16 @@ func cloneSourceRepo(cfg config.Config, runGodepRestore bool) {
 		restoreCmd.Dir = filepath.Join(BaseRepoPath, cfg.SourceRepo)
 		run(restoreCmd)
 	}
+}
+
+func installMod() {
+	if _, err := exec.LookPath("mod"); err == nil {
+		glog.Infof("Already installed: mod")
+		return
+	}
+
+	glog.Infof("Installing github.com/marwan-at-work/mod/cmd/mod@v0.2.2 ...")
+	modInstallCmd := exec.Command("go", "get", "github.com/marwan-at-work/mod/cmd/mod@v0.2.2")
+	modInstallCmd.Env = append(os.Environ(), "GO111MODULE=on")
+	run(modInstallCmd)
 }

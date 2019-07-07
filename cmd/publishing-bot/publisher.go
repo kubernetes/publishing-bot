@@ -294,6 +294,9 @@ func (p *PublisherMunger) construct() error {
 			if p.reposRules.SkipGomod {
 				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_SKIP_GOMOD=true")
 			}
+			if !p.reposRules.SkipVersionedImports {
+				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_GENERATE_VERSIONED_IMPORTS=true")
+			}
 			if err := p.plog.Run(cmd); err != nil {
 				return err
 			}

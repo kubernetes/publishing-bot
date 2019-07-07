@@ -44,11 +44,15 @@ This tool can be used to package modules which haven't been uploaded anywhere
 yet and are only available locally.
 
 This tool assumes that the package is already checked out at the commit
-pointed by the pseudo-version.
+pointed by the pseudo-version. A tag can also be specified in place of
+the pseudo-version.
+
+If versioned imports are being used, the major version must be specified.
+The major version should not use the "v" prefix.
 
 package-name should be equal to the import path of the package.
 
-Usage: %s --package-name <package-name> --pseudo-version <pseudo-version>
+Usage: %s --package-name <package-name> --pseudo-version <pseudo-version> --major-version <major-version>
 `, os.Args[0])
 	flag.PrintDefaults()
 }
@@ -56,6 +60,7 @@ Usage: %s --package-name <package-name> --pseudo-version <pseudo-version>
 func main() {
 	packageName := flag.String("package-name", "", "package to zip")
 	pseudoVersion := flag.String("pseudo-version", "", "pseudoVersion to zip at")
+	majorVersion := flag.String("major-version", "", "the major version used for versioned imports (eg. 15, 16, etc)")
 	flag.Parse()
 
 	if *packageName == "" {
@@ -68,6 +73,9 @@ func main() {
 
 	// create a zip file using git archive, and remove it after using it
 	depPseudoVersion := fmt.Sprintf("%s@%s", *packageName, *pseudoVersion)
+	if *majorVersion != "" {
+		depPseudoVersion = fmt.Sprintf("%s/v%s@%s", *packageName, *majorVersion, *pseudoVersion)
+	}
 	zipFileName := fmt.Sprintf("%s/src/%s/%s.zip", os.Getenv("GOPATH"), *packageName, *pseudoVersion)
 	prefix := fmt.Sprintf("%s/", depPseudoVersion)
 	gitArchive := exec.Command("git", "archive", "--format=zip", "--prefix", prefix, "-o", zipFileName, "HEAD")
@@ -126,6 +134,10 @@ func main() {
 	}
 
 	packagedZipPath := fmt.Sprintf("%s/pkg/mod/cache/download/%s/@v/%s.zip", os.Getenv("GOPATH"), *packageName, *pseudoVersion)
+	if *majorVersion != "" {
+		packagedZipPath = fmt.Sprintf("%s/pkg/mod/cache/download/%s/v%s/@v/%s.zip", os.Getenv("GOPATH"), *packageName, *majorVersion, *pseudoVersion)
+	}
+
 	dst, err := os.OpenFile(packagedZipPath, os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		glog.Fatalf("failed to create zip file at %s: %v", packagedZipPath, err)
