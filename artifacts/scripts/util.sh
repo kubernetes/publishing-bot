@@ -857,7 +857,7 @@ update-deps-in-gomod() {
 
     GO111MODULE=on go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("../")) | "-dropreplace \(.Old.Path)"' | GO111MODULE=on xargs -L 100 go mod edit -fmt
     
-    GO111MODULE=on go mod download
+    GO111MODULE=on GOPROXY=https://proxy.golang.org go mod download
     GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go mod tidy
 
     git add go.mod go.sum
@@ -921,7 +921,7 @@ checkout-deps-to-kube-commit() {
             git checkout -q "${dep_commit}"
 
             echo "Downloading go mod dependencies..."
-            GO111MODULE=on go mod download
+            GO111MODULE=on GOPROXY=https://proxy.golang.org go mod download
 
             local pseudo_version=$(gomod-pseudo-version)
             local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
