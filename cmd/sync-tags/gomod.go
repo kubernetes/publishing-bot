@@ -58,7 +58,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 		// in case the pseudoVersion has not changed, running go mod download will help
 		// in avoiding packaging it up if the pseudoVersion has been published already
 		downloadCommand := exec.Command("go", "mod", "download")
-		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on")
+		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on", "GOPROXY=https://proxy.golang.org")
 		downloadCommand.Stdout = os.Stdout
 		downloadCommand.Stderr = os.Stderr
 		if err := downloadCommand.Run(); err != nil {
@@ -88,7 +88,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 		}
 
 		downloadCommand2 := exec.Command("go", "mod", "download")
-		downloadCommand2.Env = append(os.Environ(), "GO111MODULE=on")
+		downloadCommand2.Env = append(os.Environ(), "GO111MODULE=on", "GOPROXY=https://proxy.golang.org")
 		downloadCommand2.Stdout = os.Stdout
 		downloadCommand2.Stderr = os.Stderr
 		if err := downloadCommand2.Run(); err != nil {
