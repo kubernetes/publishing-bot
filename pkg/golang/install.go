@@ -29,7 +29,7 @@ import (
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
-const defaultGoVersion = "1.12.9"
+const defaultGoVersion = "1.13.4"
 
 // installGoVersions download and unpacks the specified Golang versions to $GOPATH/
 func InstallDefaultGoVersion() error {
