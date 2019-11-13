@@ -860,6 +860,18 @@ update-deps-in-gomod() {
     GO111MODULE=on GOPROXY=https://proxy.golang.org go mod download
     GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go mod tidy
 
+    # After tidying, drop any replace directives that match the naturally preferred require directive.
+    # 1. List the common lines where replace and require directives match exactly
+    comm -12 \
+      <(GO111MODULE=on go mod edit -json | jq -r '.Replace // [] | .[] | "\(.New.Path) \(.New.Version)"') \
+      <(GO111MODULE=on go mod edit -json | jq -r '.Require // [] | .[] | "\(.Path) \(.Version)"') \
+    | \
+    # 2. Select the first column (the path)
+    awk '{print "-dropreplace " $1}' \
+    | \
+    # 3. Drop the replace statements
+    GO111MODULE=on xargs go mod edit -fmt
+
     git add go.mod go.sum
 
     # double check that we got all dependencies
