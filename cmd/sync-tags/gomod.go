@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	gogit "gopkg.in/src-d/go-git.v4"
@@ -35,6 +36,11 @@ import (
 func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, error) {
 	found := map[string]bool{}
 	changed := false
+
+	depPackages, err := depsImportPaths(depsRepo)
+	if err != nil {
+		return changed, err
+	}
 
 	for _, dep := range depsRepo {
 		depPath := filepath.Join("..", dep)
@@ -58,7 +64,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 		// in case the pseudoVersion has not changed, running go mod download will help
 		// in avoiding packaging it up if the pseudoVersion has been published already
 		downloadCommand := exec.Command("go", "mod", "download")
-		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on", "GOPROXY=https://proxy.golang.org")
+		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPRIVATE=%s", depPackages), "GOPROXY=https://proxy.golang.org")
 		downloadCommand.Stdout = os.Stdout
 		downloadCommand.Stderr = os.Stderr
 		if err := downloadCommand.Run(); err != nil {
@@ -88,7 +94,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 		}
 
 		downloadCommand2 := exec.Command("go", "mod", "download")
-		downloadCommand2.Env = append(os.Environ(), "GO111MODULE=on", "GOPROXY=https://proxy.golang.org")
+		downloadCommand2.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPRIVATE=%s", depPackages), "GOPROXY=https://proxy.golang.org")
 		downloadCommand2.Stdout = os.Stdout
 		downloadCommand2.Stderr = os.Stderr
 		if err := downloadCommand2.Run(); err != nil {
@@ -114,6 +120,23 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string) (bool, err
 		}
 	}
 	return changed, nil
+}
+
+// depImportPaths returns a comma separated string with each dependencies' import path.
+// Eg. "k8s.io/api,k8s.io/apimachinery,k8s.io/client-go"
+func depsImportPaths(depsRepo []string) (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("unable to get current working directory: %v", err)
+	}
+	d := strings.Split(dir, "/")
+	basePackage := d[len(d)-2]
+
+	var depImportPathList []string
+	for _, dep := range depsRepo {
+		depImportPathList = append(depImportPathList, fmt.Sprintf("%s/%s", basePackage, dep))
+	}
+	return strings.Join(depImportPathList, ","), nil
 }
 
 type ModuleInfo struct {
