@@ -847,6 +847,12 @@ update-deps-in-gomod() {
     local dep_count=${#deps_array[@]}
     local base_package=${2}
 
+    # if dependencies exist, dep_packages is a comma separated list of {base_package}/{dep}. Eg: "k8s.io/api,k8s.io/apimachinery"
+    local dep_packages=""
+    if [ "$dep_count" != 0 ]; then
+      dep_packages="$(echo ${1} | tr "," "\n" | sed -e 's/:.*//' -e s/^/"${base_package}\/"/ | paste -sd "," -)"
+    fi
+
     for (( i=0; i<${dep_count}; i++ )); do
         local dep="${deps_array[i]%%:*}"
         local dep_commit=$(cd ../${dep}; gomod-pseudo-version)
@@ -857,7 +863,7 @@ update-deps-in-gomod() {
 
     GO111MODULE=on go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("../")) | "-dropreplace \(.Old.Path)"' | GO111MODULE=on xargs -L 100 go mod edit -fmt
     
-    GO111MODULE=on GOPROXY=https://proxy.golang.org go mod download
+    GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
     GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go mod tidy
 
     git add go.mod go.sum
@@ -890,6 +896,13 @@ checkout-deps-to-kube-commit() {
     local deps=()
     IFS=',' read -a deps <<< "${2}"
     local base_package=${3}
+    local dep_count=${#deps[@]}
+
+    # if dependencies exist, dep_packages is a comma separated list of {base_package}/{dep}. Eg: "k8s.io/api,k8s.io/apimachinery"
+    local dep_packages=""
+    if [ "$dep_count" != 0 ]; then
+      dep_packages="$(echo ${2} | tr "," "\n" | sed -e 's/:.*//' -e s/^/"${base_package}\/"/ | paste -sd "," -)"
+    fi
 
     # get last k8s.io/kubernetes commit on HEAD ...
     local k_last_kube_commit="$(last-kube-commit ${commit_msg_tag} HEAD)"
@@ -902,7 +915,6 @@ checkout-deps-to-kube-commit() {
     # might have been dropped on HEAD).
     local k_last_kube_merge=$(git-find-merge "${k_last_kube_commit}" upstream-branch)
 
-    local dep_count=${#deps[@]}
     for (( i=0; i<${dep_count}; i++ )); do
         local dep="${deps[i]%%:*}"
         local branch="${deps[i]##*:}"
@@ -921,7 +933,7 @@ checkout-deps-to-kube-commit() {
             git checkout -q "${dep_commit}"
 
             echo "Downloading go mod dependencies..."
-            GO111MODULE=on GOPROXY=https://proxy.golang.org go mod download
+            GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
 
             local pseudo_version=$(gomod-pseudo-version)
             local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
