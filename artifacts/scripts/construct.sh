@@ -150,6 +150,7 @@ if [ -z "${SKIP_TAGS}" ]; then
                --dependencies "${DEPS}" \
                --mapping-output-file "../tag-${REPO}-{{.Tag}}-mapping" \
                --generate-godeps=${PUBLISHER_BOT_GENERATE_GODEPS:-false} \
+               --publish-v0-semver \
                -alsologtostderr \
                "${EXTRA_ARGS[@]-}"
     if [ "${LAST_HEAD}" != "$(git rev-parse ${LAST_BRANCH})" ]; then

@@ -28,6 +28,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/golang/glog"
 	"github.com/renstrom/dedent"
 	gogit "gopkg.in/src-d/go-git.v4"
@@ -73,6 +74,7 @@ func main() {
 	skipFetch := flag.Bool("skip-fetch", false, "skip fetching tags")
 	generateGodeps := flag.Bool("generate-godeps", false, "regenerate Godeps.json from go.mod")
 	mappingOutputFile := flag.String("mapping-output-file", "", "a file name to write the source->dest hash mapping to ({{.Tag}} is substituted with the tag name, {{.Branch}} with the local branch name)")
+	publishSemverTags := flag.Bool("publish-v0-semver", false, "publish v0.x.y tag at destination repo for v1.x.y tag at the source repo")
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -187,6 +189,19 @@ func main() {
 			bName = *prefix + name[1:] // remove the v
 		}
 
+		var (
+			semverTag        = ""
+			publishSemverTag = false
+		)
+		// if we are publishing semver tags
+		if *publishSemverTags {
+			// and this is a valid v1... semver tag
+			if _, semverErr := semver.Parse(name[1:]); semverErr == nil && strings.HasPrefix(name, "v1.") {
+				publishSemverTag = true
+				semverTag = "v0." + strings.TrimPrefix(name, "v1.") // replace v1.x.y with v0.x.y
+			}
+		}
+
 		// ignore non-annotated tags
 		tag, err := r.TagObject(kh)
 		if err != nil {
@@ -199,14 +214,41 @@ func main() {
 			continue
 		}
 
-		// skip if it already exists in origin
-		if _, found := bTagCommits[bName]; found {
+		// skip if either tag exists at origin
+		_, nonSemverTagAtOrigin := bTagCommits[bName]
+		_, semverTagAtOrigin := bTagCommits[semverTag]
+		if nonSemverTagAtOrigin || (publishSemverTag && semverTagAtOrigin) {
 			continue
 		}
 
-		// do not override tags (we build master first, i.e. the x.y.z-alpha.0 tag on master will not be created for feature branches)
+		// if any of the tag exists locally,
+		// delete the tags, clear the cache and recreate them
 		if tagExists(r, bName) {
-			continue
+			commit, commitTime, err := taggedCommitHashAndTime(r, bName)
+			if err != nil {
+				glog.Fatalf("Failed to get tag %s: %v", bName, err)
+			}
+			rev := commit.String()
+			pseudoVersion := fmt.Sprintf("v0.0.0-%s-%s", commitTime.UTC().Format("20060102150405"), rev[:12])
+
+			fmt.Printf("Clearing cache for local tag %s.\n", pseudoVersion)
+			if err := cleanCacheForTag(pseudoVersion); err != nil {
+				glog.Fatalf("Failed to clean go mod cache for %s: %v", pseudoVersion, err)
+			}
+
+			if err := deleteTag(bName); err != nil {
+				glog.Fatalf("Failed to delete tag %s: %v", bName, err)
+			}
+		}
+
+		if publishSemverTag && tagExists(r, semverTag) {
+			fmt.Printf("Clearing cache for local tag %s.\n", semverTag)
+			if err := cleanCacheForTag(semverTag); err != nil {
+				glog.Fatalf("Failed to clean go mod cache for %s: %v", semverTag, err)
+			}
+			if err := deleteTag(semverTag); err != nil {
+				glog.Fatalf("Failed to delete tag %s: %v", semverTag, err)
+			}
 		}
 
 		// lazily compute kube commit map
@@ -258,22 +300,18 @@ func main() {
 		// update go.mod or Godeps.json to point to actual tagged version in the dependencies. This version might differ
 		// from the one currently in go.mod  or Godeps.json because the other repo could have gotten more commit for this
 		// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
+		var changed, goModExists bool
+		_, err = os.Stat("go.mod")
+		if err == nil {
+			goModExists = true
+		}
+
 		if len(dependentRepos) > 0 {
-			fmt.Printf("Checking that dependencies point to the actual tags in %s.\n", strings.Join(dependentRepos, ", "))
-			wt, err := r.Worktree()
-			if err != nil {
-				glog.Fatalf("Failed to get working tree: %v", err)
-			}
-			fmt.Printf("Checking out branch tag commit %s.\n", bh.String())
-			if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
-				glog.Fatalf("Failed to checkout %v: %v", bh, err)
-			}
+			wt := checkoutBranchTagCommit(r, bh, dependentRepos)
 
 			// if go.mod exists, fix only go.mod and generate Godeps.json from it later
 			// if it doesn't exist, check if Godeps.json exists, and update it
-			var changed, goModChanged bool
-			_, err = os.Stat("go.mod")
-			if os.IsNotExist(err) {
+			if !goModExists {
 				if _, err2 := os.Stat("Godeps/Godeps.json"); err2 == nil {
 					fmt.Printf("Updating Godeps.json to point to %s tag.\n", bName)
 					changed, err = updateGodepsJsonWithTaggedDependencies(bName, dependentRepos)
@@ -281,44 +319,44 @@ func main() {
 						glog.Fatalf("Failed to update Godeps.json for tag %s: %v", bName, err)
 					}
 				}
-			} else if err == nil {
-				fmt.Printf("Updating go.mod and go.sum to point to %s tag.\n", bName)
-				changed, err = updateGomodWithTaggedDependencies(bName, dependentRepos)
-				if err != nil {
-					glog.Fatalf("Failed to update go.mod and go.sum for tag %s: %v", bName, err)
-				}
-				goModChanged = true
-			}
-
-			if goModChanged && *generateGodeps {
-				fmt.Printf("Regenerating Godeps.json from go.mod.\n")
-				if err := regenerateGodepsFromGoMod(); err != nil {
-					glog.Fatalf("Failed to regenerate Godeps.json from go.mod: %v", err)
+			} else {
+				if publishSemverTag {
+					changed = updateGoModAndGodeps(semverTag, dependentRepos, *generateGodeps, true)
+				} else {
+					changed = updateGoModAndGodeps(bName, dependentRepos, *generateGodeps, false)
 				}
 			}
 
 			if changed {
-				fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
-				publishingBotNow := publishingBot
-				publishingBotNow.When = time.Now()
-				bh, err = wt.Commit(fmt.Sprintf("Fix dependencies to point to %s tag", bName), &gogit.CommitOptions{
-					All:       true,
-					Author:    &publishingBotNow,
-					Committer: &publishingBotNow,
-				})
-				if err != nil {
-					glog.Fatalf("Failed to commit changes to fix dependencies to point to %s tag: %v", bName, err)
+				if publishSemverTag {
+					bh = createCommitToFixDeps(wt, semverTag)
+				} else {
+					bh = createCommitToFixDeps(wt, bName)
 				}
 			}
 		}
 
-		// create prefixed annotated tag
-		fmt.Printf("Tagging %v as %q.\n", bh, bName)
-		err = createAnnotatedTag(bh, bName, tag.Tagger.When, dedent.Dedent(fmt.Sprintf(`
+		// create semver annotated tag
+		if publishSemverTag {
+			fmt.Printf("Tagging %v as %q.\n", bh, semverTag)
+			err = createAnnotatedTag(bh, semverTag, tag.Tagger.When, dedent.Dedent(fmt.Sprintf(`
 			Kubernetes release %s
 
 			Based on https://github.com/kubernetes/kubernetes/releases/tag/%s
 			`, name, name)))
+			if err != nil {
+				glog.Fatalf("Failed to create tag %q: %v", semverTag, err)
+			}
+			createdTags = append(createdTags, semverTag)
+		}
+
+		// create non-semver prefixed annotated tag
+		fmt.Printf("Tagging %v as %q.\n", bh, bName)
+		err = createAnnotatedTag(bh, bName, tag.Tagger.When, dedent.Dedent(fmt.Sprintf(`
+				Kubernetes release %s
+
+				Based on https://github.com/kubernetes/kubernetes/releases/tag/%s
+				`, name, name)))
 		if err != nil {
 			glog.Fatalf("Failed to create tag %q: %v", bName, err)
 		}
@@ -326,13 +364,16 @@ func main() {
 	}
 
 	// write push command for new tags
+	// we use git push --atomic because it treats
+	// any existing releases which have only non-semver tags as no-ops
+	// and both semver and non-semver tags are targeted in a single operation
 	if *pushScriptPath != "" && len(createdTags) > 0 {
 		pushScript, err := os.OpenFile(*pushScriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
 		if err != nil {
 			glog.Fatalf("Failed to open push-script %q for appending: %v", *pushScriptPath, err)
 		}
 		defer pushScript.Close()
-		_, err = pushScript.WriteString(fmt.Sprintf("git push origin %s\n", "refs/tags/"+strings.Join(createdTags, " refs/tags/")))
+		_, err = pushScript.WriteString(fmt.Sprintf("git push --atomic origin %s\n", "refs/tags/"+strings.Join(createdTags, " refs/tags/")))
 		if err != nil {
 			glog.Fatalf("Failed to write to push-script %q: %q", *pushScriptPath, err)
 		}
@@ -463,7 +504,7 @@ func mappingOutputFileName(fnameTpl string, branch, tag string) string {
 
 func regenerateGodepsFromGoMod() error {
 	goListCommand := exec.Command("go", "list", "-m", "-json", "all")
-	goListCommand.Env = append(os.Environ(), "GO111MODULE=on", "GOPOXY=file://${GOPATH}/pkg/mod/cache/download")
+	goListCommand.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
 	goMod, err := goListCommand.Output()
 	if err != nil {
 		return fmt.Errorf("Failed to get output of go list -m -json all: %v", err)
@@ -486,5 +527,116 @@ func regenerateGodepsFromGoMod() error {
 	if err := godepsGenCommand.Run(); err != nil {
 		return fmt.Errorf("Failed to run godeps-gen on file %s: %v", tmpfile.Name(), err)
 	}
+	return nil
+}
+
+func checkoutBranchTagCommit(r *gogit.Repository, bh plumbing.Hash, dependentRepos []string) *gogit.Worktree {
+	fmt.Printf("Checking that dependencies point to the actual tags in %s.\n", strings.Join(dependentRepos, ", "))
+	wt, err := r.Worktree()
+	if err != nil {
+		glog.Fatalf("Failed to get working tree: %v", err)
+	}
+
+	fmt.Printf("Checking out branch tag commit %s.\n", bh.String())
+	if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
+		glog.Fatalf("Failed to checkout %v: %v", bh, err)
+	}
+	return wt
+}
+
+func updateGoModAndGodeps(tag string, dependentRepos []string, generateGodeps, publishSemverTags bool) bool {
+	fmt.Printf("Updating go.mod and go.sum to point to %s tag.\n", tag)
+	changed, err := updateGomodWithTaggedDependencies(tag, dependentRepos, publishSemverTags)
+	if err != nil {
+		glog.Fatalf("Failed to update go.mod and go.sum for tag %s: %v", tag, err)
+	}
+
+	if changed && generateGodeps {
+		fmt.Printf("Regenerating Godeps.json from go.mod.\n")
+		if err := regenerateGodepsFromGoMod(); err != nil {
+			glog.Fatalf("Failed to regenerate Godeps.json from go.mod: %v", err)
+		}
+	}
+	return changed
+}
+
+func createCommitToFixDeps(wt *gogit.Worktree, tag string) plumbing.Hash {
+	fmt.Printf("Adding extra commit to update dependencies to %s tag.\n", tag)
+	publishingBotNow := publishingBot
+	publishingBotNow.When = time.Now()
+	bh, err := wt.Commit(fmt.Sprintf("Update dependencies to %s tag", tag), &gogit.CommitOptions{
+		All:       true,
+		Author:    &publishingBotNow,
+		Committer: &publishingBotNow,
+	})
+	if err != nil {
+		glog.Fatalf("Failed to commit changes to update dependencies to %s tag: %v", tag, err)
+	}
+	return bh
+}
+
+func deleteTag(tag string) error {
+	cmd := exec.Command("git", "tag", "-d", tag)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// cleanCacheForTag deletes the .mod, .info, .zip for the tag
+// and removes the tag from the list in the go mod cache dir.
+func cleanCacheForTag(tag string) error {
+	dir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("unable to get current working directory: %v", err)
+	}
+	pkg, err := fullPackageName(dir)
+	if err != nil {
+		return fmt.Errorf("failed to get package at %s: %v", dir, err)
+	}
+	cacheDir := fmt.Sprintf("%s/pkg/mod/cache/download/%s/@v", os.Getenv("GOPATH"), pkg)
+
+	goModFile := fmt.Sprintf("%s/%s.mod", cacheDir, tag)
+	if _, err := os.Stat(goModFile); err == nil {
+		if err2 := os.Remove(goModFile); err2 != nil {
+			return fmt.Errorf("error deleting file %s: %v", goModFile, err2)
+		}
+	}
+
+	infoFile := fmt.Sprintf("%s/%s.info", cacheDir, tag)
+	if _, err := os.Stat(infoFile); err == nil {
+		if err2 := os.Remove(infoFile); err2 != nil {
+			return fmt.Errorf("error deleting file %s: %v", infoFile, err2)
+		}
+	}
+
+	zipFile := fmt.Sprintf("%s/%s.zip", cacheDir, tag)
+	if _, err := os.Stat(zipFile); err == nil {
+		if err2 := os.Remove(zipFile); err2 != nil {
+			return fmt.Errorf("error deleting file %s: %v", zipFile, err2)
+		}
+	}
+
+	listFile := fmt.Sprintf("%s/list", cacheDir)
+	if _, err := os.Stat(listFile); err == nil {
+		oldContent, err2 := ioutil.ReadFile(listFile)
+		if err2 != nil {
+			return fmt.Errorf("error reading file %s: %v", listFile, err2)
+		}
+
+		lines := strings.Split(string(oldContent), "\n")
+		newContent := []string{}
+		for _, line := range lines {
+			if line != tag {
+				newContent = append(newContent, line)
+			}
+		}
+		output := strings.Join(newContent, "\n")
+
+		if err := ioutil.WriteFile(listFile, []byte(output), 0644); err != nil {
+			return fmt.Errorf("error reading file %s: %v", listFile, err)
+		}
+	}
+
+	fmt.Printf("Cleared go mod cache files for %s tag.\n", tag)
 	return nil
 }
