@@ -88,18 +88,18 @@ for (( i=0; i<${repo_count}; i++ )); do
     branches=$(git branch -r | grep "^ *origin" | sed 's,^ *origin/,,' | grep -v HEAD | grep -v '^master' || true)
     tags=$(git tag | sed 's,^,refs/tags/,')
     if [ -n "${branches}${tags}" ]; then
-        git push --delete origin ${branches} ${tags}
+        git push --atomic --delete origin ${branches} ${tags}
     fi
 
     # push all upstream tags and branches to origin
     git tag | xargs git tag -d
-    git fetch upstream --prune -q
+    git fetch upstream --tags --prune -q
     branches=$(git branch -r | grep "^ *upstream" | sed 's,^ *upstream/,,' | grep -v HEAD || true)
     branches_arg=""
     for branch in ${branches}; do
         branches_arg+=" upstream/${branch}:refs/heads/${branch}"
     done
-    git push --tags -f origin ${branches_arg}
+    git push --atomic --tags -f origin ${branches_arg}
 
     popd
 done
