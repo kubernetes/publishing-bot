@@ -1,4 +1,4 @@
-DOCKER_REPO = sttts/k8s-publishing-bot-nightly
+DOCKER_REPO = gcr.io/k8s-staging-publishing-bot/k8s-publishing-bot-nightly
 NAMESPACE = k8s-publishing-bot-nightly
 SCHEDULE = * */4 * * *
 INTERVAL = 14400
