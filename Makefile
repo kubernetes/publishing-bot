@@ -28,7 +28,7 @@ MEMORY_REQUESTS ?= 200Mi
 MEMORY_LIMITS ?= 1.6Gi
 GOOS ?= linux
 
-build_cmd = mkdir -p _output && GOOS=$(GOOS) go build -o _output/$(1) ./cmd/$(1)
+build_cmd = GO111MODULE=on mkdir -p _output && GOOS=$(GOOS) go build -o _output/$(1) ./cmd/$(1)
 prepare_spec = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s,MEMORY_REQUESTS,$(MEMORY_REQUESTS),g;s,MEMORY_LIMITS,$(MEMORY_LIMITS),g'
 
 SHELL := /bin/bash
