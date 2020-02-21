@@ -54,7 +54,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 			return changed, fmt.Errorf("failed to get package at %s: %v", depPath, err)
 		}
 
-		commit, commitTime, err := taggedCommitHashAndTime(dr, tag)
+		commit, commitTime, err := localOrPublishedTaggedCommitHashAndTime(dr, tag)
 		if err != nil {
 			return changed, fmt.Errorf("failed to get tag %s for %q: %v", tag, depPkg, err)
 		}
@@ -219,6 +219,13 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	}
 
 	return nil
+}
+
+func localOrPublishedTaggedCommitHashAndTime(r *gogit.Repository, tag string) (plumbing.Hash, time.Time, error) {
+	if commit, commitTime, err := taggedCommitHashAndTime(r, tag); err == nil {
+		return commit, commitTime, nil
+	}
+	return taggedCommitHashAndTime(r, "origin/"+tag)
 }
 
 func taggedCommitHashAndTime(r *gogit.Repository, tag string) (plumbing.Hash, time.Time, error) {
