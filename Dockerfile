@@ -15,9 +15,9 @@
 FROM debian:stretch
 MAINTAINER Stefan Schimanski <sttts@redhat.com>
 RUN apt-get update \
- && apt-get install -y -qq git=1:2.11.0-3+deb9u5 \
- && apt-get install -y -qq mercurial \
- && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig gcc zip \
+ && apt-get --no-install-recommends install -y -qq git=1:2.11.0-3+deb9u5 \
+ && apt-get --no-install-recommends install -y -qq mercurial \
+ && apt-get --no-install-recommends install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig gcc zip \
  && rm -rf /var/lib/apt/lists/*
 
 ENV GOPATH="/go-workspace"
