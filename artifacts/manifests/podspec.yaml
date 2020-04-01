@@ -38,10 +38,10 @@ containers:
   imagePullPolicy: Always
   resources:
     requests:
-      cpu: 300m
+      cpu: CPU_REQUESTS
       memory: MEMORY_REQUESTS
     limits:
-      cpu: 2
+      cpu: CPU_LIMITS
       memory: MEMORY_LIMITS
   volumeMounts:
   - mountPath: /etc/munge-config
