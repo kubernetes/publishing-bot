@@ -24,12 +24,14 @@ TOKEN ?=
 KUBECTL ?= kubectl
 SCHEDULE ?= 0 5 * * *
 INTERVAL ?= 86400
+CPU_LIMITS ?= 2
+CPU_REQUESTS ?= 300m
 MEMORY_REQUESTS ?= 200Mi
 MEMORY_LIMITS ?= 1.6Gi
 GOOS ?= linux
 
 build_cmd = GO111MODULE=on mkdir -p _output && GOOS=$(GOOS) go build -o _output/$(1) ./cmd/$(1)
-prepare_spec = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s,MEMORY_REQUESTS,$(MEMORY_REQUESTS),g;s,MEMORY_LIMITS,$(MEMORY_LIMITS),g'
+prepare_spec = sed 's,DOCKER_IMAGE,$(DOCKER_REPO),g;s,CPU_LIMITS,$(CPU_LIMITS),g;s,CPU_REQUESTS,$(CPU_REQUESTS),g;s,MEMORY_REQUESTS,$(MEMORY_REQUESTS),g;s,MEMORY_LIMITS,$(MEMORY_LIMITS),g'
 
 SHELL := /bin/bash
 
@@ -54,7 +56,7 @@ clean:
 .PHONY: clean
 
 update-deps:
-	glide update --strip-vendor
+	go mod tidy
 .PHONY: update-deps
 
 validate:
