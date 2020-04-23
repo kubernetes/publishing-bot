@@ -1,15 +1,23 @@
 # Kubernetes Publishing Bot
 
 The publishing-bot for the Kubernetes project is running in the
-`k8s-publishing-bot` namespace  on a CNCF sponsored GKE cluster
-`development2` in the `kubernetes-public` project.
+`publishing-bot` namespace  on a CNCF sponsored GKE cluster
+`aaa` in the `kubernetes-public` project.
 
 The bot is responsible for updating `go.mod`/`Godeps` for target repos.
 
 ## Permissions
 
-The cluster can be accessed by members of the [k8s-infra-cluster-admins]
-google group. Members can be added to the group by updating [groups.yaml].
+If you need access to any of the following, please update [groups.yaml].
+
+### Cluster
+
+The cluster can be accessed by [k8s-infra-rbac-publishing-bot@kubernetes.io].
+To access the cluster, please see these [instructions].
+
+### Images
+
+Publishing-bot [images] can be pushed by [k8s-infra-staging-publishing-bot@kubernetes.io].
 
 ## Running the bot
 
@@ -29,5 +37,8 @@ hack/fetch-all-latest-and-push.sh kubernetes
 make validate build-image push-image deploy CONFIG=configs/kubernetes
 ```
 
-[k8s-infra-cluster-admins]: https://groups.google.com/forum/#!forum/k8s-infra-cluster-admins
+[k8s-infra-rbac-publishing-bot@kubernetes.io]: https://github.com/kubernetes/k8s.io/blob/7e72aa72f1548af9cf3dbe405f8c317fe637f361/groups/groups.yaml#L405-L418
+[k8s-infra-staging-publishing-bot@kubernetes.io]: https://github.com/kubernetes/k8s.io/blob/6a6b50f4d04124b02915bc2736b468def0de96e9/groups/groups.yaml#L992-L1001
+[images]: https://console.cloud.google.com/gcr/images/k8s-staging-publishing-bot/GLOBAL/k8s-publishing-bot
 [groups.yaml]: https://git.k8s.io/k8s.io/groups/groups.yaml
+[instructions]: https://github.com/kubernetes/k8s.io/blob/master/running-in-community-clusters.md#access-the-cluster
