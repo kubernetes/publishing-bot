@@ -55,6 +55,7 @@ repos=(
     kube-scheduler
     legacy-cloud-providers
     metrics
+    mount-utils
     node-api
     sample-apiserver
     sample-cli-plugin
