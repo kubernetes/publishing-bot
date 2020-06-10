@@ -851,7 +851,7 @@ update-deps-in-gomod() {
     # if dependencies exist, dep_packages is a comma separated list of {base_package}/{dep}. Eg: "k8s.io/api,k8s.io/apimachinery"
     local dep_packages=""
     if [ "$dep_count" != 0 ]; then
-      dep_packages="$(echo ${1} | tr "," "\n" | sed -e 's/:.*//' -e s/^/"${base_package}\/"/ | paste -sd "," -)"
+      dep_packages="$(echo ${1} | tr "," "\n" | sed -e 's/:.*//' -e s,^,"${base_package}/", | paste -sd "," -)"
     fi
 
     for (( i=0; i<${dep_count}; i++ )); do
@@ -902,7 +902,7 @@ checkout-deps-to-kube-commit() {
     # if dependencies exist, dep_packages is a comma separated list of {base_package}/{dep}. Eg: "k8s.io/api,k8s.io/apimachinery"
     local dep_packages=""
     if [ "$dep_count" != 0 ]; then
-      dep_packages="$(echo ${2} | tr "," "\n" | sed -e 's/:.*//' -e s/^/"${base_package}\/"/ | paste -sd "," -)"
+      dep_packages="$(echo ${2} | tr "," "\n" | sed -e 's/:.*//' -e s,^,"${base_package}/", | paste -sd "," -)"
     fi
 
     # get last k8s.io/kubernetes commit on HEAD ...
