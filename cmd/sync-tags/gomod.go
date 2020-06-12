@@ -97,22 +97,6 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 			return changed, fmt.Errorf("unable to pin %s in the replace section of go.mod to %s: %v", depPkg, pseudoVersionOrTag, err)
 		}
 
-		downloadCommand2 := exec.Command("go", "mod", "download")
-		downloadCommand2.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPRIVATE=%s", depPackages), "GOPROXY=https://proxy.golang.org")
-		downloadCommand2.Stdout = os.Stdout
-		downloadCommand2.Stderr = os.Stderr
-		if err := downloadCommand2.Run(); err != nil {
-			return changed, fmt.Errorf("error running go mod download for pseudo-version %s for %s: %v", pseudoVersionOrTag, depPkg, err)
-		}
-
-		tidyCommand := exec.Command("go", "mod", "tidy")
-		tidyCommand.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
-		tidyCommand.Stdout = os.Stdout
-		tidyCommand.Stderr = os.Stderr
-		if err := tidyCommand.Run(); err != nil {
-			return changed, fmt.Errorf("unable to run go mod tidy for %s at %s: %v", depPkg, rev, err)
-		}
-
 		found[dep] = true
 		fmt.Printf("Bumping %s in go.mod to %s.\n", depPkg, rev)
 		changed = true
@@ -123,6 +107,24 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 			fmt.Printf("Warning: dependency %s not found in go.mod.\n", dep)
 		}
 	}
+
+	downloadCommand2 := exec.Command("go", "mod", "download")
+	downloadCommand2.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPRIVATE=%s", depPackages), "GOPROXY=https://proxy.golang.org")
+	downloadCommand2.Stdout = os.Stdout
+	downloadCommand2.Stderr = os.Stderr
+	if err := downloadCommand2.Run(); err != nil {
+		return changed, fmt.Errorf("error running go mod download: %v", err)
+	}
+
+	tidyCommand := exec.Command("go", "mod", "tidy")
+	tidyCommand.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
+	tidyCommand.Stdout = os.Stdout
+	tidyCommand.Stderr = os.Stderr
+	if err := tidyCommand.Run(); err != nil {
+		return changed, fmt.Errorf("unable to run go mod tidy: %v", err)
+	}
+	fmt.Printf("Completed running go mod tidy for %s.\n", tag)
+
 	return changed, nil
 }
 
