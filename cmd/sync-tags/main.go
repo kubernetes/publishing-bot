@@ -32,8 +32,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/renstrom/dedent"
 	gogit "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/sideband"
 
 	"k8s.io/publishing-bot/pkg/cache"
 	"k8s.io/publishing-bot/pkg/git"
@@ -447,24 +449,16 @@ func tagExists(r *gogit.Repository, tag string) bool {
 }
 
 func fetchTags(r *gogit.Repository, remote string) error {
-	cmd := exec.Command("git", "fetch", "-q", "--no-tags", remote, fmt.Sprintf("+refs/tags/*:refs/tags/%s/*", remote))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-
-	// the following with go-git does not work (yet) due to missing support for * in refspecs:
-	/*
-		err := r.Fetch(&gogit.FetchOptions{
-			RemoteName: remote,
-			RefSpecs:   []config.RefSpec{"+refs/heads/*:refs/remotes/origin/*"},
-			Progress:   sideband.Progress(os.Stderr),
-			Tags:       gogit.TagFollowing,
-		})
-		if err == gogit.NoErrAlreadyUpToDate {
-			return nil
-		}
-		return err
-	*/
+	err := r.Fetch(&gogit.FetchOptions{
+		RemoteName: remote,
+		RefSpecs:   []config.RefSpec{config.RefSpec(fmt.Sprintf("+refs/tags/*:refs/tags/%s/*", remote))},
+		Progress:   sideband.Progress(os.Stderr),
+		Tags:       gogit.NoTags,
+	})
+	if err == gogit.NoErrAlreadyUpToDate {
+		return nil
+	}
+	return err
 }
 
 func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Hash]plumbing.Hash, kFirstParents []*object.Commit) error {
