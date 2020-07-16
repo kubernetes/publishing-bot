@@ -29,16 +29,24 @@ import (
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
-const defaultGoVersion = "1.14.4"
+// deprecatedDefaultGoVersion hardcodes the (old) default go version.
+// The right way to define the default go version today is to specify in rules.
+// TODO(nikhita): remove deprecatedDefaultGoVersion when go 1.16 is released.
+var deprecatedDefaultGoVersion = "1.14.4"
 
-// installGoVersions download and unpacks the specified Golang versions to $GOPATH/
-func InstallDefaultGoVersion() error {
-	var empty config.RepositoryRules
-	return InstallGoVersions(&empty)
-}
-
-// installGoVersions download and unpacks the specified Golang versions to $GOPATH/
+// InstallGoVersions download and unpacks the specified Golang versions to $GOPATH/
+// If the DefaultGoVersion is not specfied in rules, it defaults to 1.14.4.
 func InstallGoVersions(rules *config.RepositoryRules) error {
+	if rules == nil {
+		return nil
+	}
+
+	defaultGoVersion := deprecatedDefaultGoVersion
+	if rules.DefaultGoVersion != nil {
+		defaultGoVersion = *rules.DefaultGoVersion
+	}
+	glog.Infof("Using %s as the default go version", defaultGoVersion)
+
 	goVersions := []string{defaultGoVersion}
 	for _, rule := range rules.Rules {
 		for _, branch := range rule.Branches {

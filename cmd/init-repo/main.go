@@ -29,12 +29,6 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
-	"k8s.io/publishing-bot/pkg/golang"
-)
-
-const (
-	depCommit   = "7c44971bbb9f0ed87db40b601f2d9fe4dffb750d"
-	godepCommit = "tags/v80"
 )
 
 var (
@@ -60,8 +54,6 @@ func main() {
 	repoOrg := flag.String("source-org", "", "the name of the source repository organization, (eg. kubernetes)")
 	rulesFile := flag.String("rules-file", "", "the file with repository rules")
 	targetOrg := flag.String("target-org", "", `the target organization to publish into (e.g. "k8s-publishing-bot")`)
-	skipGodep := flag.Bool("skip-godep", false, `skip godeps installation and godeps-restore`)
-	skipDep := flag.Bool("skip-dep", false, `skip 'dep'' installation`)
 
 	flag.Usage = Usage
 	flag.Parse()
@@ -139,18 +131,7 @@ func main() {
 		glog.Fatalf("Failed to create source repo directory %s: %v", BaseRepoPath, err)
 	}
 
-	if err := golang.InstallDefaultGoVersion(); err != nil {
-		glog.Fatalf("Failed to install default go version: %v", err)
-	}
-
-	if !*skipGodep {
-		installGodeps()
-	}
-	if !*skipDep {
-		installDep()
-	}
-
-	cloneSourceRepo(cfg, *skipGodep)
+	cloneSourceRepo(cfg)
 	for _, rule := range rules.Rules {
 		cloneForkRepo(cfg, rule.DestinationRepository)
 	}
@@ -180,43 +161,6 @@ func cloneForkRepo(cfg config.Config, repoName string) {
 	run(setEmailCmd)
 }
 
-func installGodeps() {
-	if _, err := exec.LookPath("godep"); err == nil {
-		glog.Infof("Already installed: godep")
-		return
-	}
-	glog.Infof("Installing github.com/tools/godep#%s ...", godepCommit)
-	run(exec.Command("go", "get", "github.com/tools/godep"))
-
-	godepDir := filepath.Join(SystemGoPath, "src", "github.com", "tools", "godep")
-	godepCheckoutCmd := exec.Command("git", "checkout", godepCommit)
-	godepCheckoutCmd.Dir = godepDir
-	run(godepCheckoutCmd)
-
-	godepInstallCmd := exec.Command("go", "install", "./...")
-	godepInstallCmd.Dir = godepDir
-	run(godepInstallCmd)
-}
-
-func installDep() {
-	if _, err := exec.LookPath("dep"); err == nil {
-		glog.Infof("Already installed: dep")
-		return
-	}
-	glog.Infof("Installing github.com/golang/dep#%s ...", depCommit)
-	depGoGetCmd := exec.Command("go", "get", "github.com/golang/dep")
-	run(depGoGetCmd)
-
-	depDir := filepath.Join(SystemGoPath, "src", "github.com", "golang", "dep")
-	depCheckoutCmd := exec.Command("git", "checkout", depCommit)
-	depCheckoutCmd.Dir = depDir
-	run(depCheckoutCmd)
-
-	depInstallCmd := exec.Command("go", "install", "./cmd/dep")
-	depInstallCmd.Dir = depDir
-	run(depInstallCmd)
-}
-
 // run wraps the cmd.Run() command and sets the standard output and common environment variables.
 // if the c.Dir is not set, the BaseRepoPath will be used as a base directory for the command.
 func run(c *exec.Cmd) {
@@ -230,7 +174,7 @@ func run(c *exec.Cmd) {
 	}
 }
 
-func cloneSourceRepo(cfg config.Config, runGodepRestore bool) {
+func cloneSourceRepo(cfg config.Config) {
 	repoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
 
 	if _, err := os.Stat(filepath.Join(BaseRepoPath, cfg.SourceRepo)); err == nil {
@@ -244,11 +188,4 @@ func cloneSourceRepo(cfg config.Config, runGodepRestore bool) {
 	glog.Infof("Cloning source repository %s ...", repoLocation)
 	cloneCmd := exec.Command("git", "clone", repoLocation)
 	run(cloneCmd)
-
-	if runGodepRestore {
-		glog.Infof("Running hack/godep-restore.sh ...")
-		restoreCmd := exec.Command("bash", "-x", "hack/godep-restore.sh")
-		restoreCmd.Dir = filepath.Join(BaseRepoPath, cfg.SourceRepo)
-		run(restoreCmd)
-	}
 }

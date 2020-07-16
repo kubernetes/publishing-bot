@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/golang/glog"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -46,7 +47,7 @@ func (c Source) String() string {
 
 type BranchRule struct {
 	Name string `yaml:"name"`
-	// a (full) version string like 1.10.2.
+	// a valid go version string like 1.10.2 or 1.10
 	GoVersion string `yaml:"go"`
 	// k8s.io/* repos the branch rule depends on
 	Dependencies     []Dependency `yaml:"dependencies,omitempty"`
@@ -73,6 +74,10 @@ type RepositoryRules struct {
 
 	// ls-files patterns like: */BUILD *.ext pkg/foo.go Makefile
 	RecursiveDeletePatterns []string `yaml:"recursive-delete-patterns"`
+	// a valid go version string like 1.10.2 or 1.10
+	// if GoVersion is not specified in RepositoryRule,
+	// DefaultGoVersion is used.
+	DefaultGoVersion *string `yaml:"default-go-version,omitempty"`
 }
 
 // LoadRules loads the repository rules either from the remote HTTP location or
@@ -142,10 +147,48 @@ func validateRepoOrder(rules *RepositoryRules) (errs []error) {
 	return errs
 }
 
+// validateGoVersions validates that all specified go versions are valid.
+func validateGoVersions(rules *RepositoryRules) (errs []error) {
+	glog.Infof("validating go versions")
+	if rules.DefaultGoVersion != nil {
+		errs = append(errs, ensureValidGoVersion(*rules.DefaultGoVersion))
+	}
+
+	for _, rule := range rules.Rules {
+		for _, branch := range rule.Branches {
+			if branch.GoVersion != "" {
+				errs = append(errs, ensureValidGoVersion(branch.GoVersion))
+			}
+		}
+	}
+	return errs
+}
+
+func ensureValidGoVersion(version string) error {
+	s := version
+	parts := strings.SplitN(s, ".", 3)
+
+	// go uses 1.14 instead of 1.14.0 for its versions
+	if len(parts) == 3 && version[len(version)-2:] == ".0" {
+		return fmt.Errorf("go version %s should not contain the .0 suffix", version)
+	}
+
+	// the semver library requires a patch version, so append a .0
+	// to be able to validate the major/minor versions
+	if len(parts) == 2 {
+		s = s + ".0"
+	}
+	if _, err := semver.Parse(s); err != nil {
+		return fmt.Errorf("specified go version %s must be a valid go version: %v", version, err)
+	}
+	return nil
+}
+
 func Validate(rules *RepositoryRules) error {
 	errs := []error{}
 
 	errs = append(errs, validateRepoOrder(rules)...)
+	errs = append(errs, validateGoVersions(rules)...)
 
 	msgs := []string{}
 	for _, err := range errs {
