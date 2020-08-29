@@ -14,8 +14,8 @@ data:
     rules:
     - destination: <destination-repository-name> # eg. "client-go"
       branches:
-      name: <rule-name> # eg. "master"
-      - source:
+      - name: <rule-name> # eg. "master"
+        source:
           branch: <source-repository-branch> # eg. "master"
           dir: <subdirectory> # eg. "staging/src/k8s.io/client-go"
       publish-script: <script-path> # eg. /publish.sh
