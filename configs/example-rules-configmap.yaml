@@ -11,6 +11,21 @@ data:
     recursive-delete-patterns:
     # - BUILD
     # - "*/BUILD"
+
+    # Skip update/fix godeps
+    # skip-godeps: true
+
+    # Skip update/fix gomod
+    # skip-gomod: true
+
+    # Skip sync tags
+    # skip-tags: true
+
+    # a valid go version string like 1.10.2 or 1.10
+    # if the go version is not specified in rules,
+    # default-go-version is used.
+    # default-go-version: 1.14
+
     rules:
     - destination: <destination-repository-name> # eg. "client-go"
       branches:
