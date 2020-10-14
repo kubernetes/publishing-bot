@@ -531,7 +531,7 @@ sync_repo() {
         /collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
     else
         echo "No merge commit on ${dst_branch} branch, must be old. Skipping look-up table."
-        echo > ../kube-commits-${repo}-${dst_branch}
+        touch ../kube-commits-${repo}-${dst_branch}
     fi
 }
 
@@ -919,6 +919,11 @@ checkout-deps-to-kube-commit() {
     for (( i=0; i<${dep_count}; i++ )); do
         local dep="${deps[i]%%:*}"
         local branch="${deps[i]##*:}"
+
+       if ! [ -s ../kube-commits-${dep}-${branch} ]; then
+           echo "Skipping checking out k8s.io/${dep} since its look-up table is empty."
+           continue
+       fi
 
         echo "Looking up which commit in the ${branch} branch of k8s.io/${dep} corresponds to k8s.io/kubernetes commit ${k_last_kube_merge}."
         local k_commit=""
