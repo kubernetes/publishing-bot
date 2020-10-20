@@ -299,17 +299,17 @@ func main() {
 			}
 		}
 
-		// update go.mod or Godeps.json to point to actual tagged version in the dependencies. This version might differ
-		// from the one currently in go.mod  or Godeps.json because the other repo could have gotten more commit for this
-		// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
-		var changed, goModExists bool
-		_, err = os.Stat("go.mod")
-		if err == nil {
-			goModExists = true
-		}
-
 		if len(dependentRepos) > 0 {
 			wt := checkoutBranchTagCommit(r, bh, dependentRepos)
+
+			// update go.mod or Godeps.json to point to actual tagged version in the dependencies. This version might differ
+			// from the one currently in go.mod  or Godeps.json because the other repo could have gotten more commit for this
+			// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
+			var changed, goModExists bool
+			_, err = os.Stat("go.mod")
+			if err == nil {
+				goModExists = true
+			}
 
 			// if go.mod exists, fix only go.mod and generate Godeps.json from it later
 			// if it doesn't exist, check if Godeps.json exists, and update it
