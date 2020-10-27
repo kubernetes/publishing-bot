@@ -139,7 +139,7 @@ func validateRepoOrder(rules *RepositoryRules) (errs []error) {
 				if j, ok := indices[d.Repository]; !ok {
 					errs = append(errs, fmt.Errorf("unknown dependency %q in repository rules of %q", d.Repository, r.DestinationRepository))
 				} else if j > i {
-					errs = append(errs, fmt.Errorf("repository %q cannot depend on %q later in the rules file", r.DestinationRepository, d.Repository))
+					errs = append(errs, fmt.Errorf("repository %q cannot depend on %q later in the rules file. Please define rules for %q above the rules for %q", r.DestinationRepository, d.Repository, d.Repository, r.DestinationRepository))
 				}
 			}
 		}
