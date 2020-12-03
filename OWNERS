@@ -1,7 +1,9 @@
 approvers:
   - dims
-  - caesarxuchao
+  - nikhita
   - sttts
 reviewers:
   - mfojtik
   - nikhita
+emeritus_approvers:
+  - caesarxuchao
