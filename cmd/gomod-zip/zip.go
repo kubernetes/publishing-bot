@@ -133,6 +133,30 @@ func main() {
 	defer dst.Close()
 	zw := zip.NewWriter(dst)
 
+	isSubmodule := map[string]bool{}
+	for _, zf := range zr.File {
+		if zf.Name == prefix+"go.mod" {
+			continue
+		}
+		dir, file := path.Split(zf.Name)
+		if file == "go.mod" {
+			isSubmodule[dir] = true
+		}
+	}
+
+	inSubmodule := func(name string) bool {
+		for {
+			dir, _ := path.Split(name)
+			if len(dir) == 0 {
+				return false
+			}
+			if isSubmodule[dir] {
+				return true
+			}
+			name = strings.TrimSuffix(dir, "/")
+		}
+	}
+
 	for _, zf := range zr.File {
 		// Skip symlinks (golang.org/issue/27093)
 		if !zf.FileInfo().Mode().IsRegular() {
@@ -154,6 +178,10 @@ func main() {
 		}
 		// don't consider vendored packages
 		if isVendoredPackage(name) {
+			continue
+		}
+		// don't consider submodules
+		if inSubmodule(zf.Name) {
 			continue
 		}
 		// make sure we have lower-case go.mod
