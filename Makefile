@@ -87,3 +87,6 @@ deploy: init-deploy
 	{ cat artifacts/manifests/rs.yaml && sed 's/^/      /' artifacts/manifests/podspec.yaml; } | \
 	$(call prepare_spec) | sed 's/-interval=0/-interval=$(INTERVAL)/g' | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
+
+test: ## Run go tests
+	go test -v -coverprofile=coverage.out ./...
