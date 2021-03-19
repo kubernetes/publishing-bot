@@ -168,7 +168,7 @@ func validateGoVersions(rules *RepositoryRules) (errs []error) {
 // go versions don't follow semver. Examples:
 // 1. 1.15.0 is invalid, 1.15 is valid
 // 2. 1.15.0-rc.1 is invalid, 1.15rc1 is valid
-var goVerRegex = regexp.MustCompile(`^([0-9]+)\.([0-9]+)([\.1-9A-Za-z\-]*$)`)
+var goVerRegex = regexp.MustCompile(`^([0-9]+)\.([0-9]\w*)(\.[1-9]\d*\w*)*$`)
 
 func ensureValidGoVersion(version string) error {
 	if !goVerRegex.MatchString(version) {

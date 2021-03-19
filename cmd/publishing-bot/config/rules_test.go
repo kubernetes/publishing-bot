@@ -23,7 +23,12 @@ func TestValidateGoVersion(t *testing.T) {
 		ver     string
 		isValid bool
 	}{
+		{"0.0", true},
+		{"0.0rc1", true},
+		{"0.9", true},
+		{"0.9.0", false},
 		{"1.9", true},
+		{"0.0.1", true},
 		{"1.9.0", false},
 		{"1.9.1", true},
 		{"1.15", true},
@@ -33,6 +38,16 @@ func TestValidateGoVersion(t *testing.T) {
 		{"1.15.0-beta.1", false},
 		{"1.15rc1", true},
 		{"1.15.0-rc.1", false},
+		{"1.15.10", true},
+		{"1.15.11", true},
+		{"1.15.20", true},
+		{"2.0", true},
+		{"2.0alpha1", true},
+		{"2.0-alpha1", false},
+		{"12.12.100", true},
+		{"999.999.9999", true},
+		{"999.999.9999-beta.1", false},
+		{"999.999.9999beta1", true},
 	}
 
 	for _, test := range tests {
