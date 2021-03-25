@@ -192,6 +192,22 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 	return p.plog.Run(cmd)
 }
 
+func (p *PublisherMunger) runSmokeTests(smokeTest, oldHead, newHead string, branchEnv []string) error {
+	if len(smokeTest) > 0 && string(oldHead) != string(newHead) {
+		cmd := exec.Command("/bin/bash", "-xec", smokeTest)
+		cmd.Env = append([]string(nil), branchEnv...) // make mutable
+		cmd.Env = append(cmd.Env, "GO111MODULE=on")
+		cmd.Env = append(cmd.Env, fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
+		if err := p.plog.Run(cmd); err != nil {
+			// do not clean up to allow debugging with kubectl-exec.
+			return err
+		}
+		exec.Command("git", "reset", "--hard").Run()
+		exec.Command("git", "clean", "-f", "-f", "-d").Run()
+	}
+	return nil
+}
+
 // constructs all the repos, but does not push the changes to remotes.
 func (p *PublisherMunger) construct() error {
 	sourceRemote := filepath.Join(p.baseRepoPath, p.config.SourceRepo, ".git")
@@ -299,18 +315,15 @@ func (p *PublisherMunger) construct() error {
 			}
 
 			newHead, _ := exec.Command("git", "rev-parse", "HEAD").Output()
-			if len(repoRule.SmokeTest) > 0 && string(oldHead) != string(newHead) {
-				p.plog.Infof("Running smoke tests for branch %s", branchRule.Name)
-				cmd := exec.Command("/bin/bash", "-xec", repoRule.SmokeTest)
-				cmd.Env = append([]string(nil), branchEnv...) // make mutable
-				cmd.Env = append(cmd.Env, "GO111MODULE=on")
-				cmd.Env = append(cmd.Env, fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
-				if err := p.plog.Run(cmd); err != nil {
-					// do not clean up to allow debugging with kubectl-exec.
-					return err
-				}
-				exec.Command("git", "reset", "--hard").Run()
-				exec.Command("git", "clean", "-f", "-f", "-d").Run()
+
+			p.plog.Infof("Running branch-specific smoke tests for branch %s", branchRule.Name)
+			if err := p.runSmokeTests(branchRule.SmokeTest, string(oldHead), string(newHead), branchEnv); err != nil {
+				return err
+			}
+
+			p.plog.Infof("Running repo-specific smoke tests for branch %s", branchRule.Name)
+			if err := p.runSmokeTests(repoRule.SmokeTest, string(oldHead), string(newHead), branchEnv); err != nil {
+				return err
 			}
 
 			p.plog.Infof("Successfully constructed %s", branchRule.Name)
