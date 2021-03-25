@@ -53,14 +53,17 @@ type BranchRule struct {
 	Dependencies     []Dependency `yaml:"dependencies,omitempty"`
 	Source           Source       `yaml:"source"`
 	RequiredPackages []string     `yaml:"required-packages,omitempty"`
+	// SmokeTest applies only to the specific branch
+	SmokeTest string `yaml:"smoke-test,omitempty"` // a multiline bash script
 }
 
 // a collection of publishing rules for a single destination repo
 type RepositoryRule struct {
 	DestinationRepository string       `yaml:"destination"`
 	Branches              []BranchRule `yaml:"branches"`
-	SmokeTest             string       `yaml:"smoke-test,omitempty"` // a multiline bash script
-	Library               bool         `yaml:"library,omitempty"`
+	// SmokeTest applies to all branches
+	SmokeTest string `yaml:"smoke-test,omitempty"` // a multiline bash script
+	Library   bool   `yaml:"library,omitempty"`
 	// not updated when true
 	Skip bool `yaml:"skipped,omitempty"`
 }
