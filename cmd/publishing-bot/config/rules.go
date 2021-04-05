@@ -31,7 +31,7 @@ func (c Dependency) String() string {
 
 // Source of a piece of code
 type Source struct {
-	Repository string `yaml:"repository"`
+	Repository string `yaml:"repository,omitempty"`
 	Branch     string `yaml:"branch"`
 	// Dir from repo root
 	Dir string `yaml:"dir,omitempty"`
@@ -48,7 +48,7 @@ func (c Source) String() string {
 type BranchRule struct {
 	Name string `yaml:"name"`
 	// a valid go version string like 1.10.2 or 1.10
-	GoVersion string `yaml:"go"`
+	GoVersion string `yaml:"go,omitempty"`
 	// k8s.io/* repos the branch rule depends on
 	Dependencies     []Dependency `yaml:"dependencies,omitempty"`
 	Source           Source       `yaml:"source"`
@@ -69,9 +69,9 @@ type RepositoryRule struct {
 }
 
 type RepositoryRules struct {
-	SkippedSourceBranches []string         `yaml:"skip-source-branches"`
-	SkipGomod             bool             `yaml:"skip-gomod"`
-	SkipTags              bool             `yaml:"skip-tags"`
+	SkippedSourceBranches []string         `yaml:"skip-source-branches,omitempty"`
+	SkipGomod             bool             `yaml:"skip-gomod,omitempty"`
+	SkipTags              bool             `yaml:"skip-tags,omitempty"`
 	Rules                 []RepositoryRule `yaml:"rules"`
 
 	// ls-files patterns like: */BUILD *.ext pkg/foo.go Makefile
