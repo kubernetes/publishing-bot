@@ -859,6 +859,21 @@ update-deps-in-gomod() {
 
     GO111MODULE=on go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("../")) | "-dropreplace \(.Old.Path)"' | GO111MODULE=on xargs -L 100 go mod edit -fmt
     
+    # TODO(nikhita): remove this after go.sum values are fixed.
+    #
+    # gomod-zip copied go's zip creation code but they had diverged.
+    # due to this, gomod-zip created different zip files in the cache
+    # compared to what go mod download would create.
+    #
+    # From Go 1.15.11 and Go 1.16.3, go automatically derives the ziphash
+    # from the zip file in the cache - https://github.com/golang/go/issues/44812.
+    # This meant that go added incorrect hash values to go.sum because these
+    # were derived from the zip files produced by the diverged gomod-zip code.
+    #
+    # So remove go.sum here and regenerate again using
+    # go mod download and go mod tidy.
+    rm go.sum
+
     GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
     GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go mod tidy
 
