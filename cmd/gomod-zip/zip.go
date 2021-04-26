@@ -17,23 +17,16 @@ limitations under the License.
 package main
 
 import (
-	"archive/zip"
 	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
-	"path"
-	"strings"
+	"path/filepath"
 
 	"github.com/golang/glog"
-)
-
-const (
-	// MaxZipFile is the maximum size of downloaded zip file
-	MaxZipFile = 500 << 20
+	"golang.org/x/mod/modfile"
+	modzip "golang.org/x/mod/zip"
 )
 
 func Usage() {
@@ -66,179 +59,54 @@ func main() {
 		glog.Fatalf("pseudo-version cannot be empty")
 	}
 
-	// create a zip file using git archive, and remove it after using it
-	depPseudoVersion := fmt.Sprintf("%s@%s", *packageName, *pseudoVersion)
-	zipFileName := fmt.Sprintf("%s/src/%s/%s.zip", os.Getenv("GOPATH"), *packageName, *pseudoVersion)
-	prefix := fmt.Sprintf("%s/", depPseudoVersion)
-	gitArchive := exec.Command("git", "archive", "--format=zip", "--prefix", prefix, "-o", zipFileName, "HEAD")
-	gitArchive.Dir = fmt.Sprintf("%s/src/%s", os.Getenv("GOPATH"), *packageName)
-	gitArchive.Stdout = os.Stdout
-	gitArchive.Stderr = os.Stderr
-	if err := gitArchive.Run(); err != nil {
-		glog.Fatalf("unable to run git archive for %s at %s: %v", *packageName, *pseudoVersion, err)
-	}
-	defer os.Remove(zipFileName)
+	packagePath := fmt.Sprintf("%s/src/%s", os.Getenv("GOPATH"), *packageName)
+	cacheDir := fmt.Sprintf("%s/pkg/mod/cache/download/%s/@v", os.Getenv("GOPATH"), *packageName)
 
-	archive, err := ioutil.ReadFile(zipFileName)
+	moduleFile, err := getModuleFile(packagePath, *pseudoVersion)
 	if err != nil {
-		glog.Fatalf("error reading zip file %s: %v", zipFileName, err)
+		glog.Fatalf("error getting module file: %v", err)
 	}
 
-	dl := ioutil.NopCloser(bytes.NewReader(archive))
-	defer dl.Close()
-
-	// This is taken from https://github.com/golang/go/blob/b373d31c25e58d0b69cff3521b915f0c06fa6ac8/src/cmd/go/internal/modfetch/coderepo.go#L459.
-	// Spool to local file.
-	f, err := ioutil.TempFile("", "gomodzip-")
-	if err != nil {
-		dl.Close()
-		glog.Fatalf("error creating temp file: %v", err)
-	}
-	defer os.Remove(f.Name())
-	defer f.Close()
-
-	maxSize := int64(MaxZipFile)
-	lr := &io.LimitedReader{R: dl, N: maxSize + 1}
-	if _, err := io.Copy(f, lr); err != nil {
-		dl.Close()
-		glog.Fatalf("error reading from %s: %v", f.Name(), err)
-	}
-
-	if lr.N <= 0 {
-		glog.Fatalf("downloaded zip file too large")
-	}
-	size := (maxSize + 1) - lr.N
-	if _, err := f.Seek(0, 0); err != nil {
-		glog.Fatal(err)
-	}
-
-	// The zip file created by go mod download has extra normalization over
-	// the zip file created by git archive. The normalization process is done below.
-	//
-	// While the normalization can also be achieved via a simple zip command, the zip file
-	// created by go mod download has the `00-00-1980 00:00` timestamp in the file header
-	// for all files in the zip archive. This is not a valid UNIX timestamp and cannot be
-	// set easily. This is, however, valid in MSDOS. The `archive/zip` package uses the
-	// MSDOS version so we create the zip file using this package.
-	zr, err := zip.NewReader(f, size)
-	if err != nil {
-		glog.Fatalf("error reading %s: %v", f.Name(), err)
-	}
-
-	packagedZipPath := fmt.Sprintf("%s/pkg/mod/cache/download/%s/@v/%s.zip", os.Getenv("GOPATH"), *packageName, *pseudoVersion)
-	dst, err := os.OpenFile(packagedZipPath, os.O_CREATE|os.O_WRONLY, 0755)
-	if err != nil {
-		glog.Fatalf("failed to create zip file at %s: %v", packagedZipPath, err)
-	}
-	defer dst.Close()
-	zw := zip.NewWriter(dst)
-
-	isSubmodule := map[string]bool{}
-	for _, zf := range zr.File {
-		if zf.Name == prefix+"go.mod" {
-			continue
-		}
-		dir, file := path.Split(zf.Name)
-		if file == "go.mod" {
-			isSubmodule[dir] = true
-		}
-	}
-
-	inSubmodule := func(name string) bool {
-		for {
-			dir, _ := path.Split(name)
-			if len(dir) == 0 {
-				return false
-			}
-			if isSubmodule[dir] {
-				return true
-			}
-			name = strings.TrimSuffix(dir, "/")
-		}
-	}
-
-	for _, zf := range zr.File {
-		// Skip symlinks (golang.org/issue/27093)
-		if !zf.FileInfo().Mode().IsRegular() {
-			continue
-		}
-		// drop directory dummy entries
-		if strings.HasSuffix(zf.Name, "/") {
-			continue
-		}
-		// all file paths should have module@version/ prefix
-		if !strings.HasPrefix(zf.Name, prefix) {
-			continue
-		}
-		// inserted by hg archive.
-		// not correct to drop from other version control systems, but too bad.
-		name := strings.TrimPrefix(zf.Name, prefix)
-		if name == ".hg_archival.txt" {
-			continue
-		}
-		// don't consider vendored packages
-		if isVendoredPackage(name) {
-			continue
-		}
-		// don't consider submodules
-		if inSubmodule(zf.Name) {
-			continue
-		}
-		// make sure we have lower-case go.mod
-		base := path.Base(name)
-		if strings.ToLower(base) == "go.mod" && base != "go.mod" {
-			glog.Fatalf("zip file contains %s, want all lower-case go.mod", zf.Name)
-		}
-
-		size := int64(zf.UncompressedSize64)
-		if size < 0 || maxSize < size {
-			glog.Fatalf("module source tree too big")
-		}
-		maxSize -= size
-
-		rc, err := zf.Open()
-		if err != nil {
-			glog.Fatalf("unable to open file %s: %v", zf.Name, err)
-		}
-		w, err := zw.Create(zf.Name)
-		if err != nil {
-			glog.Fatal(err)
-		}
-		lr := &io.LimitedReader{R: rc, N: size + 1}
-		if _, err := io.Copy(w, lr); err != nil {
-			glog.Fatal(err)
-		}
-		if lr.N <= 0 {
-			glog.Fatalf("individual file too large")
-		}
-	}
-
-	if err := zw.Close(); err != nil {
-		glog.Fatal(err)
+	if err := createZipArchive(packagePath, moduleFile, cacheDir); err != nil {
+		glog.Fatalf("error creating zip archive: %v", err)
 	}
 }
 
-func isVendoredPackage(name string) bool {
-	var i int
-	if strings.HasPrefix(name, "vendor/") {
-		i += len("vendor/")
-	} else if j := strings.Index(name, "/vendor/"); j >= 0 {
-		// This offset looks incorrect; this should probably be
-		//
-		// 	i = j + len("/vendor/")
-		//
-		// (See https://golang.org/issue/31562.)
-		//
-		// Unfortunately, we can't fix it without invalidating checksums.
-		// Fortunately, the error appears to be strictly conservative: we'll retain
-		// vendored packages that we should have pruned, but we won't prune
-		// non-vendored packages that we should have retained.
-		//
-		// Since this defect doesn't seem to break anything, it's not worth fixing
-		// for now.
-		i += len("/vendor/")
-	} else {
-		return false
+func getModuleFile(packagePath, version string) (*modfile.File, error) {
+	goModPath := filepath.Join(packagePath, "go.mod")
+	file, err := os.Open(goModPath)
+	if err != nil {
+		return nil, fmt.Errorf("error opening %s: %v", goModPath, err)
 	}
-	return strings.Contains(name[i:], "/")
+	defer file.Close()
+
+	moduleBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("error reading %s: %v", goModPath, err)
+	}
+
+	moduleFile, err := modfile.Parse(packagePath, moduleBytes, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing module file: %v", err)
+	}
+
+	if moduleFile.Module == nil {
+		return nil, fmt.Errorf("parsed module should not be nil")
+	}
+
+	moduleFile.Module.Mod.Version = version
+	return moduleFile, nil
+}
+
+func createZipArchive(packagePath string, moduleFile *modfile.File, outputDirectory string) error {
+	zipFilePath := filepath.Join(outputDirectory, moduleFile.Module.Mod.Version+".zip")
+	var zipContents bytes.Buffer
+
+	if err := modzip.CreateFromDir(&zipContents, moduleFile.Module.Mod, packagePath); err != nil {
+		return fmt.Errorf("create zip from dir: %w", err)
+	}
+	if err := ioutil.WriteFile(zipFilePath, zipContents.Bytes(), 0644); err != nil {
+		return fmt.Errorf("writing zip file: %w", err)
+	}
+	return nil
 }
