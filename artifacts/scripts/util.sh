@@ -943,10 +943,6 @@ checkout-deps-to-kube-commit() {
             echo "Checking out k8s.io/${dep} to ${dep_commit}"
             git checkout -q "${dep_commit}"
 
-            echo "Downloading go mod dependencies..."
-            GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
-            git checkout HEAD go.sum # avoid side-effects. go mod download might pull in news tags for old SHAs
-
             local pseudo_version=$(gomod-pseudo-version)
             local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
             if [ -f "${cache_dir}/list" ] && grep -q "${pseudo_version}" "${cache_dir}/list"; then
