@@ -875,7 +875,7 @@ update-deps-in-gomod() {
     rm go.sum
 
     GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
-    GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go mod tidy
+    GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on GOPRIVATE="${dep_packages}" go mod tidy
 
     git add go.mod go.sum
 
@@ -942,10 +942,6 @@ checkout-deps-to-kube-commit() {
         pushd ../${dep} >/dev/null
             echo "Checking out k8s.io/${dep} to ${dep_commit}"
             git checkout -q "${dep_commit}"
-
-            echo "Downloading go mod dependencies..."
-            GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
-            git checkout HEAD go.sum # avoid side-effects. go mod download might pull in news tags for old SHAs
 
             local pseudo_version=$(gomod-pseudo-version)
             local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
