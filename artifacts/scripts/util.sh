@@ -875,7 +875,7 @@ update-deps-in-gomod() {
     rm go.sum
 
     GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
-    GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go mod tidy
+    GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on GOPRIVATE="${dep_packages}" go mod tidy
 
     git add go.mod go.sum
 
