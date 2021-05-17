@@ -117,7 +117,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 	}
 
 	tidyCommand := exec.Command("go", "mod", "tidy")
-	tidyCommand.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
+	tidyCommand.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")), fmt.Sprintf("GOPRIVATE=%s", depPackages))
 	tidyCommand.Stdout = os.Stdout
 	tidyCommand.Stderr = os.Stderr
 	if err := tidyCommand.Run(); err != nil {
