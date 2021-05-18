@@ -65,16 +65,6 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 			pseudoVersionOrTag = tag
 		}
 
-		// in case the pseudoVersion/tag has not changed, running go mod download will help
-		// in avoiding packaging it up if the pseudoVersion/tag has been published already
-		downloadCommand := exec.Command("go", "mod", "download")
-		downloadCommand.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPRIVATE=%s", depPackages), "GOPROXY=https://proxy.golang.org")
-		downloadCommand.Stdout = os.Stdout
-		downloadCommand.Stderr = os.Stderr
-		if err := downloadCommand.Run(); err != nil {
-			return changed, fmt.Errorf("error running go mod download for %s: %v", depPkg, err)
-		}
-
 		// check if we have the pseudoVersion/tag published already. if we don't, package it up
 		// and save to local mod download cache.
 		if err := packageDepToGoModCache(depPath, depPkg, rev, pseudoVersionOrTag, commitTime); err != nil {
