@@ -58,6 +58,7 @@ repos=(
     metrics
     mount-utils
     node-api
+    pod-security-admission
     sample-apiserver
     sample-cli-plugin
     sample-controller
