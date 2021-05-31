@@ -1,0 +1,12 @@
+rules:
+- destination: code-generator
+  branches:
+  - source:
+      branch: master
+      dir: staging/src/k8s.io/code-generator
+    name: master
+  - source:
+      branch: release-1.19
+      dir: staging/src/k8s.io/code-generator
+    name: release-1.19
+    go: 1.15.0    # invalid go version
