@@ -45,9 +45,12 @@ func parseOptions() options {
 	examples := `
   Examples:
   # Update rules for branch release-1.21 with go version 1.16.1
-  update-rules -branch release-1.21 -go 1.16.1 -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
+  update-rules -branch release-1.21 -go 1.16.4 -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
 
-  # Update rules and export to /tmp/rules.yaml for branch release-1.22 with go version version 1.17.1
+  # Update rules using URL to input rules file
+  update-rules -branch release-1.21 -go 1.16.4 -rules https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
+
+  # Update rules and export to /tmp/rules.yaml
   update-rules -branch release-1.22 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml`
 
 	flag.Usage = func() {

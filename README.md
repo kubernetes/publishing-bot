@@ -66,6 +66,11 @@ This will not push to your org, but runs in dry-run mode. To run with a push, ad
 
 **Note:**: Details about running the publishing-bot for the Kubernetes project can be found in [k8s-publishing-bot.md](k8s-publishing-bot.md).
 
+
+### Update rules
+
+To add new branch rules or update go version for configured destination repos, check [update-branch-rules](cmd/update-rules/README.md).
+
 ## Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on how to contribute.
