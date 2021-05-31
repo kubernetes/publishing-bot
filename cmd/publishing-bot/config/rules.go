@@ -92,6 +92,9 @@ func LoadRules(ruleFile string) (*RepositoryRules, error) {
 	if ruleUrl, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleUrl.Host) > 0 {
 		glog.Infof("loading rules file from url : %s", ruleUrl)
 		content, err = readFromUrl(ruleUrl)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		glog.Infof("loading rules file : %s", ruleFile)
 		content, err = ioutil.ReadFile(ruleFile)
