@@ -38,7 +38,7 @@ var (
 
 func Usage() {
 	fmt.Fprintf(os.Stderr, `
-Usage: %s [-config <config-yaml-file>] [-source-repo <repo>] [-source-org <org>] [-rules-file <file> ] [-skip-godep|skip-dep] [-target-org <org>]
+Usage: %s [-config <config-yaml-file>] [-source-repo <repo>] [-source-org <org>] [-rules-file <file> ] [-target-org <org>]
 
 Command line flags override config values.
 `, os.Args[0])
