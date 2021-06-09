@@ -258,3 +258,27 @@ func copyFile(src, dst string) error {
 	}
 	return out.Close()
 }
+
+// fullPackageName return the Golang full package name of dir inside the ${GOPATH}/src.
+func fullPackageName(dir string) (string, error) {
+	gopath := os.Getenv("GOPATH")
+	if len(gopath) == 0 {
+		return "", fmt.Errorf("GOPATH is not set")
+	}
+
+	absGopath, err := filepath.Abs(gopath)
+	if err != nil {
+		return "", fmt.Errorf("failed to make GOPATH %q absolute: %v", gopath, err)
+	}
+
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return "", fmt.Errorf("failed to make %q absolute: %v", dir, err)
+	}
+
+	if !strings.HasPrefix(filepath.ToSlash(absDir), filepath.ToSlash(absGopath)+"/src/") {
+		return "", fmt.Errorf("path %q is no inside GOPATH %q", dir, gopath)
+	}
+
+	return absDir[len(filepath.ToSlash(absGopath)+"/src/"):], nil
+}

@@ -334,7 +334,7 @@ sync_repo() {
             fi
             local date=$(commit-date ${k_pending_merge_commit}) # author and committer date is equal for PR merges
             local dst_new_merge=$(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p ${dst_parent2} -m "$(commit-message ${k_pending_merge_commit}; echo; echo "${commit_msg_tag}: ${k_pending_merge_commit}")" HEAD^{tree})
-            # no amend-godeps needed here: because the merge-commit was dropped, both parents had the same tree, i.e. go.mod did not change.
+            # no amend-gomod needed here: because the merge-commit was dropped, both parents had the same tree, i.e. go.mod did not change.
             git reset -q --hard ${dst_new_merge}
             if ! skip-gomod-update ${k_pending_merge_commit}; then
                 fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" ${dst_needs_gomod_update} true "${commit_msg_tag}" "${recursive_delete_pattern}"
@@ -368,11 +368,6 @@ sync_repo() {
             if gomod-changes ${f_mainline_commit}; then
                 reset-gomod ${f_mainline_commit}^
                 squash_commits=$[${squash_commits} + 1] # squash the cherry-pick into the go.mod reset commit below
-                dst_needs_gomod_update=true
-            fi
-            if godeps-changes ${f_mainline_commit}; then
-                reset-godeps ${f_mainline_commit}^
-                squash_commits=$[${squash_commits} + 1]
                 dst_needs_gomod_update=true
             fi
 
@@ -433,11 +428,6 @@ sync_repo() {
                     squash_commits=$[${squash_commits} + 1] # squash the cherry-pick into the go.mod reset commit below
                     dst_needs_gomod_update=true
                 fi
-                if godeps-changes ${f_latest_branch_point_commit} ${f_latest_merge_commit}; then
-                    reset-godeps ${f_latest_branch_point_commit}
-                    squash_commits=$[${squash_commits} + 1]
-                    dst_needs_gomod_update=true
-                fi
 
                 if ! git diff --quiet --exit-code ${f_latest_branch_point_commit} ${f_latest_merge_commit}; then
                     if ! git diff ${f_latest_branch_point_commit} ${f_latest_merge_commit}  | git apply --index; then
@@ -461,11 +451,6 @@ sync_repo() {
                 if gomod-changes ${f_commit}; then
                     reset-gomod $(state-before-commit ${f_commit})
                     squash_commits=$[${squash_commits} + 1] # squash the cherry-pick into the go.mod reset commit below
-                    dst_needs_gomod_update=true
-                fi
-                if godeps-changes ${f_commit}; then
-                    reset-godeps $(state-before-commit ${f_commit})
-                    squash_commits=$[${squash_commits} + 1]
                     dst_needs_gomod_update=true
                 fi
 
@@ -522,6 +507,13 @@ sync_repo() {
     else
         # update go.mod without squashing because it would mutate a published commit
         fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
+    fi
+
+    if [ -d Godeps ]; then
+        git rm -q -rf Godeps
+        if ! git-index-clean; then
+            git commit -q -m "sync: remove Godeps/"
+        fi
     fi
 
     # create look-up file for collapsed upstream commits
@@ -636,14 +628,6 @@ function gomod-changes() {
     fi
 }
 
-function godeps-changes() {
-    if [ -n "${2:-}" ]; then
-        ! git diff --exit-code --quiet ${1} ${2} -- Godeps/Godeps.json
-    else
-        ! git diff --exit-code --quiet $(state-before-commit ${1}) ${1} -- Godeps/Godeps.json
-    fi
-}
-
 function state-before-commit() {
     if git rev-parse --verify ${1}^1 &>/dev/null; then
         echo ${1}^
@@ -728,37 +712,6 @@ function fix-gomod() {
     if [ -f go.mod ]; then
         checkout-deps-to-kube-commit "${commit_msg_tag}" "${deps}" "${base_package}"
         update-deps-in-gomod "${deps}" "${base_package}"
-
-        # generate Godeps/Godeps.json from go.mod
-        if [ "${PUBLISHER_BOT_GENERATE_GODEPS:-}" == true ]; then
-            mkdir -p Godeps
-            echo "Resolving dependencies for Godeps.json generation"
-            GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go list -m -json all > /tmp/go-list
-            /godeps-gen /tmp/go-list Godeps/Godeps.json
-            git add Godeps go.mod go.sum # go.mod is surprisingly written: EOF newline
-            if ! git-index-clean; then
-                git commit -q -m "sync: update Godeps/Godeps.json"
-            fi
-        fi
-    fi
-
-    # remove Godeps/Godeps.json
-    if [ ! -f go.mod ] || [ "${PUBLISHER_BOT_GENERATE_GODEPS:-}" != true ]; then
-        if [ -d Godeps ]; then
-            git rm -q -rf Godeps
-            if ! git-index-clean; then
-                git commit -q -m "sync: remove Godeps/"
-            fi
-        fi
-    fi
-
-    # remove vendor/ when switching from Godeps to go.mod
-    if [ -d vendor/ ]; then
-        echo "Removing vendor/ from Godeps era"
-        git rm -q -rf vendor/
-        if ! git-index-clean; then
-            git commit -q -m "sync: remove vendor/"
-        fi
     fi
 
     # squash go.mod commits, either into ${dst_old_commit} or into _one_ new commit
@@ -795,24 +748,6 @@ function reset-gomod() {
 
     # commit go.mod unconditionally
     git commit -q -m "sync: reset go.mod" --allow-empty
-}
-
-# Reset Godeps/Godeps.json to what it looked like in the given commit $1. Always create a
-# commit, even an empty one.
-function reset-godeps() {
-    local f_clean_commit=${1}
-
-    # checkout or delete go.mod
-    if [ -n "$(git ls-tree ${f_clean_commit}^{tree} Godeps/Godeps.json)" ]; then
-        git checkout ${f_clean_commit} Godeps/Godeps.json
-        git add Godeps/Godeps.json
-    elif [ -d Godeps ]; then
-        rm -f Godeps/Godeps.json
-        git rm -f Godeps/Godeps.json
-    fi
-
-    # commit go.mod unconditionally
-    git commit -q -m "sync: reset Godeps/Godeps.json" --allow-empty
 }
 
 # Squash the last $1 commits into one, with the commit message of the last.
@@ -961,6 +896,3 @@ checkout-deps-to-kube-commit() {
     done
 }
 
-indent-godeps() {
-     unexpand --first-only --tabs=2
-}

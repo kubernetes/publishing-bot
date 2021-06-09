@@ -12,9 +12,6 @@ data:
     # - BUILD
     # - "*/BUILD"
 
-    # Skip update/fix godeps
-    # skip-godeps: true
-
     # Skip update/fix gomod
     # skip-gomod: true
 

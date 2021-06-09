@@ -304,9 +304,6 @@ func (p *PublisherMunger) construct() error {
 				lastPublishedUpstreamHash,
 			)
 			cmd.Env = append([]string(nil), branchEnv...) // make mutable
-			if !p.reposRules.SkipGodeps {
-				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_GENERATE_GODEPS=true")
-			}
 			if p.reposRules.SkipGomod {
 				cmd.Env = append(cmd.Env, "PUBLISHER_BOT_SKIP_GOMOD=true")
 			}

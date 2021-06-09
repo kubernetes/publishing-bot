@@ -74,7 +74,6 @@ func main() {
 	pushScriptPath := flag.String("push-script", "", "git-push command(s) are appended to this file to push the new tags to the origin remote")
 	dependencies := flag.String("dependencies", "", "comma-separated list of repo:branch pairs of dependencies")
 	skipFetch := flag.Bool("skip-fetch", false, "skip fetching tags")
-	generateGodeps := flag.Bool("generate-godeps", false, "regenerate Godeps.json from go.mod")
 	mappingOutputFile := flag.String("mapping-output-file", "", "a file name to write the source->dest hash mapping to ({{.Tag}} is substituted with the tag name, {{.Branch}} with the local branch name)")
 	publishSemverTags := flag.Bool("publish-v0-semver", false, "publish v0.x.y tag at destination repo for v1.x.y tag at the source repo")
 
@@ -302,30 +301,16 @@ func main() {
 		if len(dependentRepos) > 0 {
 			wt := checkoutBranchTagCommit(r, bh, dependentRepos)
 
-			// update go.mod or Godeps.json to point to actual tagged version in the dependencies. This version might differ
-			// from the one currently in go.mod  or Godeps.json because the other repo could have gotten more commit for this
+			// update go.mod to point to actual tagged version in the dependencies. This version might differ
+			// from the one currently in go.mod because the other repo could have gotten more commit for this
 			// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
-			var changed, goModExists bool
+			var changed bool
 			_, err = os.Stat("go.mod")
 			if err == nil {
-				goModExists = true
-			}
-
-			// if go.mod exists, fix only go.mod and generate Godeps.json from it later
-			// if it doesn't exist, check if Godeps.json exists, and update it
-			if !goModExists {
-				if _, err2 := os.Stat("Godeps/Godeps.json"); err2 == nil {
-					fmt.Printf("Updating Godeps.json to point to %s tag.\n", bName)
-					changed, err = updateGodepsJsonWithTaggedDependencies(bName, dependentRepos)
-					if err != nil {
-						glog.Fatalf("Failed to update Godeps.json for tag %s: %v", bName, err)
-					}
-				}
-			} else {
 				if publishSemverTag {
-					changed = updateGoModAndGodeps(semverTag, dependentRepos, *generateGodeps, true)
+					changed = updateGoMod(semverTag, dependentRepos, true)
 				} else {
-					changed = updateGoModAndGodeps(bName, dependentRepos, *generateGodeps, false)
+					changed = updateGoMod(bName, dependentRepos, false)
 				}
 			}
 
@@ -496,34 +481,6 @@ func mappingOutputFileName(fnameTpl string, branch, tag string) string {
 	return string(buf.Bytes())
 }
 
-func regenerateGodepsFromGoMod() error {
-	goListCommand := exec.Command("go", "list", "-m", "-json", "all")
-	goListCommand.Env = append(os.Environ(), "GO111MODULE=on", fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
-	goMod, err := goListCommand.Output()
-	if err != nil {
-		return fmt.Errorf("Failed to get output of go list -m -json all: %v", err)
-	}
-
-	tmpfile, err := ioutil.TempFile("", "go-list")
-	if err != nil {
-		return fmt.Errorf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tmpfile.Name())
-
-	if _, err := tmpfile.Write(goMod); err != nil {
-		return fmt.Errorf("Failed to write go list output to %s: %v", tmpfile.Name(), err)
-	}
-	if err := tmpfile.Close(); err != nil {
-		return fmt.Errorf("Failed to close %s file: %v", tmpfile.Name(), err)
-	}
-
-	godepsGenCommand := exec.Command("/godeps-gen", tmpfile.Name(), "Godeps/Godeps.json")
-	if err := godepsGenCommand.Run(); err != nil {
-		return fmt.Errorf("Failed to run godeps-gen on file %s: %v", tmpfile.Name(), err)
-	}
-	return nil
-}
-
 func checkoutBranchTagCommit(r *gogit.Repository, bh plumbing.Hash, dependentRepos []string) *gogit.Worktree {
 	fmt.Printf("Checking that dependencies point to the actual tags in %s.\n", strings.Join(dependentRepos, ", "))
 	wt, err := r.Worktree()
@@ -538,18 +495,11 @@ func checkoutBranchTagCommit(r *gogit.Repository, bh plumbing.Hash, dependentRep
 	return wt
 }
 
-func updateGoModAndGodeps(tag string, dependentRepos []string, generateGodeps, publishSemverTags bool) bool {
+func updateGoMod(tag string, dependentRepos []string, publishSemverTags bool) bool {
 	fmt.Printf("Updating go.mod and go.sum to point to %s tag.\n", tag)
 	changed, err := updateGomodWithTaggedDependencies(tag, dependentRepos, publishSemverTags)
 	if err != nil {
 		glog.Fatalf("Failed to update go.mod and go.sum for tag %s: %v", tag, err)
-	}
-
-	if changed && generateGodeps {
-		fmt.Printf("Regenerating Godeps.json from go.mod.\n")
-		if err := regenerateGodepsFromGoMod(); err != nil {
-			glog.Fatalf("Failed to regenerate Godeps.json from go.mod: %v", err)
-		}
 	}
 	return changed
 }

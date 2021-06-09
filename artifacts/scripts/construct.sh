@@ -149,7 +149,6 @@ if [ -z "${SKIP_TAGS}" ]; then
                --push-script ${PUSH_SCRIPT} \
                --dependencies "${DEPS}" \
                --mapping-output-file "../tag-${REPO}-{{.Tag}}-mapping" \
-               --generate-godeps=${PUBLISHER_BOT_GENERATE_GODEPS:-false} \
                --publish-v0-semver \
                -alsologtostderr \
                "${EXTRA_ARGS[@]-}"

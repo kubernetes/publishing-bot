@@ -4,7 +4,7 @@ The publishing-bot for the Kubernetes project is running in the
 `publishing-bot` namespace  on a CNCF sponsored GKE cluster
 `aaa` in the `kubernetes-public` project.
 
-The bot is responsible for updating `go.mod`/`Godeps` for target repos.
+The bot is responsible for updating `go.mod` for target repos.
 
 ## Permissions
 
