@@ -509,13 +509,6 @@ sync_repo() {
         fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
     fi
 
-    if [ -d Godeps ]; then
-        git rm -q -rf Godeps
-        if ! git-index-clean; then
-            git commit -q -m "sync: remove Godeps/"
-        fi
-    fi
-
     # create look-up file for collapsed upstream commits
     local repo=$(basename ${PWD})
     echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch}"
