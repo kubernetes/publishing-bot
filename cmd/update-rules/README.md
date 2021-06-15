@@ -18,10 +18,10 @@ Run the command line as:
 ```
   go run cmd/update-rules/main.go -h
 
-  Usage:  update-rules --branch BRANCH --rules PATH [--go VERSION | -o PATH]
+  Usage:  update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH]
 
   Examples:
-  # Update rules for branch release-1.21 with go version 1.16.1
+  # Update rules for branch release-1.21 with go version 1.16.4
   update-rules -branch release-1.21 -go 1.16.4 -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
 
   # Update rules using URL to input rules file

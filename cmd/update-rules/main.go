@@ -54,7 +54,7 @@ func parseOptions() options {
   update-rules -branch release-1.22 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml`
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stdout, "\n  Usage:  update-rules --branch BRANCH --rules PATH [--go VERSION | -o PATH]")
+		fmt.Fprintf(os.Stdout, "\n  Usage:  update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH]")
 		fmt.Fprintf(os.Stdout, "\n  %s\n\n", examples)
 		flag.PrintDefaults()
 	}
