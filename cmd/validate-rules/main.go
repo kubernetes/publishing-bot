@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+
 	"github.com/golang/glog"
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
