@@ -22,8 +22,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/go-git/go-git/v5/storage"
 	"github.com/golang/glog"
-	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/yaml.v2"
 
 	"strings"
@@ -185,7 +185,7 @@ func main() {
 					githubIssueErrorf("Failed to report logs on github issue: %v", err)
 					server.SetHealth(false, hash)
 				}
-				if strings.HasSuffix(err.Error(), memory.ErrRefHasChanged.Error()) {
+				if strings.HasSuffix(err.Error(), storage.ErrReferenceHasChanged.Error()) {
 					// TODO: If the issue is just "reference has changed concurrently",
 					// then let us wait for 5 minutes and try again. We really need to dig
 					// into the problem and fix the flakiness
