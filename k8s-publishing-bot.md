@@ -41,4 +41,4 @@ make validate build-image push-image deploy CONFIG=configs/kubernetes
 [k8s-infra-staging-publishing-bot@kubernetes.io]: https://github.com/kubernetes/k8s.io/blob/6a6b50f4d04124b02915bc2736b468def0de96e9/groups/groups.yaml#L992-L1001
 [images]: https://console.cloud.google.com/gcr/images/k8s-staging-publishing-bot/GLOBAL/k8s-publishing-bot
 [groups.yaml]: https://git.k8s.io/k8s.io/groups/groups.yaml
-[instructions]: https://github.com/kubernetes/k8s.io/blob/main/running-in-community-clusters.md#access-the-cluster
+[instructions]: https://git.k8s.io/k8s.io/running-in-community-clusters.md#access-the-cluster
