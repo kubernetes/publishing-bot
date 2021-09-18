@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 The Kubernetes Authors.
 #
@@ -139,17 +139,19 @@ LAST_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 LAST_HEAD=$(git rev-parse HEAD)
 EXTRA_ARGS=()
 PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH}.sh
+mkdir -p $(dirname ${PUSH_SCRIPT})
 echo "#!/bin/bash" > ${PUSH_SCRIPT}
 chmod +x ${PUSH_SCRIPT}
 
 if [ -z "${SKIP_TAGS}" ]; then
-    /sync-tags --prefix "$(echo ${SOURCE_REPO_NAME})-" \
+     DEBUG="dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec /tmp/bin/sync-tags --"
+     DEBUG="sync-tags"
+     $DEBUG --prefix "$(echo ${SOURCE_REPO_NAME})-" \
                --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
                --source-remote upstream --source-branch "${SRC_BRANCH}" \
                --push-script ${PUSH_SCRIPT} \
                --dependencies "${DEPS}" \
                --mapping-output-file "../tag-${REPO}-{{.Tag}}-mapping" \
-               --publish-v0-semver \
                -alsologtostderr \
                "${EXTRA_ARGS[@]-}"
     if [ "${LAST_HEAD}" != "$(git rev-parse ${LAST_BRANCH})" ]; then

@@ -21,16 +21,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/yaml.v2"
-
-	"strings"
-
-	"time"
-
-	"path/filepath"
 
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )

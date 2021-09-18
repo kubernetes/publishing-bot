@@ -29,7 +29,6 @@ import (
 	"github.com/golang/glog"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 	"k8s.io/publishing-bot/pkg/golang"
 )
@@ -295,7 +294,7 @@ func (p *PublisherMunger) construct() error {
 				strings.Join(branchRule.RequiredPackages, ":"),
 				sourceRemote,
 				branchRule.Source.Dir,
-				p.config.SourceRepo,
+				p.config.SourceOrg,
 				p.config.SourceRepo,
 				p.config.BasePackage,
 				fmt.Sprintf("%v", repoRule.Library),
@@ -388,7 +387,13 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 			if !ok {
 				return fmt.Errorf("no upstream branch %q found", branchRule.Source.Branch)
 			}
-			if err := ioutil.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(upstreamBranchHead.String()), 0644); err != nil {
+
+			publishedFileNamePath := path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name))
+			if err := os.MkdirAll(filepath.Dir(publishedFileNamePath), 0755); err != nil {
+				return err
+			}
+
+			if err := ioutil.WriteFile(publishedFileNamePath, []byte(upstreamBranchHead.String()), 0644); err != nil {
 				return err
 			}
 		}
@@ -408,17 +413,27 @@ func (p *PublisherMunger) Run() (string, string, error) {
 		return "", "", err
 	}
 
+	sourceURL := fmt.Sprintf("https://%s/%s/%s.git", p.config.GithubHost, p.config.SourceOrg, p.config.SourceRepo)
+	if err := p.ensureCloned(filepath.Join(p.baseRepoPath, p.config.SourceRepo), sourceURL); err != nil {
+		p.plog.Errorf("%v", err)
+		return p.plog.Logs(), "", err
+	}
+
 	newUpstreamHeads, err := p.updateSourceRepo()
 	if err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
 		return p.plog.Logs(), "", err
 	}
-	if err := p.updateRules(); err != nil { // this comes after the source update because we might fetch the rules from there.
-		p.plog.Errorf("%v", err)
-		p.plog.Flush()
-		return p.plog.Logs(), "", err
+
+	if len(p.reposRules.Rules) == 0 {
+		if err := p.updateRules(); err != nil { // this comes after the source update because we might fetch the rules from there.
+			p.plog.Errorf("%v", err)
+			p.plog.Flush()
+			return p.plog.Logs(), "", err
+		}
 	}
+
 	if err := p.construct(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()

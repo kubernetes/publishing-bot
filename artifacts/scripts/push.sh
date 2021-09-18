@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 The Kubernetes Authors.
 #
@@ -31,12 +31,13 @@ TOKEN="$(cat ${1})"
 BRANCH="${2}"
 readonly TOKEN BRANCH
 
-# set up github token in /netrc/.netrc
-echo "machine github.com login ${TOKEN}" > /netrc/.netrc
+# set up github token in /tmp/netrc/.netrc
+mkdir -p /tmp/netrc
+echo "machine github.com login ${TOKEN}" > /tmp/netrc/.netrc
 cleanup_github_token() {
-    rm -rf /netrc/.netrc
+    rm -rf /tmp/netrc/.netrc
 }
 trap cleanup_github_token EXIT SIGINT
 
-HOME=/netrc git push origin "${BRANCH}" --no-tags
-HOME=/netrc ../push-tags-$(basename "${PWD}")-${BRANCH}.sh
+HOME=/tmp/netrc git push origin "${BRANCH}" --no-tags
+HOME=/tmp/netrc ../push-tags-$(basename "${PWD}")-${BRANCH}.sh

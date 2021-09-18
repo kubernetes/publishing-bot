@@ -18,7 +18,7 @@ all: build
 -include $(CONFIG)
 -include $(CONFIG)-token
 
-DOCKER_REPO ?= k8s-publishing-bot
+DOCKER_REPO ?= erda-publishing-bot
 NAMESPACE ?=
 TOKEN ?=
 KUBECTL ?= kubectl
@@ -44,7 +44,7 @@ build:
 .PHONY: build
 
 build-image: build
-	docker build -t $(DOCKER_REPO) .
+	docker build -t $(DOCKER_REPO) --build-arg HTTPS_PROXY=${HTTPS_PROXY} --build-arg HTTP_PROXY=${HTTP_PROXY} .
 .PHONY: build-image
 
 push-image:

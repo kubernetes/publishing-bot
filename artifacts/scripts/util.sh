@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 The Kubernetes Authors.
 #
@@ -178,11 +178,12 @@ sync_repo() {
 
         # create and checkout new, empty master branch. We only need this non-orphan case for the master
         # as that usually exists for new repos.
-        if [ ${orphan} = true ]; then
-            git checkout -q --orphan ${dst_branch}
-        else
-            git checkout -q ${dst_branch}
-        fi
+#        if [ ${orphan} = true ]; then
+#            git branch -D ${dst_branch} || :
+#            git checkout -q --orphan ${dst_branch}
+#        else
+         git checkout -q ${dst_branch}
+#        fi
     else
         # create filtered-branch-base before filtering for
         # - new branches that branch off master (i.e. the branching point)
@@ -304,7 +305,7 @@ sync_repo() {
             if [ ${dst_branch} != master ] && is-merge-with-master "${k_pending_merge_commit}"; then
                 # it's a merge with master. Recreate this merge on ${dst_branch} with ${dst_parent2} as second parent on the master branch
                 local k_parent2="$(git rev-parse ${k_pending_merge_commit}^2)"
-                read k_parent2 dst_parent2 <<<$(look -b ${k_parent2} ../kube-commits-$(basename "${PWD}")-master)
+                read k_parent2 dst_parent2 <<<$(look -b ${k_parent2} "../kube-commits-$(basename "${PWD}")-master")
                 if [ -z "${dst_parent2}" ]; then
                     echo "Corresponding $(dirname ${PWD}) master branch commit not found for upstream master merge ${k_pending_merge_commit}. Odd."
                     return 1
@@ -512,7 +513,8 @@ sync_repo() {
     # create look-up file for collapsed upstream commits
     local repo=$(basename ${PWD})
     echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch}"
-    /collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
+    mkdir -p $(dirname "../kube-commits-${repo}-${dst_branch}")
+    collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > "../kube-commits-${repo}-${dst_branch}"
 }
 
 # for some PR branches cherry-picks fail. Put commits here where we only pick the whole merge as a single commit.
@@ -614,6 +616,10 @@ function show-working-dir-status() {
 }
 
 function gomod-changes() {
+    if ! [ -f go.mod ]; then
+       return 1
+    fi
+
     if [ -n "${2:-}" ]; then
         ! git diff --exit-code --quiet ${1} ${2} -- go.mod go.sum
     else
@@ -746,7 +752,9 @@ function reset-gomod() {
 # Squash the last $1 commits into one, with the commit message of the last.
 function squash() {
     local head=$(git rev-parse HEAD)
-    git reset -q --soft HEAD~${1:-2}
+    if ! git reset -q --soft HEAD~${1:-2}; then
+      return 0
+    fi
     GIT_COMMITTER_DATE=$(committer-date ${head}) git commit --allow-empty -q -C ${head}
 }
 
@@ -861,7 +869,7 @@ checkout-deps-to-kube-commit() {
         echo "Looking up which commit in the ${branch} branch of k8s.io/${dep} corresponds to k8s.io/kubernetes commit ${k_last_kube_merge}."
         local k_commit=""
         local dep_commit=""
-        read k_commit dep_commit <<<$(look -b ${k_last_kube_merge} ../kube-commits-${dep}-${branch})
+        read k_commit dep_commit <<<$(look -b ${k_last_kube_merge} "../kube-commits-${dep}-${branch}")
         if [ -z "${dep_commit}" ]; then
             echo "Could not find corresponding k8s.io/${dep} commit for kube commit ${k_last_kube_commit}."
             return 1
@@ -881,7 +889,7 @@ checkout-deps-to-kube-commit() {
             	cp go.mod "${cache_dir}/${pseudo_version}.mod"
                 echo "{\"Version\":\"${pseudo_version}\",\"Name\":\"$(git rev-parse HEAD)\",\"Short\":\"$(git show -q --abbrev=12 --pretty='format:%h' HEAD)\",\"Time\":\"$(TZ=GMT git show -q --pretty='format:%cd' --date='format-local:%Y-%m-%dT%H:%M:%SZ')\"}" > "${cache_dir}/${pseudo_version}.info"
                 pushd "${GOPATH}/src" >/dev/null
-                /gomod-zip --package-name="${base_package}/${dep}" --pseudo-version="${pseudo_version}"
+                gomod-zip --package-name="${base_package}/${dep}" --pseudo-version="${pseudo_version}"
                 popd >/dev/null
                 echo "${pseudo_version}" >> "${cache_dir}/list"
             fi

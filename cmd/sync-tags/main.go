@@ -329,7 +329,7 @@ func main() {
 			err = createAnnotatedTag(bh, semverTag, tag.Tagger.When, dedent.Dedent(fmt.Sprintf(`
 			Kubernetes release %s
 
-			Based on https://github.com/kubernetes/kubernetes/releases/tag/%s
+			Based on https://github.com/erda-project/erda/releases/tag/%s
 			`, name, name)))
 			if err != nil {
 				glog.Fatalf("Failed to create tag %q: %v", semverTag, err)
@@ -342,7 +342,7 @@ func main() {
 		err = createAnnotatedTag(bh, bName, tag.Tagger.When, dedent.Dedent(fmt.Sprintf(`
 				Kubernetes release %s
 
-				Based on https://github.com/kubernetes/kubernetes/releases/tag/%s
+				Based on https://github.com/erda-project/erda/releases/tag/%s
 				`, name, name)))
 		if err != nil {
 			glog.Fatalf("Failed to create tag %q: %v", bName, err)

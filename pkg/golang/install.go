@@ -96,7 +96,14 @@ func installGoVersion(v string, pth string) error {
 	}
 	defer os.RemoveAll(tmpPath)
 
-	cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("curl -SLf https://storage.googleapis.com/golang/go%s.linux-amd64.tar.gz | tar -xz --strip 1 -C %s", v, tmpPath))
+	// in china golangDlPath := "https://mirrors.ustc.edu.cn/golang"
+	golangDlPath := "https://golang.org/dl"
+	if os.Getenv("GOLANG_DLPATH") != "" {
+		golangDlPath = os.Getenv("GOLANG_DLPATH")
+	}
+	downloadScript := fmt.Sprintf("curl -SLf %s/go%s.linux-amd64.tar.gz | tar -xz --strip 1 -C %s", golangDlPath, v, tmpPath)
+
+	cmd := exec.Command("/bin/bash", "-c", downloadScript)
 	cmd.Dir = tmpPath
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

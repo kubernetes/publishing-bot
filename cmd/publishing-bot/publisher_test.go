@@ -38,3 +38,6 @@ func Test_updateEnv(t *testing.T) {
 		})
 	}
 }
+
+func Test_publish_run(t *testing.T) {
+}
