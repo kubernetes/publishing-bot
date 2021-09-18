@@ -167,18 +167,24 @@ func main() {
 
 		if cfg.TokenFile != "" && cfg.GithubIssue != 0 && !cfg.DryRun {
 			// load token
-			bs, err := ioutil.ReadFile(cfg.TokenFile)
+			var (
+				bs   []byte
+				logs string
+				hash string
+			)
+
+			bs, err = ioutil.ReadFile(cfg.TokenFile)
 			if err != nil {
 				glog.Fatalf("Failed to load token file from %q: %v", cfg.TokenFile, err)
 			}
 			token := strings.Trim(string(bs), " \t\n")
 
 			// run
-			logs, hash, err := publisher.Run()
+			logs, hash, err = publisher.Run()
 			server.SetHealth(err == nil, hash)
 			if err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
-				if err := ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
+				if err = ReportOnIssue(err, logs, token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 					githubIssueErrorf("Failed to report logs on github issue: %v", err)
 					server.SetHealth(false, hash)
 				}
@@ -189,18 +195,21 @@ func main() {
 					glog.Infof("Waiting for 5 minutes")
 					waitfor = uint(5 * 60)
 				}
-			} else if err := CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
+			} else if err = CloseIssue(token, cfg.TargetOrg, cfg.SourceRepo, cfg.GithubIssue); err != nil {
 				githubIssueErrorf("Failed to close issue: %v", err)
 				server.SetHealth(false, hash)
 			}
 		} else {
 			// run
-			if _, _, err := publisher.Run(); err != nil {
+			if _, _, err = publisher.Run(); err != nil {
 				glog.Infof("Failed to run publisher: %v", err)
 			}
 		}
 
 		if *interval == 0 {
+			if err != nil {
+				glog.Fatalf("error happens %s", err)
+			}
 			break
 		}
 
