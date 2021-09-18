@@ -785,7 +785,7 @@ update-deps-in-gomod() {
         GO111MODULE=on go mod edit -fmt -replace "${base_package}/${dep}=${base_package}/${dep}@${dep_commit}"
     done
 
-    GO111MODULE=on go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("../")) | "-dropreplace \(.Old.Path)"' | GO111MODULE=on xargs -L 100 go mod edit -fmt
+    GO111MODULE=on go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("../")) | "-dropreplace \(.Old.Path)"' | GO111MODULE=on xargs go mod edit -fmt
     
     # TODO(nikhita): remove this after go.sum values are fixed.
     #
