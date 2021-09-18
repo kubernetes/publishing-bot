@@ -168,7 +168,8 @@ sync_repo() {
     # Then select all new mainline commits on filtered-branch as ${f_mainline_commits}
     # to loop through them later.
     local f_mainline_commits=""
-    if [ "${new_branch}" = "true" ] && [ "${src_branch}" = master ]; then
+    # since release/1.3 is forked from master before api/proto is created. we don't use master's history
+    if [ "${new_branch}" = "true" ] && ( [ "${src_branch}" = master ] || [ "${src_branch}" = "release/1.3" ] ); then
         # new master branch
         filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
 
