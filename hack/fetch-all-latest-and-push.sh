@@ -46,7 +46,6 @@ repos=(
     component-helpers
     controller-manager
     cri-api
-    csi-api
     csi-translation-lib
     kube-aggregator
     kube-controller-manager
@@ -57,7 +56,6 @@ repos=(
     legacy-cloud-providers
     metrics
     mount-utils
-    node-api
     pod-security-admission
     sample-apiserver
     sample-cli-plugin
