@@ -221,7 +221,14 @@ sync_repo() {
             # for a new branch that is not master: map filtered-branch-base to our ${dst_branch} as ${dst_branch_point_commit}
             local k_branch_point_commit=$(kube-commit ${commit_msg_tag} filtered-branch-base) # k_branch_point_commit will probably be different than the k_branch_point_commit
                                                                                               # above because filtered drops commits and maps to ancestors if necessary
-            local dst_branch_point_commit=$(branch-commit ${commit_msg_tag} ${k_branch_point_commit} master)
+
+            local pick_dst_branch_point_commit_args=""
+            if pick-single-dst-branch-point-commit ${k_branch_point_commit}; then
+                pick_dst_branch_point_commit_args="-n1"
+                echo "Considering only single destination branch point commit at ${k_branch_point_commit} for ${dst_branch}."
+            fi
+
+            local dst_branch_point_commit=$(branch-commit ${commit_msg_tag} ${k_branch_point_commit} master ${pick_dst_branch_point_commit_args})
             if [ -z "${dst_branch_point_commit}" ]; then
                 echo "Couldn't find a corresponding branch point commit for ${k_branch_point_commit} as ascendent of origin/master."
                 return 1
@@ -536,6 +543,25 @@ fd0df59f5ba786cb25329e3a9d2793ad4227ed87
 EOF
 }
 
+# TODO(nikhita): remove this when release tooling satisifies the k/k
+# mainline invariant again. See https://github.com/kubernetes/release/issues/2337.
+# TODO(nikhita): add link to publishing-bot issue with more details.
+# Due to some changes in the release tooling, it is now possible to have
+# two k/k PRs/commits with the same k/k mainline commit. This causes one of the
+# k/k commit to not be published.
+# We manually published this missing commit in the staging repo.
+# Due to this, the bot now re-publishes commits created after the manually added commit.
+# If a new branch exists at one of the re-published commits, it leads to
+# two dst_branch_point_commits.
+# The list of k/k commits here ensures that only a single dst_branch_point_commit
+# is picked for them.
+function pick-single-dst-branch-point-commit() {
+    grep -F -q -x "$1" <<EOF
+f1d5d4df5a786a3387e1f39f59941f2c6fb4299d
+e4952f32b79b69bfa9333ff9da26a2da13859148
+EOF
+}
+
 # amend-gomod-at checks out the go.mod at the given commit and amend it to the previous commit.
 function amend-gomod-at() {
     if [ -f go.mod ]; then
@@ -631,7 +657,9 @@ function state-before-commit() {
 
 function branch-commit() {
     local commit_msg_tag="${1}"
-    git log --grep "${commit_msg_tag}: ${2}" --format='%H' ${3:-HEAD}
+    local log_args="${4:-""}"
+
+    git log --grep "${commit_msg_tag}: ${2}" --format='%H' ${log_args} ${3:-HEAD} 
 }
 
 function last-kube-commit() {
