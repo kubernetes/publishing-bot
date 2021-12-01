@@ -8,5 +8,5 @@ data:
     source-repo: kubernetes
     target-org: kubernetes-nightly
     rules-file: https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
-    # github-issue: 56876
+    github-issue: 1
     dry-run: false
