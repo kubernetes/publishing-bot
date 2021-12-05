@@ -65,6 +65,8 @@ var publishingBot = object.Signature{
 	Email: os.Getenv("GIT_COMMITTER_EMAIL"),
 }
 
+// TODO(lint): cyclomatic complexity 63 of func `main` is high (> 30)
+// nolint: gocyclo
 func main() {
 	// repository flags used when the repository is not k8s.io/kubernetes
 	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")

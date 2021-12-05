@@ -128,7 +128,7 @@ func depsImportPaths(depsRepo []string) (string, error) {
 	d := strings.Split(dir, "/")
 	basePackage := d[len(d)-2]
 
-	var depImportPathList []string
+	depImportPathList := []string{}
 	for _, dep := range depsRepo {
 		depImportPathList = append(depImportPathList, fmt.Sprintf("%s/%s", basePackage, dep))
 	}
@@ -156,7 +156,7 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	fmt.Printf("Packaging up %s for %s into go mod cache.\n", pseudoVersionOrTag, depPkg)
 
 	// create the cache if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(goModFile), os.FileMode(755)); err != nil {
+	if err := os.MkdirAll(filepath.Dir(goModFile), os.FileMode(0755)); err != nil {
 		return fmt.Errorf("unable to create %s directory: %v", cacheDir, err)
 	}
 

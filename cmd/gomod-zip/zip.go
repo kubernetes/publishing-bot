@@ -49,6 +49,8 @@ Usage: %s --package-name <package-name> --pseudo-version <pseudo-version>
 func main() {
 	packageName := flag.String("package-name", "", "package to zip")
 	pseudoVersion := flag.String("pseudo-version", "", "pseudoVersion to zip at")
+
+	flag.Usage = Usage
 	flag.Parse()
 
 	if *packageName == "" {

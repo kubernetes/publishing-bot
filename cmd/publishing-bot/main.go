@@ -42,6 +42,8 @@ Command line flags override config values.
 	flag.PrintDefaults()
 }
 
+// TODO(lint): cyclomatic complexity 38 of func `main` is high (> 30)
+// nolint: gocyclo
 func main() {
 	configFilePath := flag.String("config", "", "the config file in yaml format")
 	githubHost := flag.String("github-host", "", "the address of github (defaults to github.com)")
