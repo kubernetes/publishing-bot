@@ -38,7 +38,8 @@ linters:
     - gomoddirectives
     - gomodguard
     - goprintffuncname
-    - gosec
+    # TODO(lint): Enable after fixing other lint warnings
+    #- gosec
     - gosimple
     - govet
     - importas
