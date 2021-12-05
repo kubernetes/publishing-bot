@@ -26,9 +26,6 @@ IMG_NAME = publishing-bot
 
 IMG_VERSION ?= v0.0.0-1
 
-BUILD_ARGS = --build-arg=GIT_TAG=$(GIT_TAG) \
-			 --build-arg=IMG_VERSION=$(IMG_VERSION)
-
 # TODO(image): Consider renaming this variable
 DOCKER_REPO ?= $(IMG_REGISTRY)/$(IMG_NAME)
 NAMESPACE ?=
@@ -60,7 +57,6 @@ build-image: build
 		-t $(DOCKER_REPO):$(GIT_TAG) \
 		-t $(DOCKER_REPO):$(IMG_VERSION) \
 		-t $(DOCKER_REPO):latest \
-		$(BUILD_ARGS) \
 		.
 .PHONY: build-image
 
