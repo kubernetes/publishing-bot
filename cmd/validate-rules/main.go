@@ -20,6 +20,7 @@ import (
 	"flag"
 	"github.com/golang/glog"
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
+	"k8s.io/publishing-bot/cmd/validate-rules/staging"
 )
 
 func main() {
@@ -33,6 +34,13 @@ func main() {
 		}
 		if err := config.Validate(rules); err != nil {
 			glog.Fatalf("Invalid rules file %q: %v", f, err)
+		}
+		errors := staging.EnsureStagingDirectoriesExist(rules)
+		if errors != nil {
+			glog.Fatalf("Invalid rules file %q", f)
+			for _, err := range errors {
+				glog.Errorf("Error : %s", err)
+			}
 		}
 		glog.Infof("validation successful")
 	}
