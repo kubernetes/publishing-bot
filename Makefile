@@ -50,6 +50,9 @@ build-image: build
 push-image:
 	docker push $(DOCKER_REPO):latest
 
+build-and-push-image: build-image push-image
+.PHONY: build-and-push-image
+
 clean:
 	rm -rf _output
 .PHONY: clean

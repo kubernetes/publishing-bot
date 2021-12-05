@@ -18,7 +18,7 @@ steps:
   - CLOUDBUILD_REPO=$PROJECT_ID
   - IMG_VERSION=$_IMG_VERSION
   args:
-  - build-image
+  - build-and-push-image
 
 # TODO(image): Consider adding a container structure test
 #- name: 'gcr.io/gcp-runtimes/container-structure-test'
@@ -42,6 +42,8 @@ tags:
 - ${_IMG_VERSION}
 
 images:
-- 'gcr.io/$PROJECT_ID/publishing-bot:$_GIT_TAG'
-- 'gcr.io/$PROJECT_ID/publishing-bot:$_IMG_VERSION'
+# TODO(image): Enable once tagging logic exists
+#- 'gcr.io/$PROJECT_ID/publishing-bot:$_GIT_TAG'
+# TODO(image): Enable once tagging logic exists
+#- 'gcr.io/$PROJECT_ID/publishing-bot:$_IMG_VERSION'
 - 'gcr.io/$PROJECT_ID/publishing-bot:latest'
