@@ -1,0 +1,47 @@
+# Google Cloud Build configuration: https://cloud.google.com/cloud-build/docs/build-config
+# Image building process: https://git.k8s.io/test-infra/config/jobs/image-pushing/README.md
+
+# this must be specified in seconds. If omitted, defaults to 600s (10 mins)
+timeout: 1200s
+
+options:
+  substitution_option: ALLOW_LOOSE
+  # TODO(image): Consider a smaller machine type
+  machineType: N1_HIGHCPU_32
+
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: make
+  env:
+  - GIT_TAG=$_GIT_TAG
+  - PULL_BASE_REF=$_PULL_BASE_REF
+  - CLOUDBUILD_REPO=$PROJECT_ID
+  - IMG_VERSION=$_IMG_VERSION
+  args:
+  - build-image
+
+# TODO(image): Consider adding a container structure test
+#- name: 'gcr.io/gcp-runtimes/container-structure-test'
+#  id: structure-test
+#  args:
+#  - test
+#  - --image=gcr.io/$PROJECT_ID/publishing-bot:$_GIT_TAG
+#  - --config=container-structure.yaml
+
+substitutions:
+  # _GIT_TAG will be filled with a git-based tag for the image, of the form
+  # vYYYYMMDD-hash, and can be used as a substitution
+  _GIT_TAG: '12345'
+  _PULL_BASE_REF: 'dev'
+  _IMG_VERSION: 'v0.0.0-1'
+
+tags:
+- 'publishing-bot'
+- ${_GIT_TAG}
+- ${_PULL_BASE_REF}
+- ${_IMG_VERSION}
+
+images:
+- 'gcr.io/$PROJECT_ID/publishing-bot:$_GIT_TAG'
+- 'gcr.io/$PROJECT_ID/publishing-bot:$_IMG_VERSION'
+- 'gcr.io/$PROJECT_ID/publishing-bot:latest'
