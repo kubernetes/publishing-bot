@@ -224,7 +224,7 @@ func main() {
 
 		// if any of the tag exists locally,
 		// delete the tags, clear the cache and recreate them
-		if tagExists(r, bName) {
+		if tagExists(bName) {
 			commit, commitTime, err := taggedCommitHashAndTime(r, bName)
 			if err != nil {
 				glog.Fatalf("Failed to get tag %s: %v", bName, err)
@@ -242,7 +242,7 @@ func main() {
 			}
 		}
 
-		if publishSemverTag && tagExists(r, semverTag) {
+		if publishSemverTag && tagExists(semverTag) {
 			fmt.Printf("Clearing cache for local tag %s.\n", semverTag)
 			if err := cleanCacheForTag(semverTag); err != nil {
 				glog.Fatalf("Failed to clean go mod cache for %s: %v", semverTag, err)
@@ -424,10 +424,11 @@ func createAnnotatedTag(h plumbing.Hash, name string, date time.Time, message st
 	return cmd.Run()
 }
 
-func tagExists(r *gogit.Repository, tag string) bool {
+func tagExists(tag string) bool {
 	cmd := exec.Command("git", "show-ref", fmt.Sprintf("refs/tags/%s", tag))
 	return cmd.Run() == nil
 
+	// TODO: Fix or remove
 	// the following does not work with go-git, for unknown reasons:
 	//_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag)))
 	//return err == nil

@@ -33,7 +33,7 @@ func NewLogBuilderWithMaxBytes(maxBytes int, rawLogs ...string) *logBuilder {
 	for i := len(rawLogs) - 1; i >= 0; i-- {
 		if curSize := size + len(rawLogs[i]); !ignoreBytesLimits && curSize > maxBytes {
 			rawLogs[i] = rawLogs[i][curSize-maxBytes:]
-			rawLogs[i] = "..." + string(rawLogs[i][3:])
+			rawLogs[i] = "..." + rawLogs[i][3:]
 			logBuilder.logs = append(logBuilder.logs, rawLogs[i])
 			break
 		}

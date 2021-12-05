@@ -193,7 +193,7 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 }
 
 func (p *PublisherMunger) runSmokeTests(smokeTest, oldHead, newHead string, branchEnv []string) error {
-	if len(smokeTest) > 0 && string(oldHead) != string(newHead) {
+	if len(smokeTest) > 0 && oldHead != newHead {
 		cmd := exec.Command("/bin/bash", "-xec", smokeTest)
 		cmd.Env = append([]string(nil), branchEnv...) // make mutable
 		cmd.Env = append(cmd.Env, "GO111MODULE=on")

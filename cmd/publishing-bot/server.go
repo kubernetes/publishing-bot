@@ -66,6 +66,8 @@ func (h *Server) SetHealth(healthy bool, hash string) {
 	}
 }
 
+// TODO(lint): result 0 (error) is always nil
+// nolint: unparam
 func (h *Server) Run(port int) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.healthzHandler)

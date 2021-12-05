@@ -173,6 +173,8 @@ func (lw lineWriter) Write(b []byte) (int, error) {
 	return n, nil
 }
 
+// TODO(lint): result 0 (int) is never used
+// nolint: unparam
 func (lw lineWriter) Flush() (int, error) {
 	written, err := lw.buf.WriteTo(lw.writer)
 	lw.buf.Reset()
