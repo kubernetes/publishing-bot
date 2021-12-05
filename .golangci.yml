@@ -32,7 +32,8 @@ linters:
     - gocyclo
     - godox
     - gofmt
-    - gofumpt
+    # TODO(lint): Enable once using newer version of golangci-lint
+    #- gofumpt
     - goheader
     - goimports
     - gomoddirectives
