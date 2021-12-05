@@ -40,7 +40,7 @@ type plog struct {
 	buf                *bytes.Buffer
 }
 
-func NewPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
+func newPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
 	logFile := &lumberjack.Logger{
 		Filename: logFileName,
 		MaxAge:   7,

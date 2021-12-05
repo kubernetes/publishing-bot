@@ -112,15 +112,15 @@ func main() {
 	}
 
 	// get first-parent commit list of upstream branch
-	kUpdateBranch, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/remotes/%s/%s", *sourceRemote, *sourceBranch)))
+	srcUpdateBranch, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/remotes/%s/%s", *sourceRemote, *sourceBranch)))
 	if err != nil {
 		glog.Fatalf("Failed to open upstream branch %s: %v", *sourceBranch, err)
 	}
-	kHead, err := cache.CommitObject(r, *kUpdateBranch)
+	srcHead, err := cache.CommitObject(r, *srcUpdateBranch)
 	if err != nil {
 		glog.Fatalf("Failed to open upstream branch %s head: %v", *sourceBranch, err)
 	}
-	kFirstParents, err := git.FirstParentList(r, kHead)
+	srcFirstParents, err := git.FirstParentList(r, srcHead)
 	if err != nil {
 		glog.Fatalf("Failed to get upstream branch %s first-parent list: %v", *sourceBranch, err)
 	}
@@ -141,7 +141,7 @@ func main() {
 			glog.Fatalf("Failed to fetch tags for %q: %v", *sourceRemote, err)
 		}
 	}
-	kTagCommits, err := remoteTags(r, *sourceRemote)
+	srcTagCommits, err := remoteTags(r, *sourceRemote)
 	if err != nil {
 		glog.Fatalf("Failed to iterate through %s tags: %v", *sourceRemote, err)
 	}
@@ -160,21 +160,21 @@ func main() {
 	}
 
 	// filter tags by source branch
-	kFirstParentCommits := map[string]struct{}{}
-	for _, kc := range kFirstParents {
-		kFirstParentCommits[kc.Hash.String()] = struct{}{}
+	srcFirstParentCommits := map[string]struct{}{}
+	for _, kc := range srcFirstParents {
+		srcFirstParentCommits[kc.Hash.String()] = struct{}{}
 	}
-	for name, kh := range kTagCommits {
+	for name, kh := range srcTagCommits {
 		// ignore non-annotated tags
 		tag, err := r.TagObject(kh)
 		if err != nil {
-			delete(kTagCommits, name)
+			delete(srcTagCommits, name)
 			continue
 		}
 
 		// delete tag not on the source branch
-		if _, ok := kFirstParentCommits[tag.Target.String()]; !ok {
-			delete(kTagCommits, name)
+		if _, ok := srcFirstParentCommits[tag.Target.String()]; !ok {
+			delete(srcTagCommits, name)
 		}
 	}
 
@@ -182,9 +182,9 @@ func main() {
 
 	mappingFilesWritten := map[string]bool{}
 
-	// create or update tags from kTagCommits as local tags with the given prefix
+	// create or update tags from srcTagCommits as local tags with the given prefix
 	createdTags := []string{}
-	for name, kh := range kTagCommits {
+	for name, kh := range srcTagCommits {
 		bName := name
 		if *prefix != "" {
 			bName = *prefix + name[1:] // remove the v
@@ -268,7 +268,7 @@ func main() {
 			if err != nil {
 				glog.Fatalf("Failed to get branch %s first-parent list: %v", localBranch, err)
 			}
-			sourceCommitsToDstCommits, err = git.SourceCommitToDstCommits(r, *commitMsgTag, bFirstParents, kFirstParents)
+			sourceCommitsToDstCommits, err = git.SourceCommitToDstCommits(r, *commitMsgTag, bFirstParents, srcFirstParents)
 			if err != nil {
 				glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
 			}
@@ -290,7 +290,7 @@ func main() {
 				if err != nil {
 					glog.Fatal(f)
 				}
-				if err := writeKubeCommitMapping(f, r, sourceCommitsToDstCommits, kFirstParents); err != nil {
+				if err := writeKubeCommitMapping(f, r, sourceCommitsToDstCommits, srcFirstParents); err != nil {
 					glog.Fatal(err)
 				}
 				defer f.Close()
@@ -451,8 +451,8 @@ func fetchTags(r *gogit.Repository, remote string) error {
 	return err
 }
 
-func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Hash]plumbing.Hash, kFirstParents []*object.Commit) error {
-	for _, kc := range kFirstParents {
+func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Hash]plumbing.Hash, srcFirstParents []*object.Commit) error {
+	for _, kc := range srcFirstParents {
 		msg := strings.SplitN(kc.Message, "\n", 2)[0]
 		var err error
 		if dh, ok := m[kc.Hash]; ok {

@@ -406,7 +406,7 @@ func publishedFileName(repo, branch string) string {
 // Run constructs the repos and pushes them. It returns logs and the last master hash.
 func (p *PublisherMunger) Run() (logs, masterHead string, err error) {
 	buf := bytes.NewBuffer(nil)
-	if p.plog, err = NewPublisherLog(buf, path.Join(p.baseRepoPath, "run.log")); err != nil {
+	if p.plog, err = newPublisherLog(buf, path.Join(p.baseRepoPath, "run.log")); err != nil {
 		return "", "", err
 	}
 

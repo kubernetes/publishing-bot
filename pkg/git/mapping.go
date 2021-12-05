@@ -42,9 +42,9 @@ import (
 //     |-B
 //      `A - initial commit
 //
-func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirstParents, kFirstParents []*object.Commit) (map[plumbing.Hash]plumbing.Hash, error) {
+func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirstParents, srcFirstParents []*object.Commit) (map[plumbing.Hash]plumbing.Hash, error) {
 	// compute merge point table
-	kubeMergePoints, err := MergePoints(r, kFirstParents)
+	kubeMergePoints, err := MergePoints(r, srcFirstParents)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build merge point table: %v", err)
 	}
@@ -73,8 +73,8 @@ func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirst
 	// fill up mainlineKubeHashes in dstMainlineCommits with collapsed kube commits
 	dst := firstDstCommit
 	kubeHashToDstMainLineHash := map[plumbing.Hash]plumbing.Hash{}
-	for i := len(kFirstParents) - 1; i >= 0; i-- {
-		kc := kFirstParents[i]
+	for i := len(srcFirstParents) - 1; i >= 0; i-- {
+		kc := srcFirstParents[i]
 		if dh, found := directKubeHashToDstMainLineHash[kc.Hash]; found {
 			dst = dh
 		}

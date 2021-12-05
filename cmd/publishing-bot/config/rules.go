@@ -87,9 +87,9 @@ type RepositoryRules struct {
 func LoadRules(ruleFile string) (*RepositoryRules, error) {
 	var content []byte
 
-	if ruleUrl, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleUrl.Host) > 0 {
-		glog.Infof("loading rules file from url : %s", ruleUrl)
-		content, err = readFromUrl(ruleUrl)
+	if ruleURL, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleURL.Host) > 0 {
+		glog.Infof("loading rules file from url : %s", ruleURL)
+		content, err = readFromURL(ruleURL)
 		if err != nil {
 			return nil, err
 		}
@@ -109,8 +109,8 @@ func LoadRules(ruleFile string) (*RepositoryRules, error) {
 	return &rules, nil
 }
 
-// readFromUrl reads the rule file from provided URL.
-func readFromUrl(u *url.URL) ([]byte, error) {
+// readFromURL reads the rule file from provided URL.
+func readFromURL(u *url.URL) ([]byte, error) {
 	client := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}

@@ -53,7 +53,7 @@ func TestLogLineWriter(t *testing.T) {
 	finalContent := buf.String()
 	uniqueLines := make(map[string]struct{})
 
-	NewLogBuilderWithMaxBytes(0, finalContent).
+	newLogBuilderWithMaxBytes(0, finalContent).
 		Trim("\n").
 		Split("\n").
 		Filter(func(line string) bool {

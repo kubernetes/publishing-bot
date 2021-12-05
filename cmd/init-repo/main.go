@@ -143,9 +143,9 @@ func cloneForkRepo(cfg config.Config, repoName string) {
 
 	if _, err := os.Stat(repoDir); err == nil {
 		glog.Infof("Fork repository %q already cloned to %s, resetting remote URL ...", repoName, repoDir)
-		setUrlCmd := exec.Command("git", "remote", "set-url", "origin", forkRepoLocation)
-		setUrlCmd.Dir = repoDir
-		run(setUrlCmd)
+		setURLCmd := exec.Command("git", "remote", "set-url", "origin", forkRepoLocation)
+		setURLCmd.Dir = repoDir
+		run(setURLCmd)
 		os.Remove(filepath.Join(repoDir, ".git", "index.lock"))
 	} else {
 		glog.Infof("Cloning fork repository %s ...", forkRepoLocation)

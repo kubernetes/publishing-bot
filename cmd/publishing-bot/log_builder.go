@@ -26,7 +26,7 @@ type logBuilder struct {
 	tailings []string
 }
 
-func NewLogBuilderWithMaxBytes(maxBytes int, rawLogs ...string) *logBuilder {
+func newLogBuilderWithMaxBytes(maxBytes int, rawLogs ...string) *logBuilder {
 	ignoreBytesLimits := maxBytes <= 0
 	size := 0
 	logBuilder := &logBuilder{}

@@ -118,7 +118,7 @@ func CloseIssue(token, org, repo string, issue int) error {
 
 func transfromLogToGithubFormat(original string, maxLines int, headings ...string) string {
 	logCount := 0
-	transformed := NewLogBuilderWithMaxBytes(65000, original).
+	transformed := newLogBuilderWithMaxBytes(65000, original).
 		AddHeading(headings...).
 		AddHeading("```").
 		Trim("\n").
