@@ -55,7 +55,7 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules) []error {
 	return errors
 }
 
-func checkDirectoryExistsInBranch(directory string, branch string) error {
+func checkDirectoryExistsInBranch(directory, branch string) error {
 	// Look in the cache first
 	files, ok := globalMapBranchDirectories[branch]
 	if !ok {

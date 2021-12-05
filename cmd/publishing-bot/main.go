@@ -112,11 +112,11 @@ func main() {
 		glog.Fatalf("Failed to get absolute path for base-publish-script-path %q: %v", cfg.BasePublishScriptPath, err)
 	}
 
-	if len(cfg.SourceRepo) == 0 || len(cfg.SourceOrg) == 0 {
+	if cfg.SourceRepo == "" || cfg.SourceOrg == "" {
 		glog.Fatalf("source-org and source-repo cannot be empty")
 	}
 
-	if len(cfg.TargetOrg) == 0 {
+	if cfg.TargetOrg == "" {
 		glog.Fatalf("Target organization cannot be empty")
 	}
 
@@ -137,7 +137,7 @@ func main() {
 		cfg.RulesFile = filepath.Join(baseRepoPath, cfg.SourceRepo, os.Getenv("RULE_FILE_PATH"))
 	}
 
-	if len(cfg.RulesFile) == 0 {
+	if cfg.RulesFile == "" {
 		glog.Fatalf("No rules file provided")
 	}
 

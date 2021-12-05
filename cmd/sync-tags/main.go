@@ -211,7 +211,8 @@ func main() {
 
 		// ignore old tags
 		if tag.Tagger.When.Before(time.Date(2017, 9, 1, 0, 0, 0, 0, time.UTC)) {
-			//fmt.Printf("Ignoring old tag origin/%s from %v\n", bName, tag.Tagger.When)
+			// TODO: Fix or remove
+			// fmt.Printf("Ignoring old tag origin/%s from %v\n", bName, tag.Tagger.When)
 			continue
 		}
 
@@ -429,9 +430,12 @@ func tagExists(tag string) bool {
 	return cmd.Run() == nil
 
 	// TODO: Fix or remove
+	// nolint: gocritic
 	// the following does not work with go-git, for unknown reasons:
-	//_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag)))
-	//return err == nil
+	/*
+		_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag)))
+		return err == nil
+	*/
 }
 
 func fetchTags(r *gogit.Repository, remote string) error {
@@ -464,7 +468,7 @@ func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Has
 	return nil
 }
 
-func mappingOutputFileName(fnameTpl string, branch, tag string) string {
+func mappingOutputFileName(fnameTpl, branch, tag string) string {
 	tpl, err := template.New("mapping-output-file").Parse(fnameTpl)
 	if err != nil {
 		glog.Fatal(err)

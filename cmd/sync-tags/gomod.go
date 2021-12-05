@@ -262,7 +262,7 @@ func copyFile(src, dst string) error {
 // fullPackageName return the Golang full package name of dir inside the ${GOPATH}/src.
 func fullPackageName(dir string) (string, error) {
 	gopath := os.Getenv("GOPATH")
-	if len(gopath) == 0 {
+	if gopath == "" {
 		return "", fmt.Errorf("GOPATH is not set")
 	}
 

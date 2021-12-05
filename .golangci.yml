@@ -123,15 +123,18 @@ linters-settings:
       - offBy1
       - sloppyReassign
       - weakCond
-      - octalLiteral
+      # TODO(lint): Temporarily disabled for compat with older Golang versions
+      #- octalLiteral
 
       # Performance
       - appendCombine
       - equalFold
-      - hugeParam
+      # TODO(lint): Temporarily disabled to prevent pointer handling issues
+      #- hugeParam
       - indexAlloc
       - rangeExprCopy
-      - rangeValCopy
+      # TODO(lint): Temporarily disabled to prevent pointer handling issues
+      #- rangeValCopy
 
       # Style
       - assignOp
