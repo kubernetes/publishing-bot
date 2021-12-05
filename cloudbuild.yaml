@@ -42,8 +42,6 @@ tags:
 - ${_IMG_VERSION}
 
 images:
-# TODO(image): Enable once tagging logic exists
-#- 'gcr.io/$PROJECT_ID/publishing-bot:$_GIT_TAG'
-# TODO(image): Enable once tagging logic exists
-#- 'gcr.io/$PROJECT_ID/publishing-bot:$_IMG_VERSION'
+- 'gcr.io/$PROJECT_ID/publishing-bot:$_GIT_TAG'
+- 'gcr.io/$PROJECT_ID/publishing-bot:$_IMG_VERSION'
 - 'gcr.io/$PROJECT_ID/publishing-bot:latest'
