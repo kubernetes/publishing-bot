@@ -150,7 +150,7 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 		fmt.Printf("%s for %s is already packaged up.\n", pseudoVersionOrTag, depPkg)
 		return nil
 	} else if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("Could not check if %s exists: %v", goModFile, err)
+		return fmt.Errorf("could not check if %s exists: %v", goModFile, err)
 	}
 
 	fmt.Printf("Packaging up %s for %s into go mod cache.\n", pseudoVersionOrTag, depPkg)

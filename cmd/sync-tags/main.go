@@ -411,11 +411,11 @@ func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 func createAnnotatedTag(h plumbing.Hash, name string, date time.Time, message string) error {
 	setUsernameCmd := exec.Command("git", "config", "user.name", publishingBot.Name)
 	if err := setUsernameCmd.Run(); err != nil {
-		return fmt.Errorf("Unable to set global configuration: %v", err)
+		return fmt.Errorf("unable to set global configuration: %v", err)
 	}
 	setEmailCmd := exec.Command("git", "config", "user.email", publishingBot.Email)
 	if err := setEmailCmd.Run(); err != nil {
-		return fmt.Errorf("Unable to set global configuration: %v", err)
+		return fmt.Errorf("unable to set global configuration: %v", err)
 	}
 	cmd := exec.Command("git", "tag", "-a", "-m", message, name, h.String())
 	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_COMMITTER_DATE=%s", date.Format(rfc2822)))
@@ -478,7 +478,8 @@ func mappingOutputFileName(fnameTpl string, branch, tag string) string {
 	}); err != nil {
 		glog.Fatal(err)
 	}
-	return string(buf.Bytes())
+
+	return buf.String()
 }
 
 func checkoutBranchTagCommit(r *gogit.Repository, bh plumbing.Hash, dependentRepos []string) *gogit.Worktree {

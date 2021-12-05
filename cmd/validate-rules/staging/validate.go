@@ -18,9 +18,11 @@ package staging
 
 import (
 	"fmt"
-	"github.com/golang/glog"
-	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 	"path/filepath"
+
+	"github.com/golang/glog"
+
+	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
 // globalMapBranchDirectories is a cache to avoid hitting GH limits

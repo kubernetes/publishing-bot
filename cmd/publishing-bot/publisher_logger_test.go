@@ -18,17 +18,15 @@ package main
 
 import (
 	"bytes"
-	"io"
 	"sync"
 	"testing"
 )
 
 func TestLogLineWriter(t *testing.T) {
-
 	buf := new(bytes.Buffer)
-
-	var fakeLogWriter io.Writer
-	fakeLogWriter = newSyncWriter(muxWriter{buf})
+	fakeLogWriter := newSyncWriter(
+		muxWriter{buf},
+	)
 
 	content1 := "XXXXXXXXXXXXXX"
 	content2 := "YYYYYYYYYYYYYY"
@@ -69,5 +67,4 @@ func TestLogLineWriter(t *testing.T) {
 			t.Fail()
 		}
 	}
-
 }

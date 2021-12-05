@@ -123,7 +123,7 @@ type cmdStr exec.Cmd
 func (cs cmdStr) String() string {
 	args := make([]string, len(cs.Args))
 	for i, s := range cs.Args {
-		if strings.IndexRune(s, ' ') != -1 {
+		if strings.ContainsRune(s, ' ') {
 			args[i] = fmt.Sprintf("%q", s)
 		} else {
 			args[i] = s

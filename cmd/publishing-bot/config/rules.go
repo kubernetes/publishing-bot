@@ -98,7 +98,6 @@ func LoadRules(ruleFile string) (*RepositoryRules, error) {
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	var rules RepositoryRules

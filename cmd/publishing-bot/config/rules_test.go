@@ -64,5 +64,4 @@ func TestValidateGoVersion(t *testing.T) {
 			}
 		}
 	}
-
 }
