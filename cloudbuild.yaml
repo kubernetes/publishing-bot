@@ -10,7 +10,7 @@ options:
   machineType: N1_HIGHCPU_32
 
 steps:
-- name: 'gcr.io/cloud-builders/docker'
+- name: 'gcr.io/k8s-staging-releng/k8s-ci-builder:latest-default'
   entrypoint: make
   env:
   - GIT_TAG=$_GIT_TAG
