@@ -292,7 +292,7 @@ func main() {
 				if err != nil {
 					glog.Fatal(f)
 				}
-				if err := writeKubeCommitMapping(f, r, sourceCommitsToDstCommits, srcFirstParents); err != nil {
+				if err := writeKubeCommitMapping(f, sourceCommitsToDstCommits, srcFirstParents); err != nil {
 					glog.Fatal(err)
 				}
 				defer f.Close()
@@ -455,7 +455,7 @@ func fetchTags(r *gogit.Repository, remote string) error {
 	return err
 }
 
-func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Hash]plumbing.Hash, srcFirstParents []*object.Commit) error {
+func writeKubeCommitMapping(w io.Writer, m map[plumbing.Hash]plumbing.Hash, srcFirstParents []*object.Commit) error {
 	for _, kc := range srcFirstParents {
 		msg := strings.SplitN(kc.Message, "\n", 2)[0]
 		var err error
