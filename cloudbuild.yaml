@@ -13,10 +13,10 @@ steps:
 - name: 'gcr.io/k8s-staging-releng/k8s-ci-builder:latest-default'
   entrypoint: make
   env:
-  - GIT_TAG=$_GIT_TAG
-  - PULL_BASE_REF=$_PULL_BASE_REF
-  - CLOUDBUILD_REPO=$PROJECT_ID
-  - IMG_VERSION=$_IMG_VERSION
+  - GIT_TAG="$_GIT_TAG"
+  - PULL_BASE_REF="$_PULL_BASE_REF"
+  - IMG_REGISTRY="gcr.io/$PROJECT_ID"
+  - IMG_VERSION="$_IMG_VERSION"
   args:
   - build-and-push-image
 
@@ -33,12 +33,14 @@ substitutions:
   # vYYYYMMDD-hash, and can be used as a substitution
   _GIT_TAG: '12345'
   _PULL_BASE_REF: 'dev'
+  _IMG_REGISTRY: 'registry'
   _IMG_VERSION: 'v0.0.0-1'
 
 tags:
 - 'publishing-bot'
 - ${_GIT_TAG}
 - ${_PULL_BASE_REF}
+- ${_IMG_REGISTRY}
 - ${_IMG_VERSION}
 
 images:
