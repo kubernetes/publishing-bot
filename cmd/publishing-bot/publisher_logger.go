@@ -53,8 +53,16 @@ func newPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
 }
 
 func (p *plog) write(s string) {
+	// TODO(lint): Should we be checking errors here?
+	// nolint: errcheck
 	p.combinedBufAndFile.Write([]byte("[" + time.Now().Format(time.RFC822) + "]: "))
+
+	// TODO(lint): Should we be checking errors here?
+	// nolint: errcheck
 	p.combinedBufAndFile.Write([]byte(s))
+
+	// TODO(lint): Should we be checking errors here?
+	// nolint: errcheck
 	p.combinedBufAndFile.Write([]byte("\n"))
 }
 

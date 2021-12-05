@@ -27,7 +27,10 @@ import (
 
 func main() {
 	flag.Parse()
-	flag.Set("alsologtostderr", "true")
+	err := flag.Set("alsologtostderr", "true")
+	if err != nil {
+		glog.Fatalf("attempting to log to stderr: %v", err)
+	}
 
 	for _, f := range flag.Args() {
 		rules, err := config.LoadRules(f)

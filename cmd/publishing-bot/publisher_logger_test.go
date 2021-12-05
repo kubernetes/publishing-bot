@@ -43,6 +43,8 @@ func TestLogLineWriter(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			for i := 0; i < 99999; i++ {
+				// TODO(lint): Should we be checking errors here?
+				// nolint: errcheck
 				w.Write([]byte(content + "\n"))
 			}
 			wg.Done()

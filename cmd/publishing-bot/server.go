@@ -90,6 +90,9 @@ func (h *Server) runHandler(w http.ResponseWriter, r *http.Request) {
 	case h.RunChan <- true:
 	default:
 	}
+
+	// TODO(lint): Should we be checking errors here?
+	// nolint: errcheck
 	w.Write([]byte("OK"))
 }
 
@@ -108,5 +111,8 @@ func (h *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// TODO(lint): Should we be checking errors here?
+	// nolint: errcheck
 	w.Write(bytes)
 }

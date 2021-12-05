@@ -75,7 +75,11 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	attrFile := filepath.Join(repoDir, ".git", "info", "attributes")
 	if _, err := os.Stat(attrFile); os.IsNotExist(err) {
 		glog.Infof("Disabling text conversion at %s.", repoDir)
-		os.MkdirAll(filepath.Join(repoDir, ".git", "info"), 0755)
+		err := os.MkdirAll(filepath.Join(repoDir, ".git", "info"), 0755)
+		if err != nil {
+			return nil, fmt.Errorf("creating .git/info: %v", err)
+		}
+
 		if err := ioutil.WriteFile(attrFile, []byte(`
 * -text
 `), 0644); err != nil {
@@ -205,9 +209,18 @@ func (p *PublisherMunger) runSmokeTests(smokeTest, oldHead, newHead string, bran
 			// do not clean up to allow debugging with kubectl-exec.
 			return err
 		}
-		exec.Command("git", "reset", "--hard").Run()
-		exec.Command("git", "clean", "-f", "-f", "-d").Run()
+
+		err := exec.Command("git", "reset", "--hard").Run()
+		if err != nil {
+			return err
+		}
+
+		err = exec.Command("git", "clean", "-f", "-f", "-d").Run()
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -261,6 +274,7 @@ func (p *PublisherMunger) construct() error {
 			}
 
 			// get old HEAD. Ignore errors as the branch might be non-existent
+			// nolint: errcheck
 			oldHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output()
 
 			goPath := os.Getenv("GOPATH")
@@ -314,6 +328,8 @@ func (p *PublisherMunger) construct() error {
 				return err
 			}
 
+			// TODO(lint): Should we be checking errors here?
+			// nolint: errcheck
 			newHead, _ := exec.Command("git", "rev-parse", "HEAD").Output()
 
 			p.plog.Infof("Running branch-specific smoke tests for branch %s", branchRule.Name)

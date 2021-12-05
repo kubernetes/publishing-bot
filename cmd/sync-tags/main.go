@@ -401,6 +401,8 @@ func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 		n := ref.Name().String()
 		for _, remote := range remotes {
 			if strings.HasPrefix(n, "refs/tags/"+remote+"/") {
+				// TODO(lint): Should we be checking errors here?
+				// nolint: errcheck
 				r.Storer.RemoveReference(ref.Name())
 				break
 			}
