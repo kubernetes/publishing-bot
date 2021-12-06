@@ -18,7 +18,16 @@ all: build
 -include $(CONFIG)
 -include $(CONFIG)-token
 
-DOCKER_REPO ?= k8s-publishing-bot
+GIT_TAG ?= $(shell git describe --tags --always --dirty)
+
+# Image variables
+IMG_REGISTRY ?= gcr.io/k8s-staging-publishing-bot
+IMG_NAME = publishing-bot
+
+IMG_VERSION ?= v0.0.0-1
+
+# TODO(image): Consider renaming this variable
+DOCKER_REPO ?= $(IMG_REGISTRY)/$(IMG_NAME)
 NAMESPACE ?=
 TOKEN ?=
 KUBECTL ?= kubectl
@@ -44,11 +53,20 @@ build:
 .PHONY: build
 
 build-image: build
-	docker build -t $(DOCKER_REPO) .
+	docker build \
+		-t $(DOCKER_REPO):$(GIT_TAG) \
+		-t $(DOCKER_REPO):$(IMG_VERSION) \
+		-t $(DOCKER_REPO):latest \
+		.
 .PHONY: build-image
 
 push-image:
+	docker push $(DOCKER_REPO):$(GIT_TAG)
+	docker push $(DOCKER_REPO):$(IMG_VERSION)
 	docker push $(DOCKER_REPO):latest
+
+build-and-push-image: build-image push-image
+.PHONY: build-and-push-image
 
 clean:
 	rm -rf _output
