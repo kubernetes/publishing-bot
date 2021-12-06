@@ -37,10 +37,10 @@ func main() {
 		}
 		errors := staging.EnsureStagingDirectoriesExist(rules)
 		if errors != nil {
-			glog.Fatalf("Invalid rules file %q", f)
 			for _, err := range errors {
 				glog.Errorf("Error : %s", err)
 			}
+			glog.Fatalf("Invalid rules file %q", f)
 		}
 		glog.Infof("validation successful")
 	}
