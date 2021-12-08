@@ -18,7 +18,7 @@ The robot is also responsible to update the `go-mod` and the `vendor/` directory
 
 * Adapt the rules in [config/kubernetes-rules-configmap.yaml](configs/kubernetes-rules-configmap.yaml)
 
-* For a new repo, add it to the repo list in [hack/fetch-all-latest-and-push.sh](hack/fetch-all-latest-and-push.sh)
+* For a new repo, add it to the repo list in [hack/repos.sh](hack/repos.sh)
 
 * [Test and deploy the changes](#testing-and-deploying-the-robot)
 
@@ -28,6 +28,7 @@ Currently we don't have tests for the bot. It relies on manual tests:
 
 * Fork the repos you are going the publish.
 * Run [hack/fetch-all-latest-and-push.sh](hack/fetch-all-latest-and-push.sh) from the bot root directory to update the branches of your repos. This will sync your forks with upstream. **CAUTION:** this might delete data in your forks.
+* Use [hack/create-repos.sh](hack/create-repos.sh) from the bot root directory to create any missing repos in the destination github org.
 
 * Create a config and a corresponding ConfigMap in [configs](configs),
   - by copying [configs/example](configs/example) and [configs/example-configmap.yaml](configs/example-configmap.yaml),
