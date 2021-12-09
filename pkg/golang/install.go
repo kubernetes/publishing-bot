@@ -78,7 +78,7 @@ func InstallGoVersions(rules *config.RepositoryRules) error {
 	return nil
 }
 
-func installGoVersion(v string, pth string) error {
+func installGoVersion(v, pth string) error {
 	if s, err := os.Stat(pth); err != nil && !os.IsNotExist(err) {
 		return err
 	} else if err == nil {

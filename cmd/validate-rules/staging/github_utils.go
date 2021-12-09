@@ -61,9 +61,9 @@ func fetchKubernetesStagingDirectoryFiles(branch string) ([]File, error) {
 			// try for 10 mins then give up!
 			if count == 120 {
 				return nil, fmt.Errorf("hitting github API limits, bailing out")
-			} else {
-				break
 			}
+
+			break
 		}
 	}
 

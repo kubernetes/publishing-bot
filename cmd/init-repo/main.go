@@ -103,11 +103,11 @@ func main() {
 		cfg.RulesFile = *rulesFile
 	}
 
-	if len(cfg.SourceRepo) == 0 || len(cfg.SourceOrg) == 0 {
+	if cfg.SourceRepo == "" || cfg.SourceOrg == "" {
 		glog.Fatalf("source-org and source-repo cannot be empty")
 	}
 
-	if len(cfg.TargetOrg) == 0 {
+	if cfg.TargetOrg == "" {
 		glog.Fatalf("Target organization cannot be empty")
 	}
 
@@ -116,7 +116,7 @@ func main() {
 		cfg.RulesFile = filepath.Join(BaseRepoPath, cfg.SourceRepo, os.Getenv("RULE_FILE_PATH"))
 	}
 
-	if len(cfg.RulesFile) == 0 {
+	if cfg.RulesFile == "" {
 		glog.Fatalf("No rules file provided")
 	}
 	rules, err := config.LoadRules(cfg.RulesFile)
@@ -143,9 +143,9 @@ func cloneForkRepo(cfg config.Config, repoName string) {
 
 	if _, err := os.Stat(repoDir); err == nil {
 		glog.Infof("Fork repository %q already cloned to %s, resetting remote URL ...", repoName, repoDir)
-		setUrlCmd := exec.Command("git", "remote", "set-url", "origin", forkRepoLocation)
-		setUrlCmd.Dir = repoDir
-		run(setUrlCmd)
+		setURLCmd := exec.Command("git", "remote", "set-url", "origin", forkRepoLocation)
+		setURLCmd.Dir = repoDir
+		run(setURLCmd)
 		os.Remove(filepath.Join(repoDir, ".git", "index.lock"))
 	} else {
 		glog.Infof("Cloning fork repository %s ...", forkRepoLocation)
@@ -166,7 +166,7 @@ func cloneForkRepo(cfg config.Config, repoName string) {
 func run(c *exec.Cmd) {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
-	if len(c.Dir) == 0 {
+	if c.Dir == "" {
 		c.Dir = BaseRepoPath
 	}
 	if err := c.Run(); err != nil {

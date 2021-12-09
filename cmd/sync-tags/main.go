@@ -65,6 +65,8 @@ var publishingBot = object.Signature{
 	Email: os.Getenv("GIT_COMMITTER_EMAIL"),
 }
 
+// TODO(lint): cyclomatic complexity 63 of func `main` is high (> 30)
+// nolint: gocyclo
 func main() {
 	// repository flags used when the repository is not k8s.io/kubernetes
 	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
@@ -112,15 +114,15 @@ func main() {
 	}
 
 	// get first-parent commit list of upstream branch
-	kUpdateBranch, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/remotes/%s/%s", *sourceRemote, *sourceBranch)))
+	srcUpdateBranch, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/remotes/%s/%s", *sourceRemote, *sourceBranch)))
 	if err != nil {
 		glog.Fatalf("Failed to open upstream branch %s: %v", *sourceBranch, err)
 	}
-	kHead, err := cache.CommitObject(r, *kUpdateBranch)
+	srcHead, err := cache.CommitObject(r, *srcUpdateBranch)
 	if err != nil {
 		glog.Fatalf("Failed to open upstream branch %s head: %v", *sourceBranch, err)
 	}
-	kFirstParents, err := git.FirstParentList(r, kHead)
+	srcFirstParents, err := git.FirstParentList(r, srcHead)
 	if err != nil {
 		glog.Fatalf("Failed to get upstream branch %s first-parent list: %v", *sourceBranch, err)
 	}
@@ -141,7 +143,7 @@ func main() {
 			glog.Fatalf("Failed to fetch tags for %q: %v", *sourceRemote, err)
 		}
 	}
-	kTagCommits, err := remoteTags(r, *sourceRemote)
+	srcTagCommits, err := remoteTags(r, *sourceRemote)
 	if err != nil {
 		glog.Fatalf("Failed to iterate through %s tags: %v", *sourceRemote, err)
 	}
@@ -160,21 +162,21 @@ func main() {
 	}
 
 	// filter tags by source branch
-	kFirstParentCommits := map[string]struct{}{}
-	for _, kc := range kFirstParents {
-		kFirstParentCommits[kc.Hash.String()] = struct{}{}
+	srcFirstParentCommits := map[string]struct{}{}
+	for _, kc := range srcFirstParents {
+		srcFirstParentCommits[kc.Hash.String()] = struct{}{}
 	}
-	for name, kh := range kTagCommits {
+	for name, kh := range srcTagCommits {
 		// ignore non-annotated tags
 		tag, err := r.TagObject(kh)
 		if err != nil {
-			delete(kTagCommits, name)
+			delete(srcTagCommits, name)
 			continue
 		}
 
 		// delete tag not on the source branch
-		if _, ok := kFirstParentCommits[tag.Target.String()]; !ok {
-			delete(kTagCommits, name)
+		if _, ok := srcFirstParentCommits[tag.Target.String()]; !ok {
+			delete(srcTagCommits, name)
 		}
 	}
 
@@ -182,9 +184,9 @@ func main() {
 
 	mappingFilesWritten := map[string]bool{}
 
-	// create or update tags from kTagCommits as local tags with the given prefix
+	// create or update tags from srcTagCommits as local tags with the given prefix
 	createdTags := []string{}
-	for name, kh := range kTagCommits {
+	for name, kh := range srcTagCommits {
 		bName := name
 		if *prefix != "" {
 			bName = *prefix + name[1:] // remove the v
@@ -211,7 +213,8 @@ func main() {
 
 		// ignore old tags
 		if tag.Tagger.When.Before(time.Date(2017, 9, 1, 0, 0, 0, 0, time.UTC)) {
-			//fmt.Printf("Ignoring old tag origin/%s from %v\n", bName, tag.Tagger.When)
+			// TODO: Fix or remove
+			// fmt.Printf("Ignoring old tag origin/%s from %v\n", bName, tag.Tagger.When)
 			continue
 		}
 
@@ -224,7 +227,7 @@ func main() {
 
 		// if any of the tag exists locally,
 		// delete the tags, clear the cache and recreate them
-		if tagExists(r, bName) {
+		if tagExists(bName) {
 			commit, commitTime, err := taggedCommitHashAndTime(r, bName)
 			if err != nil {
 				glog.Fatalf("Failed to get tag %s: %v", bName, err)
@@ -242,7 +245,7 @@ func main() {
 			}
 		}
 
-		if publishSemverTag && tagExists(r, semverTag) {
+		if publishSemverTag && tagExists(semverTag) {
 			fmt.Printf("Clearing cache for local tag %s.\n", semverTag)
 			if err := cleanCacheForTag(semverTag); err != nil {
 				glog.Fatalf("Failed to clean go mod cache for %s: %v", semverTag, err)
@@ -267,7 +270,7 @@ func main() {
 			if err != nil {
 				glog.Fatalf("Failed to get branch %s first-parent list: %v", localBranch, err)
 			}
-			sourceCommitsToDstCommits, err = git.SourceCommitToDstCommits(r, *commitMsgTag, bFirstParents, kFirstParents)
+			sourceCommitsToDstCommits, err = git.SourceCommitToDstCommits(r, *commitMsgTag, bFirstParents, srcFirstParents)
 			if err != nil {
 				glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
 			}
@@ -289,7 +292,7 @@ func main() {
 				if err != nil {
 					glog.Fatal(f)
 				}
-				if err := writeKubeCommitMapping(f, r, sourceCommitsToDstCommits, kFirstParents); err != nil {
+				if err := writeKubeCommitMapping(f, sourceCommitsToDstCommits, srcFirstParents); err != nil {
 					glog.Fatal(err)
 				}
 				defer f.Close()
@@ -400,6 +403,8 @@ func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 		n := ref.Name().String()
 		for _, remote := range remotes {
 			if strings.HasPrefix(n, "refs/tags/"+remote+"/") {
+				// TODO(lint): Should we be checking errors here?
+				// nolint: errcheck
 				r.Storer.RemoveReference(ref.Name())
 				break
 			}
@@ -411,11 +416,11 @@ func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 func createAnnotatedTag(h plumbing.Hash, name string, date time.Time, message string) error {
 	setUsernameCmd := exec.Command("git", "config", "user.name", publishingBot.Name)
 	if err := setUsernameCmd.Run(); err != nil {
-		return fmt.Errorf("Unable to set global configuration: %v", err)
+		return fmt.Errorf("unable to set global configuration: %v", err)
 	}
 	setEmailCmd := exec.Command("git", "config", "user.email", publishingBot.Email)
 	if err := setEmailCmd.Run(); err != nil {
-		return fmt.Errorf("Unable to set global configuration: %v", err)
+		return fmt.Errorf("unable to set global configuration: %v", err)
 	}
 	cmd := exec.Command("git", "tag", "-a", "-m", message, name, h.String())
 	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_COMMITTER_DATE=%s", date.Format(rfc2822)))
@@ -424,13 +429,17 @@ func createAnnotatedTag(h plumbing.Hash, name string, date time.Time, message st
 	return cmd.Run()
 }
 
-func tagExists(r *gogit.Repository, tag string) bool {
+func tagExists(tag string) bool {
 	cmd := exec.Command("git", "show-ref", fmt.Sprintf("refs/tags/%s", tag))
 	return cmd.Run() == nil
 
+	// TODO: Fix or remove
+	// nolint: gocritic
 	// the following does not work with go-git, for unknown reasons:
-	//_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag)))
-	//return err == nil
+	/*
+		_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag)))
+		return err == nil
+	*/
 }
 
 func fetchTags(r *gogit.Repository, remote string) error {
@@ -446,8 +455,8 @@ func fetchTags(r *gogit.Repository, remote string) error {
 	return err
 }
 
-func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Hash]plumbing.Hash, kFirstParents []*object.Commit) error {
-	for _, kc := range kFirstParents {
+func writeKubeCommitMapping(w io.Writer, m map[plumbing.Hash]plumbing.Hash, srcFirstParents []*object.Commit) error {
+	for _, kc := range srcFirstParents {
 		msg := strings.SplitN(kc.Message, "\n", 2)[0]
 		var err error
 		if dh, ok := m[kc.Hash]; ok {
@@ -463,7 +472,7 @@ func writeKubeCommitMapping(w io.Writer, r *gogit.Repository, m map[plumbing.Has
 	return nil
 }
 
-func mappingOutputFileName(fnameTpl string, branch, tag string) string {
+func mappingOutputFileName(fnameTpl, branch, tag string) string {
 	tpl, err := template.New("mapping-output-file").Parse(fnameTpl)
 	if err != nil {
 		glog.Fatal(err)
@@ -478,7 +487,8 @@ func mappingOutputFileName(fnameTpl string, branch, tag string) string {
 	}); err != nil {
 		glog.Fatal(err)
 	}
-	return string(buf.Bytes())
+
+	return buf.String()
 }
 
 func checkoutBranchTagCommit(r *gogit.Repository, bh plumbing.Hash, dependentRepos []string) *gogit.Worktree {

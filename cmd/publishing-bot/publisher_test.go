@@ -26,8 +26,10 @@ func Test_updateEnv(t *testing.T) {
 		name string
 		env  []string
 		want []string
-	}{
-		//{"no PATH", []string{"FOO=42"}, []string{"FOO=42", "PATH=/usr/local/go"}},
+	}{ // TODO: Fix or remove
+		/*
+			{"no PATH", []string{"FOO=42"}, []string{"FOO=42", "PATH=/usr/local/go"}},
+		*/
 		{"no PATH", []string{"FOO=42", "PATH=/bin", "BAR=1"}, []string{"FOO=42", "PATH=/usr/local/go:/bin", "BAR=1"}},
 	}
 	for _, tt := range tests {

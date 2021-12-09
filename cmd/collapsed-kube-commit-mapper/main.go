@@ -101,15 +101,15 @@ func main() {
 	}
 
 	// get first-parent commit list of upstream branch
-	kUpstreamBranch, err := r.ResolveRevision(plumbing.Revision(*sourceBranch))
+	srcUpstreamBranch, err := r.ResolveRevision(plumbing.Revision(*sourceBranch))
 	if err != nil {
 		glog.Fatalf("Failed to open upstream branch %s: %v", *sourceBranch, err)
 	}
-	kHead, err := cache.CommitObject(r, *kUpstreamBranch)
+	srcHead, err := cache.CommitObject(r, *srcUpstreamBranch)
 	if err != nil {
 		glog.Fatalf("Failed to open upstream branch %s head: %v", *sourceBranch, err)
 	}
-	kFirstParents, err := git.FirstParentList(r, kHead)
+	srcFirstParents, err := git.FirstParentList(r, srcHead)
 	if err != nil {
 		glog.Fatalf("Failed to get upstream branch %s first-parent list: %v", *sourceBranch, err)
 	}
@@ -120,7 +120,7 @@ func main() {
 		glog.Fatalf("Failed to get first-parent commit list for %s: %v", dstHead.Hash, err)
 	}
 
-	sourceCommitToDstCommits, err := git.SourceCommitToDstCommits(r, *commitMsgTag, dstFirstParents, kFirstParents)
+	sourceCommitToDstCommits, err := git.SourceCommitToDstCommits(r, *commitMsgTag, dstFirstParents, srcFirstParents)
 	if err != nil {
 		glog.Fatalf("Failed to map upstream branch %s to HEAD: %v", *sourceBranch, err)
 	}

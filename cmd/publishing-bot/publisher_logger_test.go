@@ -18,17 +18,15 @@ package main
 
 import (
 	"bytes"
-	"io"
 	"sync"
 	"testing"
 )
 
 func TestLogLineWriter(t *testing.T) {
-
 	buf := new(bytes.Buffer)
-
-	var fakeLogWriter io.Writer
-	fakeLogWriter = newSyncWriter(muxWriter{buf})
+	fakeLogWriter := newSyncWriter(
+		muxWriter{buf},
+	)
 
 	content1 := "XXXXXXXXXXXXXX"
 	content2 := "YYYYYYYYYYYYYY"
@@ -45,6 +43,8 @@ func TestLogLineWriter(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			for i := 0; i < 99999; i++ {
+				// TODO(lint): Should we be checking errors here?
+				// nolint: errcheck
 				w.Write([]byte(content + "\n"))
 			}
 			wg.Done()
@@ -55,7 +55,7 @@ func TestLogLineWriter(t *testing.T) {
 	finalContent := buf.String()
 	uniqueLines := make(map[string]struct{})
 
-	NewLogBuilderWithMaxBytes(0, finalContent).
+	newLogBuilderWithMaxBytes(0, finalContent).
 		Trim("\n").
 		Split("\n").
 		Filter(func(line string) bool {
@@ -69,5 +69,4 @@ func TestLogLineWriter(t *testing.T) {
 			t.Fail()
 		}
 	}
-
 }

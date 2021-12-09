@@ -26,14 +26,14 @@ type logBuilder struct {
 	tailings []string
 }
 
-func NewLogBuilderWithMaxBytes(maxBytes int, rawLogs ...string) *logBuilder {
+func newLogBuilderWithMaxBytes(maxBytes int, rawLogs ...string) *logBuilder {
 	ignoreBytesLimits := maxBytes <= 0
 	size := 0
 	logBuilder := &logBuilder{}
 	for i := len(rawLogs) - 1; i >= 0; i-- {
 		if curSize := size + len(rawLogs[i]); !ignoreBytesLimits && curSize > maxBytes {
 			rawLogs[i] = rawLogs[i][curSize-maxBytes:]
-			rawLogs[i] = "..." + string(rawLogs[i][3:])
+			rawLogs[i] = "..." + rawLogs[i][3:]
 			logBuilder.logs = append(logBuilder.logs, rawLogs[i])
 			break
 		}

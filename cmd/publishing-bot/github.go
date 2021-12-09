@@ -42,7 +42,8 @@ func ReportOnIssue(e error, logs, token, org, repo string, issue int) error {
 	client := githubClient(token)
 
 	// filter out token, if it happens to be in the log (it shouldn't!)
-	logs = strings.Replace(logs, token, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", -1)
+	// TODO: Consider using log sanitizer from sigs.k8s.io/release-utils
+	logs = strings.ReplaceAll(logs, token, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
 	// who am I?
 	myself, resp, err := client.Users.Get(ctx, "")
@@ -117,7 +118,7 @@ func CloseIssue(token, org, repo string, issue int) error {
 
 func transfromLogToGithubFormat(original string, maxLines int, headings ...string) string {
 	logCount := 0
-	transformed := NewLogBuilderWithMaxBytes(65000, original).
+	transformed := newLogBuilderWithMaxBytes(65000, original).
 		AddHeading(headings...).
 		AddHeading("```").
 		Trim("\n").

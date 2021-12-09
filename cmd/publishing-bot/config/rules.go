@@ -23,7 +23,7 @@ type Dependency struct {
 
 func (c Dependency) String() string {
 	repo := c.Repository
-	if len(repo) == 0 {
+	if repo == "" {
 		repo = "<source>"
 	}
 	return fmt.Sprintf("[repository %s, branch %s]", repo, c.Branch)
@@ -39,7 +39,7 @@ type Source struct {
 
 func (c Source) String() string {
 	repo := c.Repository
-	if len(repo) == 0 {
+	if repo == "" {
 		repo = "<source>"
 	}
 	return fmt.Sprintf("[repository %s, branch %s, subdir %s]", repo, c.Branch, c.Dir)
@@ -85,31 +85,32 @@ type RepositoryRules struct {
 // LoadRules loads the repository rules either from the remote HTTP location or
 // a local file path.
 func LoadRules(ruleFile string) (*RepositoryRules, error) {
-	var (
-		content []byte
-		err     error
-	)
-	if ruleUrl, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleUrl.Host) > 0 {
-		glog.Infof("loading rules file from url : %s", ruleUrl)
-		content, err = readFromUrl(ruleUrl)
+	var content []byte
+
+	if ruleURL, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleURL.Host) > 0 {
+		glog.Infof("loading rules file from url : %s", ruleURL)
+		content, err = readFromURL(ruleURL)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		glog.Infof("loading rules file : %s", ruleFile)
 		content, err = ioutil.ReadFile(ruleFile)
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	var rules RepositoryRules
-	if err = yaml.Unmarshal(content, &rules); err != nil {
+	if err := yaml.Unmarshal(content, &rules); err != nil {
 		return nil, err
 	}
+
 	return &rules, nil
 }
 
-// readFromUrl reads the rule file from provided URL.
-func readFromUrl(u *url.URL) ([]byte, error) {
+// readFromURL reads the rule file from provided URL.
+func readFromURL(u *url.URL) ([]byte, error) {
 	client := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}

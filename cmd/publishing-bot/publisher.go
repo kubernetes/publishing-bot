@@ -75,7 +75,11 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	attrFile := filepath.Join(repoDir, ".git", "info", "attributes")
 	if _, err := os.Stat(attrFile); os.IsNotExist(err) {
 		glog.Infof("Disabling text conversion at %s.", repoDir)
-		os.MkdirAll(filepath.Join(repoDir, ".git", "info"), 0755)
+		err := os.MkdirAll(filepath.Join(repoDir, ".git", "info"), 0755)
+		if err != nil {
+			return nil, fmt.Errorf("creating .git/info: %v", err)
+		}
+
 		if err := ioutil.WriteFile(attrFile, []byte(`
 * -text
 `), 0644); err != nil {
@@ -174,7 +178,7 @@ func (p *PublisherMunger) skippedBranch(b string) bool {
 }
 
 // git clone dstURL to dst if dst doesn't exist yet.
-func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
+func (p *PublisherMunger) ensureCloned(dst, dstURL string) error {
 	if _, err := os.Stat(dst); err == nil {
 		return nil
 	}
@@ -193,18 +197,30 @@ func (p *PublisherMunger) ensureCloned(dst string, dstURL string) error {
 }
 
 func (p *PublisherMunger) runSmokeTests(smokeTest, oldHead, newHead string, branchEnv []string) error {
-	if len(smokeTest) > 0 && string(oldHead) != string(newHead) {
+	if len(smokeTest) > 0 && oldHead != newHead {
 		cmd := exec.Command("/bin/bash", "-xec", smokeTest)
 		cmd.Env = append([]string(nil), branchEnv...) // make mutable
-		cmd.Env = append(cmd.Env, "GO111MODULE=on")
-		cmd.Env = append(cmd.Env, fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")))
+		cmd.Env = append(
+			cmd.Env,
+			"GO111MODULE=on",
+			fmt.Sprintf("GOPROXY=file://%s/pkg/mod/cache/download", os.Getenv("GOPATH")),
+		)
 		if err := p.plog.Run(cmd); err != nil {
 			// do not clean up to allow debugging with kubectl-exec.
 			return err
 		}
-		exec.Command("git", "reset", "--hard").Run()
-		exec.Command("git", "clean", "-f", "-f", "-d").Run()
+
+		err := exec.Command("git", "reset", "--hard").Run()
+		if err != nil {
+			return err
+		}
+
+		err = exec.Command("git", "clean", "-f", "-f", "-d").Run()
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -252,12 +268,13 @@ func (p *PublisherMunger) construct() error {
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
 			}
-			if len(branchRule.Source.Dir) == 0 {
+			if branchRule.Source.Dir == "" {
 				branchRule.Source.Dir = "."
 				p.plog.Infof("%v: 'dir' cannot be empty, defaulting to '.'", branchRule)
 			}
 
 			// get old HEAD. Ignore errors as the branch might be non-existent
+			// nolint: errcheck
 			oldHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output()
 
 			goPath := os.Getenv("GOPATH")
@@ -311,6 +328,8 @@ func (p *PublisherMunger) construct() error {
 				return err
 			}
 
+			// TODO(lint): Should we be checking errors here?
+			// nolint: errcheck
 			newHead, _ := exec.Command("git", "rev-parse", "HEAD").Output()
 
 			p.plog.Infof("Running branch-specific smoke tests for branch %s", branchRule.Name)
@@ -401,10 +420,9 @@ func publishedFileName(repo, branch string) string {
 }
 
 // Run constructs the repos and pushes them. It returns logs and the last master hash.
-func (p *PublisherMunger) Run() (string, string, error) {
+func (p *PublisherMunger) Run() (logs, masterHead string, err error) {
 	buf := bytes.NewBuffer(nil)
-	var err error
-	if p.plog, err = NewPublisherLog(buf, path.Join(p.baseRepoPath, "run.log")); err != nil {
+	if p.plog, err = newPublisherLog(buf, path.Join(p.baseRepoPath, "run.log")); err != nil {
 		return "", "", err
 	}
 
@@ -414,23 +432,25 @@ func (p *PublisherMunger) Run() (string, string, error) {
 		p.plog.Flush()
 		return p.plog.Logs(), "", err
 	}
+
 	if err := p.updateRules(); err != nil { // this comes after the source update because we might fetch the rules from there.
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
 		return p.plog.Logs(), "", err
 	}
+
 	if err := p.construct(); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
 		return p.plog.Logs(), "", err
 	}
+
 	if err := p.publish(newUpstreamHeads); err != nil {
 		p.plog.Errorf("%v", err)
 		p.plog.Flush()
 		return p.plog.Logs(), "", err
 	}
 
-	var masterHead string
 	if h, ok := newUpstreamHeads["master"]; ok {
 		masterHead = h.String()
 	}

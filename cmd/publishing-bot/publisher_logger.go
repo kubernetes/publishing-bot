@@ -40,7 +40,7 @@ type plog struct {
 	buf                *bytes.Buffer
 }
 
-func NewPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
+func newPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
 	logFile := &lumberjack.Logger{
 		Filename: logFileName,
 		MaxAge:   7,
@@ -53,8 +53,16 @@ func NewPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
 }
 
 func (p *plog) write(s string) {
+	// TODO(lint): Should we be checking errors here?
+	// nolint: errcheck
 	p.combinedBufAndFile.Write([]byte("[" + time.Now().Format(time.RFC822) + "]: "))
+
+	// TODO(lint): Should we be checking errors here?
+	// nolint: errcheck
 	p.combinedBufAndFile.Write([]byte(s))
+
+	// TODO(lint): Should we be checking errors here?
+	// nolint: errcheck
 	p.combinedBufAndFile.Write([]byte("\n"))
 }
 
@@ -123,7 +131,7 @@ type cmdStr exec.Cmd
 func (cs cmdStr) String() string {
 	args := make([]string, len(cs.Args))
 	for i, s := range cs.Args {
-		if strings.IndexRune(s, ' ') != -1 {
+		if strings.ContainsRune(s, ' ') {
 			args[i] = fmt.Sprintf("%q", s)
 		} else {
 			args[i] = s
@@ -173,6 +181,8 @@ func (lw lineWriter) Write(b []byte) (int, error) {
 	return n, nil
 }
 
+// TODO(lint): result 0 (int) is never used
+// nolint: unparam
 func (lw lineWriter) Flush() (int, error) {
 	written, err := lw.buf.WriteTo(lw.writer)
 	lw.buf.Reset()

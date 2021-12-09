@@ -48,7 +48,7 @@ func TestNewGithubLogBuilder(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		builder := NewLogBuilderWithMaxBytes(c.maxBytes, c.rawLog)
+		builder := newLogBuilderWithMaxBytes(c.maxBytes, c.rawLog)
 		if l := builder.Log(); l != c.expectedLog {
 			t.Errorf("log mismatched: expected(%q) actual(%q)", c.expectedLog, l)
 			t.Fail()
@@ -67,7 +67,7 @@ barbarbar
 foobarfoo
 foobaz
 fooworld`
-	actual := NewLogBuilderWithMaxBytes(0, testLog).
+	actual := newLogBuilderWithMaxBytes(0, testLog).
 		AddHeading("****").
 		Trim("\n").
 		Split("\n").

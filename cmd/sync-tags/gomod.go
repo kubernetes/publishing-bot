@@ -128,7 +128,7 @@ func depsImportPaths(depsRepo []string) (string, error) {
 	d := strings.Split(dir, "/")
 	basePackage := d[len(d)-2]
 
-	var depImportPathList []string
+	depImportPathList := []string{}
 	for _, dep := range depsRepo {
 		depImportPathList = append(depImportPathList, fmt.Sprintf("%s/%s", basePackage, dep))
 	}
@@ -150,13 +150,13 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 		fmt.Printf("%s for %s is already packaged up.\n", pseudoVersionOrTag, depPkg)
 		return nil
 	} else if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("Could not check if %s exists: %v", goModFile, err)
+		return fmt.Errorf("could not check if %s exists: %v", goModFile, err)
 	}
 
 	fmt.Printf("Packaging up %s for %s into go mod cache.\n", pseudoVersionOrTag, depPkg)
 
 	// create the cache if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(goModFile), os.FileMode(755)); err != nil {
+	if err := os.MkdirAll(filepath.Dir(goModFile), os.FileMode(0755)); err != nil {
 		return fmt.Errorf("unable to create %s directory: %v", cacheDir, err)
 	}
 
@@ -262,7 +262,7 @@ func copyFile(src, dst string) error {
 // fullPackageName return the Golang full package name of dir inside the ${GOPATH}/src.
 func fullPackageName(dir string) (string, error) {
 	gopath := os.Getenv("GOPATH")
-	if len(gopath) == 0 {
+	if gopath == "" {
 		return "", fmt.Errorf("GOPATH is not set")
 	}
 

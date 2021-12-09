@@ -21,16 +21,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/yaml.v2"
-
-	"strings"
-
-	"time"
-
-	"path/filepath"
 
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
@@ -45,6 +42,8 @@ Command line flags override config values.
 	flag.PrintDefaults()
 }
 
+// TODO(lint): cyclomatic complexity 38 of func `main` is high (> 30)
+// nolint: gocyclo
 func main() {
 	configFilePath := flag.String("config", "", "the config file in yaml format")
 	githubHost := flag.String("github-host", "", "the address of github (defaults to github.com)")
@@ -115,11 +114,11 @@ func main() {
 		glog.Fatalf("Failed to get absolute path for base-publish-script-path %q: %v", cfg.BasePublishScriptPath, err)
 	}
 
-	if len(cfg.SourceRepo) == 0 || len(cfg.SourceOrg) == 0 {
+	if cfg.SourceRepo == "" || cfg.SourceOrg == "" {
 		glog.Fatalf("source-org and source-repo cannot be empty")
 	}
 
-	if len(cfg.TargetOrg) == 0 {
+	if cfg.TargetOrg == "" {
 		glog.Fatalf("Target organization cannot be empty")
 	}
 
@@ -140,7 +139,7 @@ func main() {
 		cfg.RulesFile = filepath.Join(baseRepoPath, cfg.SourceRepo, os.Getenv("RULE_FILE_PATH"))
 	}
 
-	if len(cfg.RulesFile) == 0 {
+	if cfg.RulesFile == "" {
 		glog.Fatalf("No rules file provided")
 	}
 
