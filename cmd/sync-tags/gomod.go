@@ -27,8 +27,8 @@ import (
 	"strings"
 	"time"
 
-	gogit "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // updateGomodWithTaggedDependencies gets the dependencies at the given tag and fills go.mod and go.sum.
