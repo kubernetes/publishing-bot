@@ -6,7 +6,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/renstrom/dedent v1.0.0
+	github.com/lithammer/dedent v1.0.0
 	github.com/shurcooL/go v0.0.0-20171108033853-004faa6b0118
 	golang.org/x/mod v0.4.3-0.20210409134425-858fdbee9c24
 	golang.org/x/oauth2 v0.0.0-20171205225816-ea8c6730ed5b
