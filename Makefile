@@ -50,6 +50,7 @@ build:
 	$(call build_cmd,sync-tags)
 	$(call build_cmd,init-repo)
 	$(call build_cmd,gomod-zip)
+	$(call build_cmd,update-rules)
 .PHONY: build
 
 build-image: build
