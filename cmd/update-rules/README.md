@@ -12,23 +12,55 @@ branch rule to configured branches.
 
 For existing branch rule, it updates the given go version for each destination repository.
 
+### Build:
+
+To build the `update-rules` CLI binary, run:
+
+##### Linux:
+
+```
+make build
+```
+
+##### macOS:
+
+```
+GOOS=darwin make build
+```
+
+The generated binary will be located at `_output/update-rules`.
+
+##### Container Image:
+
+To build the container image, run:
+
+```
+make build-image
+```
+
+`update-rules` binary will be available at the root `/` in the image and can be invoked as:
+
+```
+docker run -t gcr.io/k8s-staging-publishing-bot/publishing-bot:latest /update-rules
+```
+
 ### Usage:
 
 Run the command line as:
 ```
-  go run cmd/update-rules/main.go -h
+  update-rules -h
 
-  Usage:  update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH]
+  Usage: update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH]
 
   Examples:
-  # Update rules for branch release-1.21 with go version 1.16.4
-  update-rules -branch release-1.21 -go 1.16.4 -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
+  # Update rules for branch release-1.23 with go version 1.16.4
+  update-rules -branch release-1.23 -go 1.16.4 -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
 
   # Update rules using URL to input rules file
-  update-rules -branch release-1.21 -go 1.16.4 -rules https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
+  update-rules -branch release-1.23 -go 1.16.4 -rules https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
 
   # Update rules and export to /tmp/rules.yaml
-  update-rules -branch release-1.22 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
+  update-rules -branch release-1.24 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
 
   -alsologtostderr
     	log to standard error as well as files
