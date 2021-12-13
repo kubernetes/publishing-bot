@@ -62,7 +62,7 @@ func parseOptions() options {
 	flag.Parse()
 
 	if o.branch == "" {
-		glog.Errorf("branch flag requires a non-empty value, e.g. --branch release-x.yy")
+		glog.Errorf("branch flag requires a non-empty value, e.g. --branch release-x.yy. Run `update-rules -h` for help!")
 		os.Exit(2)
 	}
 
