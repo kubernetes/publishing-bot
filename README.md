@@ -17,10 +17,30 @@ The robot is also responsible to update the `go-mod` and the `vendor/` directory
 ### Publishing a new repo or a new branch
 
 * Adapt the rules in [config/kubernetes-rules-configmap.yaml](configs/kubernetes-rules-configmap.yaml)
+  * For Kubernetes, the configuration is located in the [kubernetes/kubernetes repository](https://github.com/kubernetes/kubernetes/blob/master/staging/publishing/rules.yaml)
 
 * For a new repo, add it to the repo list in [hack/repos.sh](hack/repos.sh)
 
 * [Test and deploy the changes](#testing-and-deploying-the-robot)
+
+### Updating rules
+
+#### Adapting rules for a new branch
+
+If you're creating a new branch, you need to update the publishing-bot rules to reflect that. For Kubernetes, this means that you need to update the [`rules.yaml` file](https://github.com/kubernetes/kubernetes/blob/master/staging/publishing/rules.yaml) on the `master` branch.
+
+For each repository, add a new branch to the `branches` stanza. If the branch is using the same Go version as the [default Go version](https://github.com/kubernetes/kubernetes/blob/489fb9bee3f626b3eeb120a5af89ad8c2b2f1c20/staging/publishing/rules.yaml#L10), you don't need to specify the Go version for the branch (otherwise you need to do that).
+
+#### Adapting rules for a Go update
+
+If you're updating Go version for the master or release branches, you need to adapt the [`rules.yaml` file in kubernetes/kubernetes](https://github.com/kubernetes/kubernetes/blob/master/staging/publishing/rules.yaml) on the `master` branch.
+
+* If you're updating Go version for the master branch, you need to change the [default Go version](https://github.com/kubernetes/kubernetes/blob/489fb9bee3f626b3eeb120a5af89ad8c2b2f1c20/staging/publishing/rules.yaml#L10) to the new version.
+  * If release branches that depend on the default Go version use a different (e.g. old) Go version, you need to explicitly set Go version for those branches (e.g. [like here](https://github.com/kubernetes/kubernetes/blob/489fb9bee3f626b3eeb120a5af89ad8c2b2f1c20/staging/publishing/rules.yaml#L37))
+* If you're updating Go version for a previous release branch
+  * if it's the same version as the default Go version, you don't need to specify the Go version for that branch
+  * if it's **NOT** the same version as the default Go version, you need to explicitly specify the Go version for that branch (e.g. [like here](https://github.com/kubernetes/kubernetes/blob/489fb9bee3f626b3eeb120a5af89ad8c2b2f1c20/staging/publishing/rules.yaml#L37))
+    * Examples: https://github.com/kubernetes/kubernetes/pull/93998, https://github.com/kubernetes/kubernetes/pull/101232, https://github.com/kubernetes/kubernetes/pull/104226
 
 ### Testing and deploying the robot
 
