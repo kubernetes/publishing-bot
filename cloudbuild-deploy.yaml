@@ -1,0 +1,46 @@
+timeout: 14400s
+
+# hack/fetch-all-latest-and-push.sh
+# hack/create-repos.sh
+# make build-image push-image CONFIG=configs/<yourconfig>
+# make run CONFIG=configs/<yourconfig> TOKEN=<github-token>
+
+#### SECURITY NOTICE ####
+# Google Cloud Build (GCB) supports the usage of secrets for build requests.
+# Secrets appear within GCB configs as base64-encoded strings.
+# These secrets are GCP Cloud KMS-encrypted and cannot be decrypted by any human or system
+# outside of GCP Cloud KMS for the GCP project this encrypted resource was created for.
+# Seeing the base64-encoded encrypted blob here is not a security event for the project.
+#
+# More details on using encrypted resources on Google Cloud Build can be found here:
+# https://cloud.google.com/cloud-build/docs/securing-builds/use-encrypted-secrets-credentials
+#
+# (Please do not remove this security notice.)
+#secrets:
+#- kmsKeyName: projects/k8s-releng-prod/locations/global/keyRings/release/cryptoKeys/encrypt-0
+#  secretEnv:
+    # TODO(test-deploy): Upload the publishing-bot key
+#    GITHUB_TOKEN: CiQAIkWjMFgubym04n054BpfS8ED1VAiDVzF2WtEAE9kpXL1HEASUQBLz1D++TFNeowLVAI8MAQ86xJvshtqevcU5lcHEo3K+39HHIZr3uojPto5vm235XkfWWeMM3/VBOwZoelmAyvY2RPHpo7u/Y9kKfCrJu5coA==
+
+steps:
+- name: gcr.io/k8s-staging-releng/releng-ci:latest-go1.17
+  entrypoint: "bash"
+  args:
+  - "hack/fetch-all-latest-and-push.sh"
+
+- name: gcr.io/k8s-staging-releng/releng-ci:latest-go1.17
+  entrypoint: "bash"
+  args:
+  - "hack/create-repos.sh"
+
+#tags:
+#- 
+
+options:
+  machineType: N1_HIGHCPU_32
+  substitution_option: 'ALLOW_LOOSE'
+
+substitutions:
+  # _GIT_TAG will be filled with a git-based tag of the form vYYYYMMDD-hash, and
+  # can be used as a substitution
+  _GIT_TAG: '12345'
