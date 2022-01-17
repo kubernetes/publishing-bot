@@ -66,6 +66,8 @@ type RepositoryRule struct {
 	Library   bool   `yaml:"library,omitempty"`
 	// not updated when true
 	Skip bool `yaml:"skipped,omitempty"`
+	// RemoveGitAttributes removes all .gitattributes files in the repo
+	RemoveGitAttributes *bool `yaml:"remove-git-attributes,omitempty"`
 }
 
 type RepositoryRules struct {

@@ -237,6 +237,12 @@ func (p *PublisherMunger) construct() error {
 			continue
 		}
 
+		removeGitAttributes := ""
+		if repoRule.RemoveGitAttributes != nil && *repoRule.RemoveGitAttributes {
+			removeGitAttributes = "true"
+			p.plog.Infof("remove-git-attributes is enabled")
+		}
+
 		// clone the destination repo
 		dstDir := filepath.Join(p.baseRepoPath, repoRule.DestinationRepository, "")
 		dstURL := fmt.Sprintf("https://%s/%s/%s.git", p.config.GithubHost, p.config.TargetOrg, repoRule.DestinationRepository)
@@ -319,6 +325,7 @@ func (p *PublisherMunger) construct() error {
 				strings.Join(p.reposRules.RecursiveDeletePatterns, " "),
 				skipTags,
 				lastPublishedUpstreamHash,
+				removeGitAttributes,
 			)
 			cmd.Env = append([]string(nil), branchEnv...) // make mutable
 			if p.reposRules.SkipGomod {

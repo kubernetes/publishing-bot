@@ -137,6 +137,7 @@ sync_repo() {
     shift 9
 
     local recursive_delete_pattern="${1}"
+    local remove_git_attributes="${2}"
 
     local commit_msg_tag="${source_repo_name^}-commit"
     readonly subdirectory src_branch dst_branch deps is_library
@@ -508,11 +509,13 @@ sync_repo() {
     # get consistent and complete go.mod on each sync. Skip if nothing changed.
     # NOTE: we cannot skip collapsed-kube-commit-mapper below because its
     #       output depends on upstream's HEAD.
-    echo "Fixing up go.mod after a complete sync"
+    echo "Fixing up go.mod and .gitattributes after a complete sync"
     if [ $(git rev-parse HEAD) != "${dst_old_head}" ] || [ "${new_branch}" = "true" ]; then
+        remove-git-attributes "${remove_git_attributes}" true
         fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" true true ${commit_msg_tag} "${recursive_delete_pattern}"
     else
-        # update go.mod without squashing because it would mutate a published commit
+        # update go.mod and .gitattributes without squashing because it would mutate a published commit
+        remove-git-attributes "${remove_git_attributes}" false
         fix-gomod "${deps}" "${required_packages}" "${base_package}" "${is_library}" true false ${commit_msg_tag} "${recursive_delete_pattern}"
     fi
 
@@ -917,3 +920,31 @@ checkout-deps-to-kube-commit() {
     done
 }
 
+function remove-git-attributes() {
+    local remove_git_attributes="${1}"
+    if [ ! "${remove_git_attributes:-}" = true ]; then
+        return 0
+    fi
+
+    local squash="${2:-true}"
+    local dst_old_commit=$(git rev-parse HEAD)
+
+    find . -name ".gitattributes" -type f -delete
+
+    # squash commits into ${dst_old_commit} or create a new commit
+    if ! git diff --exit-code ${dst_old_commit} >/dev/null; then
+        if [ "${squash}" = true ]; then
+            echo "Amending last merge with .gitattributes changes."
+            git reset --soft -q ${dst_old_commit}
+            git add -u
+            git commit -q --amend --allow-empty -C ${dst_old_commit}
+        else
+            echo "Adding a commit for .gitattributes changes."
+            git reset --soft -q ${dst_old_commit}
+            git add -u
+            git commit -q --allow-empty -m "sync: remove .gitattributes files"
+        fi
+    fi
+
+    ensure-clean-working-dir
+}
