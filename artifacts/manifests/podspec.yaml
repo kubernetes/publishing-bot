@@ -67,7 +67,7 @@ volumes:
     name: publisher-rules
 - name: secret-volume
   secret:
-    secretName: github-token
+    secretName: publishing-bot-github-token
 - name: repo
   emptyDir: {}
 - name: cache
