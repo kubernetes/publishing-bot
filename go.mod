@@ -12,7 +12,7 @@ require (
 	golang.org/x/mod v0.4.3-0.20210409134425-858fdbee9c24
 	golang.org/x/oauth2 v0.0.0-20171205225816-ea8c6730ed5b
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v2 v2.2.8
 )
 
 require (
