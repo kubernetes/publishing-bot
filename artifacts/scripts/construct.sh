@@ -92,6 +92,7 @@ git config user.email "$GIT_COMMITTER_EMAIL"
 git config user.name "$GIT_COMMITTER_NAME"
 
 echo "Running garbage collection."
+git config gc.pruneExpire 3.days.ago
 git gc --auto
 echo "Fetching from origin."
 git fetch origin --no-tags --prune
