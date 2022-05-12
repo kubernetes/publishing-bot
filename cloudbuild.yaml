@@ -44,6 +44,6 @@ tags:
 - ${_IMG_VERSION}
 
 images:
-- 'gcr.io/$PROJECT_ID/publishing-bot:$_GIT_TAG'
-- 'gcr.io/$PROJECT_ID/publishing-bot:$_IMG_VERSION'
-- 'gcr.io/$PROJECT_ID/publishing-bot:latest'
+- 'gcr.io/$PROJECT_ID/k8s-publishing-bot:$_GIT_TAG'
+- 'gcr.io/$PROJECT_ID/k8s-publishing-bot:$_IMG_VERSION'
+- 'gcr.io/$PROJECT_ID/k8s-publishing-bot:latest'
