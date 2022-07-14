@@ -28,7 +28,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
