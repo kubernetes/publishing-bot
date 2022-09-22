@@ -34,6 +34,7 @@ repos=(
     controller-manager
     cri-api
     csi-translation-lib
+    kms
     kube-aggregator
     kube-controller-manager
     kube-proxy
