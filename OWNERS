@@ -1,11 +1,10 @@
 approvers:
-  #- sig-release-leads # TODO(owners): Enable upon the release of Kubernetes v1.24
-  #- release-engineering-approvers # TODO(owners): Enable upon the release of Kubernetes v1.24
+  - sig-release-leads
+  - release-engineering-approvers
   - dims
   - nikhita
   - sttts
 reviewers:
-  - release-engineering-approvers # TODO(owners): Remove upon the release of Kubernetes v1.24
-  #- release-engineering-reviewers # TODO(owners): Enable upon the release of Kubernetes v1.24
+  - release-engineering-reviewers
 emeritus_approvers:
   - caesarxuchao
