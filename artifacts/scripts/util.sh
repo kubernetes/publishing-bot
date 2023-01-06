@@ -831,6 +831,7 @@ update-deps-in-gomod() {
     [ -s go.sum ] && rm go.sum
 
     GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
+    fixAmbiguousImports
     GOPROXY="file://${GOPATH}/pkg/mod/cache/download,https://proxy.golang.org" GO111MODULE=on GOPRIVATE="${dep_packages}" go mod tidy
 
     git add go.mod go.sum
@@ -851,6 +852,14 @@ update-deps-in-gomod() {
 
     # nothing should be left
     ensure-clean-working-dir
+}
+
+function fixAmbiguousImports() {
+   # ref: https://github.com/kubernetes/publishing-bot/issues/304
+   # TODO(nikhita): remove after https://github.com/kubernetes/kubernetes/pull/114829 gets published.
+   if [ -n "$(go list -m cloud.google.com/go)" ]; then
+    go get "cloud.google.com/go@$(go list -m -json cloud.google.com/go | jq -r '.Version')"
+   fi
 }
 
 gomod-pseudo-version() {
