@@ -34,8 +34,8 @@ func (c Dependency) String() string {
 type Source struct {
 	Repository string `yaml:"repository,omitempty"`
 	Branch     string `yaml:"branch"`
-	// Dir from repo root
-	Dir string `yaml:"dir,omitempty"`
+	// Directories from repo root
+	Dir []string `yaml:"dir,omitempty"`
 }
 
 func (c Source) String() string {
@@ -43,7 +43,7 @@ func (c Source) String() string {
 	if repo == "" {
 		repo = "<source>"
 	}
-	return fmt.Sprintf("[repository %s, branch %s, subdir %s]", repo, c.Branch, c.Dir)
+	return fmt.Sprintf("[repository %s, branch %s, subdir {%s}]", repo, c.Branch, c.Dir)
 }
 
 type BranchRule struct {

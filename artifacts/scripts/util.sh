@@ -168,9 +168,9 @@ sync_repo() {
     # Then select all new mainline commits on filtered-branch as ${f_mainline_commits}
     # to loop through them later.
     local f_mainline_commits=""
-    if [ "${new_branch}" = "true" ] && [ "${src_branch}" = master ]; then
+    if [ "${new_branch}" = "true" ] && [ "${src_branch}" = main ]; then
         # new master branch
-        filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
+        filter-repo "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
         # the corresponding fast-forward merge and left the feature branch commits)
@@ -189,34 +189,37 @@ sync_repo() {
         # - old branch which continue with the last old commit.
         if [ "${new_branch}" = "true" ]; then
             # new non-master branch
-            local k_branch_point_commit=$(git-fork-point upstream/${src_branch} upstream/master)
+            local k_branch_point_commit=$(git-fork-point upstream/${src_branch} upstream/main)
             if [ -z "${k_branch_point_commit}" ]; then
-                echo "Couldn't find a branch point of upstream/${src_branch} and upstream/master."
+                echo "Couldn't find a branch point of upstream/${src_branch} and upstream/main."
                 return 1
             fi
 
+            # if a new directory or directories is added into the repo and into the publishing rules, new branch creation
+            # should not be done until the bot completes one successful run on the newly added directories
+            #
             # does ${subdirectory} exist at ${k_branch_point_commit}? If not it was introduced to the branch via some fast-forward merge.
             # we use the fast-forward merge commit's second parent (on master) as branch point.
-            if [ $(git ls-tree --name-only -r ${k_branch_point_commit} -- "${subdirectory}" | wc -l) = 0 ]; then
-                echo "Subdirectory ${subdirectory} did not exist at branch point ${k_branch_point_commit}. Looking for fast-forward merge introducing it."
-                last_with_subdir=$(git rev-list upstream/${src_branch} --first-parent --remove-empty -- "${subdirectory}" | tail -1)
-                if [ -z "${last_with_subdir}" ]; then
-                    echo "Couldn't find any commit introducing ${subdirectory} on branch upstream/${src_branch}"
-                    return 1
-                fi
-                if ! is-merge ${last_with_subdir}; then
-                    echo "Subdirectory ${subdirectory} was introduced on non-merge branch commit ${last_with_subdir}. We don't support this."
-                    return 1
-                fi
-                k_branch_point_commit=$(git rev-parse ${last_with_subdir}^2)
-                echo "Using second-parent ${k_branch_point_commit} of merge ${last_with_subdir} on upstream/${src_branch} as starting point for new branch"
-            fi
+#            if [ $(git ls-tree --name-only -r ${k_branch_point_commit} -- "${subdirectory}" | wc -l) = 0 ]; then
+#                echo "Subdirectory ${subdirectory} did not exist at branch point ${k_branch_point_commit}. Looking for fast-forward merge introducing it."
+#                last_with_subdir=$(git rev-list upstream/${src_branch} --first-parent --remove-empty -- "${subdirectory}" | tail -1)
+##                if [ -z "${last_with_subdir}" ]; then
+##                    echo "Couldn't find any commit introducing ${subdirectory} on branch upstream/${src_branch}"
+##                    return 1
+##                fi
+##                if ! is-merge ${last_with_subdir}; then
+##                    echo "Subdirectory ${subdirectory} was introduced on non-merge branch commit ${last_with_subdir}. We don't support this."
+##                    return 1
+##                fi
+#                k_branch_point_commit=$(git rev-parse ${last_with_subdir}^2)
+#                echo "Using second-parent ${k_branch_point_commit} of merge ${last_with_subdir} on upstream/${src_branch} as starting point for new branch"
+#            fi
 
             echo "Using branch point ${k_branch_point_commit} as new starting point for new branch ${dst_branch}."
             git branch -f filtered-branch-base ${k_branch_point_commit} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
-            filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
+            filter-repo "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
 
             # for a new branch that is not master: map filtered-branch-base to our ${dst_branch} as ${dst_branch_point_commit}
             local k_branch_point_commit=$(kube-commit ${commit_msg_tag} filtered-branch-base) # k_branch_point_commit will probably be different than the k_branch_point_commit
@@ -228,9 +231,9 @@ sync_repo() {
                 echo "Considering only single destination branch point commit at ${k_branch_point_commit} for ${dst_branch}."
             fi
 
-            local dst_branch_point_commit=$(branch-commit ${commit_msg_tag} ${k_branch_point_commit} master ${pick_dst_branch_point_commit_args})
+            local dst_branch_point_commit=$(branch-commit ${commit_msg_tag} ${k_branch_point_commit} main ${pick_dst_branch_point_commit_args})
             if [ -z "${dst_branch_point_commit}" ]; then
-                echo "Couldn't find a corresponding branch point commit for ${k_branch_point_commit} as ascendent of origin/master."
+                echo "Couldn't find a corresponding branch point commit for ${k_branch_point_commit} as ascendent of origin/main."
                 return 1
             fi
 
@@ -250,7 +253,7 @@ sync_repo() {
             git branch -f filtered-branch-base ${k_base_merge} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
-            filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
+            filter-repo "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
         fi
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
@@ -296,7 +299,7 @@ sync_repo() {
                 # it's on the mainline itself, no merge above it
                 k_new_pending_merge_commit=""
             fi
-            if [ ${dst_branch} != master ] && is-merge-with-master "${k_mainline_commit}"; then
+            if [ ${dst_branch} != main ] && is-merge-with-main "${k_mainline_commit}"; then
                 # merges with master on non-master branches we always handle as pending merge commit.
                 k_new_pending_merge_commit=${k_mainline_commit}
             fi
@@ -308,18 +311,18 @@ sync_repo() {
             #    (ii) it's dropped on the filtered-branch, i.e. fast-forward
             # b) it's another merge
             local dst_parent2="HEAD"
-            if [ ${dst_branch} != master ] && is-merge-with-master "${k_pending_merge_commit}"; then
+            if [ ${dst_branch} != main ] && is-merge-with-main "${k_pending_merge_commit}"; then
                 # it's a merge with master. Recreate this merge on ${dst_branch} with ${dst_parent2} as second parent on the master branch
                 local k_parent2="$(git rev-parse ${k_pending_merge_commit}^2)"
-                read k_parent2 dst_parent2 <<<$(look -b ${k_parent2} ../kube-commits-$(basename "${PWD}")-master)
+                read k_parent2 dst_parent2 <<<$(look -b ${k_parent2} ../kube-commits-$(basename "${PWD}")-main)
                 if [ -z "${dst_parent2}" ]; then
-                    echo "Corresponding $(dirname ${PWD}) master branch commit not found for upstream master merge ${k_pending_merge_commit}. Odd."
+                    echo "Corresponding $(dirname ${PWD}) main branch commit not found for upstream main merge ${k_pending_merge_commit}. Odd."
                     return 1
                 fi
 
                 f_pending_merge_commit=$(branch-commit ${commit_msg_tag} ${k_pending_merge_commit} filtered-branch)
                 if [ -n "${f_pending_merge_commit}" ]; then
-                    echo "Cherry-picking source master-merge  ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
+                    echo "Cherry-picking source main-merge  ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
 
                     # cherry-pick the difference on the filtered mainline
                     reset-gomod ${f_pending_merge_commit}^1 # unconditionally reset go.mod
@@ -333,7 +336,7 @@ sync_repo() {
                 else
                     # the merge commit with master was dropped. This means it was a fast-forward merge,
                     # which means we can just re-use the tree on the dst master branch.
-                    echo "Cherry-picking source dropped-master-merge ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
+                    echo "Cherry-picking source dropped-main-merge ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
                     git reset -q --hard ${dst_parent2}
                 fi
             else
@@ -357,17 +360,17 @@ sync_repo() {
         fi
 
         # is it a merge or a single commit on the mainline to apply?
-        if [ ${dst_branch} != master ] && is-merge-with-master ${k_mainline_commit}; then
-            echo "Deferring master merge commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
-        elif [ ${dst_branch} != master ] && [ -n "${k_pending_merge_commit}" ] && is-merge-with-master "${k_pending_merge_commit}"; then
-            echo "Skipping master commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit}). Master merge commit ${k_pending_merge_commit} is pending."
+        if [ ${dst_branch} != main ] && is-merge-with-main ${k_mainline_commit}; then
+            echo "Deferring main merge commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
+        elif [ ${dst_branch} != main ] && [ -n "${k_pending_merge_commit}" ] && is-merge-with-main "${k_pending_merge_commit}"; then
+            echo "Skipping main commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit}). Main merge commit ${k_pending_merge_commit} is pending."
         elif ! is-merge ${f_mainline_commit} || pick-merge-as-single-commit ${k_mainline_commit}; then
             local pick_args=""
             if is-merge ${f_mainline_commit}; then
                 pick_args="-m 1"
-                echo "Cherry-picking k8s.io/kubernetes merge-commit  ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
+                echo "Cherry-picking $source_repo_org/$source_repo_name merge-commit  ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
             else
-                echo "Cherry-picking k8s.io/kubernetes single-commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
+                echo "Cherry-picking $source_repo_org/$source_repo_name single-commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
             fi
 
             # reset go.mod?
@@ -461,7 +464,7 @@ sync_repo() {
                     dst_needs_gomod_update=true
                 fi
 
-                echo "Cherry-picking k8s.io/kubernetes branch-commit $(kube-commit ${commit_msg_tag} ${f_commit}): $(commit-subject ${f_commit})."
+                echo "Cherry-picking $source_repo_org/$source_repo_name branch-commit $(kube-commit ${commit_msg_tag} ${f_commit}): $(commit-subject ${f_commit})."
                 if ! GIT_COMMITTER_DATE="$(commit-date ${f_commit})" git cherry-pick --keep-redundant-commits ${f_commit} >/dev/null; then
                     echo
                     show-working-dir-status
@@ -474,7 +477,7 @@ sync_repo() {
             done
 
             # commit empty PR merge. This will carry the actual SHA1 from the upstream commit. It will match tags as well.
-            echo "Cherry-picking k8s.io/kubernetes branch-merge  ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
+            echo "Cherry-picking $source_repo_org/$source_repo_name branch-merge  ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
             local date=$(commit-date ${f_mainline_commit}) # author and committer date is equal for PR merges
             git reset -q $(GIT_COMMITTER_DATE="${date}" GIT_AUTHOR_DATE="${date}" git commit-tree -p ${dst_merge_point_commit} -p HEAD -m "$(commit-message ${f_mainline_commit})" HEAD^{tree})
 
@@ -518,8 +521,9 @@ sync_repo() {
 
     # create look-up file for collapsed upstream commits
     local repo=$(basename ${PWD})
-    echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch}"
-    /collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
+    # the change in dst_branch name is done so as to handle branch names which have "/"
+    echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch/\//_}"
+    /collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch/\//_}
 }
 
 # for some PR branches cherry-picks fail. Put commits here where we only pick the whole merge as a single commit.
@@ -564,8 +568,13 @@ EOF
 
 # amend-gomod-at checks out the go.mod at the given commit and amend it to the previous commit.
 function amend-gomod-at() {
+    # TODO(akhilerm): the go.sum changes can be removed, since the bot will be run only after initial filter-repo run   
+	local GOSUM_FILE="go.sum"
+        if [ ! -f go.sum ]; then
+            GOSUM_FILE=""
+        fi
     if [ -f go.mod ]; then
-        git checkout ${f_mainline_commit} go.mod go.sum # reset to mainline state which is guaranteed to be correct
+        git checkout ${f_mainline_commit} go.mod ${GOSUM_FILE} # reset to mainline state which is guaranteed to be correct
         git commit --amend --no-edit -q
     fi
 }
@@ -611,6 +620,31 @@ function filter-branch() {
         done
     fi
     git filter-branch -f --index-filter "${index_filter}" --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${4} ${5} >/dev/null
+}
+
+# rewrites git history to *only* include $subdirectory
+function filter-repo() {
+    local commit_msg_tag="${1}"
+    local subdirectory="${2}"
+    local recursive_delete_pattern="${3}"
+
+    echo "Running git filter-repo ..."
+
+    # create the --path <subdir> commands for all the required subdirectories
+    # convert subdirectory to an array by splitting the : separated string
+    IFS=':' read -r -a subdirectory <<< "$subdirectory"
+    local path_filter_command=""
+    for dir in "${subdirectory[@]}"; do
+        path_filter_command+=" --path ${dir}"
+    done
+
+# TODO(akhilerm) nit if the commit message ends in a new line, we dont need new line here in commit callback, else add new line
+# TODO(akhilerm) not recommended to do --refs partial filter, we can apply the filter and then cherry pick only from the needed branches
+    git filter-repo \
+        --force \
+        --commit-callback 'commit.message = commit.message + b"\n'"${commit_msg_tag}"': " + commit.original_id' \
+        ${path_filter_command} \
+        --refs ${4} ${5} > /dev/null
 }
 
 function is-merge() {
@@ -676,8 +710,8 @@ function kube-commit() {
 function git-find-merge() {
     # taken from https://stackoverflow.com/a/38941227: intersection of both files, with the order of the second
     awk 'NR==FNR{a[$1]++;next} a[$1] ' \
-        <(git rev-list ${1}^1..${2:-master} --first-parent) \
-        <(git rev-list ${1}..${2:-master} --ancestry-path; git rev-parse ${1}) \
+        <(git rev-list ${1}^1..${2:-main} --first-parent) \
+        <(git rev-list ${1}..${2:-main} --ancestry-path; git rev-parse ${1}) \
     | tail -1
 }
 
@@ -687,7 +721,7 @@ function git-find-merge() {
 function git-fork-point() {
     # taken from https://stackoverflow.com/a/38941227: intersection of both files, with the order of the second
     awk 'NR==FNR{a[$1]++;next} a[$1] ' \
-        <(git rev-list ${2:-master} --first-parent) \
+        <(git rev-list ${2:-main} --first-parent) \
         <(git rev-list ${1:-HEAD} --first-parent) \
     | head -1
 }
@@ -758,13 +792,19 @@ function fix-gomod() {
 function reset-gomod() {
     local f_clean_commit=${1}
 
+    # TODO(akhilerm): the go.sum changes can be removed, since the bot will be run only after initial filter-repo run
+    local GOSUM_FILE="go.sum"
+    if [ ! -f go.sum ]; then
+        GOSUM_FILE=""
+    fi
+
     # checkout or delete go.mod
     if [ -n "$(git ls-tree ${f_clean_commit}^{tree} go.mod)" ]; then
-        git checkout ${f_clean_commit} go.mod go.sum
-        git add go.mod go.sum
+        git checkout ${f_clean_commit} go.mod ${GOSUM_FILE}
+        git add go.mod ${GOSUM_FILE}
     elif [ -f go.mod ]; then
-        rm -f go.mod go.sum
-        git rm -f go.mod go.sum
+        rm -f go.mod ${GOSUM_FILE}
+        git rm -f go.mod ${GOSUM_FILE}
     fi
 
     # commit go.mod unconditionally
@@ -794,52 +834,16 @@ update-deps-in-gomod() {
         return 0
     fi
 
-    local deps_array=()
-    IFS=',' read -a deps_array <<< "${1}"
-    local dep_count=${#deps_array[@]}
-    local base_package=${2}
-
-    # if dependencies exist, dep_packages is a comma separated list of {base_package}/{dep}. Eg: "k8s.io/api,k8s.io/apimachinery"
-    local dep_packages=""
-    if [ "$dep_count" != 0 ]; then
-      dep_packages="$(echo ${1} | tr "," "\n" | sed -e 's/:.*//' -e s,^,"${base_package}/", | paste -sd "," -)"
+    # TODO(akhilerm): the go.sum changes can be removed, since the bot will be run only after initial filter-repo run
+    local GOSUM_FILE="go.sum"
+    if [ ! -f go.sum ]; then
+        GOSUM_FILE=""
     fi
 
-    for (( i=0; i<${dep_count}; i++ )); do
-        local dep="${deps_array[i]%%:*}"
-        local dep_commit=$(cd ../${dep}; gomod-pseudo-version)
-        echo "Updating ${base_package}/${dep} to point to ${dep_commit}"
-        GO111MODULE=on go mod edit -fmt -require "${base_package}/${dep}@${dep_commit}"
-        GO111MODULE=on go mod edit -fmt -replace "${base_package}/${dep}=${base_package}/${dep}@${dep_commit}"
-    done
+    sed -i -e '/replace (/,/)/d' go.mod
+    go mod tidy
 
-    GO111MODULE=on go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("../")) | "-dropreplace \(.Old.Path)"' | GO111MODULE=on xargs -L 100 go mod edit -fmt
-    
-    # TODO(nikhita): remove this after go.sum values are fixed.
-    #
-    # gomod-zip copied go's zip creation code but they had diverged.
-    # due to this, gomod-zip created different zip files in the cache
-    # compared to what go mod download would create.
-    #
-    # From Go 1.15.11 and Go 1.16.3, go automatically derives the ziphash
-    # from the zip file in the cache - https://github.com/golang/go/issues/44812.
-    # This meant that go added incorrect hash values to go.sum because these
-    # were derived from the zip files produced by the diverged gomod-zip code.
-    #
-    # So remove go.sum here and regenerate again using
-    # go mod download and go mod tidy.
-    [ -s go.sum ] && rm go.sum
-
-    GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
-    GOPROXY="file://${GOPATH}/pkg/mod/cache/download,https://proxy.golang.org" GO111MODULE=on GOPRIVATE="${dep_packages}" go mod tidy
-
-    git add go.mod go.sum
-
-    # double check that we got all dependencies
-    if grep 000000000000 go.sum; then
-        echo "Invalid go.mod created. Failing."
-        exit 1
-    fi
+    git add go.mod ${GOSUM_FILE}
 
     # check if there are new contents
     if git-index-clean; then
@@ -854,7 +858,7 @@ update-deps-in-gomod() {
 }
 
 gomod-pseudo-version() {
-    TZ=GMT git show -q --pretty='format:v0.0.0-%cd-%h' --date='format-local:%Y%m%d%H%M%S' --abbrev=12
+    TZ=GMT git show ${COMMIT} -q --pretty='format:v0.0.0-%cd-%h' --date='format-local:%Y%m%d%H%M%S' --abbrev=12
 }
 
 # checkout the dependencies to the versions corresponding to the kube commit of HEAD

@@ -26,7 +26,7 @@ import (
 )
 
 // globalMapBranchDirectories is a cache to avoid hitting GH limits
-// key is the branch (`master` or `release-1.23`) and the value
+// key is the branch (`main` or `release-1.23`) and the value
 // is the list of files/directories fetched using GH api in the
 // correct directory
 var globalMapBranchDirectories = make(map[string][]File)
@@ -39,10 +39,13 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules) []error {
 	var errors []error
 	for _, rule := range rules.Rules {
 		for _, branchRule := range rule.Branches {
-			_, directory := filepath.Split(branchRule.Source.Dir)
-			err := checkDirectoryExistsInBranch(directory, branchRule.Source.Branch)
-			if err != nil {
-				errors = append(errors, err)
+			// We are ensuring all the mentioned directories exist
+			for _, dir := range branchRule.Source.Dir {
+				_, directory := filepath.Split(dir)
+				err := checkDirectoryExistsInBranch(directory, branchRule.Source.Branch)
+				if err != nil {
+					errors = append(errors, err)
+				}
 			}
 			for _, dependency := range branchRule.Dependencies {
 				err := checkDirectoryExistsInBranch(dependency.Repository, dependency.Branch)

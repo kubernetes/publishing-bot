@@ -61,7 +61,7 @@ for (( i=0; i<${repo_count}; i++ )); do
 
     # delete all tags and branches in origin
     rm -f .git/refs/tags/*
-    branches=$(git branch -r | grep "^ *origin" | sed 's,^ *origin/,,' | grep -v HEAD | grep -v '^master' || true)
+    branches=$(git branch -r | grep "^ *origin" | sed 's,^ *origin/,,' | grep -v HEAD | grep -v '^main' || true)
     tags=$(git tag | sed 's,^,refs/tags/,')
     if [ -n "${branches}${tags}" ]; then
         git push --atomic --delete origin ${branches} ${tags}

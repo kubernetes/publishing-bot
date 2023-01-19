@@ -45,9 +45,9 @@ fi
 # the target repo
 REPO="${1}"
 # src branch of k8s.io/kubernetes
-SRC_BRANCH="${2:-master}"
+SRC_BRANCH="${2:-main}"
 # dst branch of k8s.io/${repo}
-DST_BRANCH="${3:-master}"
+DST_BRANCH="${3:-main}"
 # dependent k8s.io repos
 DEPS="${4}"
 # required packages that are manually copied completely into vendor/, e.g. k8s.io/code-generator or a sub-package. They must be dependencies as well, either via Go imports or via ${DEPS}.
@@ -56,6 +56,7 @@ REQUIRED="${5}"
 # from https://github.com/kubernetes/kubernetes.
 SOURCE_REMOTE="${6}"
 # maps to staging/k8s.io/src/${REPO}
+# TODO make changes here, now its a list of subdirectories
 SUBDIR="${7}"
 # source repository organization name (eg. kubernetes)
 SOURCE_REPO_ORG="${8}"
@@ -139,7 +140,8 @@ fi
 LAST_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 LAST_HEAD=$(git rev-parse HEAD)
 EXTRA_ARGS=()
-PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH}.sh
+# the separator is used at the end to handle branches with / in them
+PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH/\//_}.sh
 echo "#!/bin/bash" > ${PUSH_SCRIPT}
 chmod +x ${PUSH_SCRIPT}
 
@@ -147,7 +149,7 @@ if [ -z "${SKIP_TAGS}" ]; then
     /sync-tags --prefix "$(echo ${SOURCE_REPO_NAME})-" \
                --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
                --source-remote upstream --source-branch "${SRC_BRANCH}" \
-               --push-script ${PUSH_SCRIPT} \
+	       --push-script ${PUSH_SCRIPT} \
                --dependencies "${DEPS}" \
                --mapping-output-file "../tag-${REPO}-{{.Tag}}-mapping" \
                --publish-v0-semver \

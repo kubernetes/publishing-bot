@@ -39,4 +39,4 @@ cleanup_github_token() {
 trap cleanup_github_token EXIT SIGINT
 
 HOME=/netrc git push origin "${BRANCH}" --no-tags
-HOME=/netrc ../push-tags-$(basename "${PWD}")-${BRANCH}.sh
+HOME=/netrc ../push-tags-$(basename "${PWD}")-${BRANCH/\//_}.sh

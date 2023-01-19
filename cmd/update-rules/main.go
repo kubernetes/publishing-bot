@@ -28,7 +28,7 @@ import (
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
-const MainBranchName = "master"
+const MainBranchName = "main"
 
 type options struct {
 	branch    string
@@ -50,7 +50,7 @@ func parseOptions() options {
   update-rules -branch release-1.21 -go 1.16.4 -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
 
   # Update rules using URL to input rules file
-  update-rules -branch release-1.21 -go 1.16.4 -rules https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
+  update-rules -branch release-1.21 -go 1.16.4 -rules https://raw.githubusercontent.com/kubernetes/kubernetes/main/staging/publishing/rules.yaml
 
   # Update rules and export to /tmp/rules.yaml
   update-rules -branch release-1.22 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml`
@@ -135,7 +135,7 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string) {
 			}
 		}
 
-		// if mainBranch rules not found for repo, it means it's removed from master tree, log warning and skip updating the rules
+		// if mainBranch rules not found for repo, it means it's removed from main tree, log warning and skip updating the rules
 		if !mainBranchRuleFound {
 			glog.Warningf("%s branch rules not found for repo %s, skipping to update branch %s rules", MainBranchName, r.DestinationRepository, branch)
 			continue

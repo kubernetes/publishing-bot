@@ -74,7 +74,7 @@ Usage: %s --source-branch <source-branch> [-l] [--commit-message-tag <Commit-mes
 
 func main() {
 	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
-	sourceBranch := flag.String("source-branch", "", "the source branch (fully qualified e.g. refs/remotes/origin/master) used as the filter-branch basis")
+	sourceBranch := flag.String("source-branch", "", "the source branch (fully qualified e.g. refs/remotes/origin/main) used as the filter-branch basis")
 	showMessage := flag.Bool("l", false, "list the commit message after the two hashes")
 
 	flag.Usage = Usage

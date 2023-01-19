@@ -147,11 +147,11 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 func (p *PublisherMunger) updateRules() error {
 	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
 
-	glog.Infof("Checking out master at %s.", repoDir)
-	cmd := exec.Command("git", "checkout", "master")
+	glog.Infof("Checking out main at %s.", repoDir)
+	cmd := exec.Command("git", "checkout", "main")
 	cmd.Dir = repoDir
 	if _, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to checkout master: %v", err)
+		return fmt.Errorf("failed to checkout main: %v", err)
 	}
 
 	rules, err := config.LoadRules(p.config.RulesFile)
@@ -267,8 +267,9 @@ func (p *PublisherMunger) construct() error {
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
 			}
-			if branchRule.Source.Dir == "" {
-				branchRule.Source.Dir = "."
+			if len(branchRule.Source.Dir) == 0 {
+				//branchRule.Source.Dir = "."
+				// TODO should bail out here, cannot have a default value
 				p.plog.Infof("%v: 'dir' cannot be empty, defaulting to '.'", branchRule)
 			}
 
@@ -309,7 +310,7 @@ func (p *PublisherMunger) construct() error {
 				formatDeps(branchRule.Dependencies),
 				strings.Join(branchRule.RequiredPackages, ":"),
 				sourceRemote,
-				branchRule.Source.Dir,
+				strings.Join(branchRule.Source.Dir, ":"),
 				p.config.SourceRepo,
 				p.config.SourceRepo,
 				p.config.BasePackage,
@@ -416,8 +417,8 @@ func publishedFileName(repo, branch string) string {
 	return fmt.Sprintf("published-%s-%s", repo, branch)
 }
 
-// Run constructs the repos and pushes them. It returns logs and the last master hash.
-func (p *PublisherMunger) Run() (logs, masterHead string, err error) {
+// Run constructs the repos and pushes them. It returns logs and the last main hash.
+func (p *PublisherMunger) Run() (logs, mainHead string, err error) {
 	buf := bytes.NewBuffer(nil)
 	if p.plog, err = newPublisherLog(buf, path.Join(p.baseRepoPath, "run.log")); err != nil {
 		return "", "", err
@@ -448,9 +449,9 @@ func (p *PublisherMunger) Run() (logs, masterHead string, err error) {
 		return p.plog.Logs(), "", err
 	}
 
-	if h, ok := newUpstreamHeads["master"]; ok {
-		masterHead = h.String()
+	if h, ok := newUpstreamHeads["main"]; ok {
+		mainHead = h.String()
 	}
 
-	return p.plog.Logs(), masterHead, nil
+	return p.plog.Logs(), mainHead, nil
 }
