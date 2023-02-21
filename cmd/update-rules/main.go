@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -188,5 +187,5 @@ func exportRules(fPath string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(fPath), 0755); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(fPath, data, 0644)
+	return os.WriteFile(fPath, data, 0644)
 }

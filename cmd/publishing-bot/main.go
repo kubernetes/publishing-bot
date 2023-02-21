@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,7 +64,7 @@ func main() {
 
 	cfg := config.Config{}
 	if *configFilePath != "" {
-		bs, err := ioutil.ReadFile(*configFilePath)
+		bs, err := os.ReadFile(*configFilePath)
 		if err != nil {
 			glog.Fatalf("Failed to load config file from %q: %v", *configFilePath, err)
 		}
@@ -169,7 +168,7 @@ func main() {
 
 		if cfg.TokenFile != "" && cfg.GithubIssue != 0 && !cfg.DryRun {
 			// load token
-			bs, err := ioutil.ReadFile(cfg.TokenFile)
+			bs, err := os.ReadFile(cfg.TokenFile)
 			if err != nil {
 				glog.Fatalf("Failed to load token file from %q: %v", cfg.TokenFile, err)
 			}

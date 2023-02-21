@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -572,7 +571,7 @@ func cleanCacheForTag(tag string) error {
 
 	listFile := fmt.Sprintf("%s/list", cacheDir)
 	if _, err := os.Stat(listFile); err == nil {
-		oldContent, err2 := ioutil.ReadFile(listFile)
+		oldContent, err2 := os.ReadFile(listFile)
 		if err2 != nil {
 			return fmt.Errorf("error reading file %s: %v", listFile, err2)
 		}
@@ -586,7 +585,7 @@ func cleanCacheForTag(tag string) error {
 		}
 		output := strings.Join(newContent, "\n")
 
-		if err := ioutil.WriteFile(listFile, []byte(output), 0644); err != nil {
+		if err := os.WriteFile(listFile, []byte(output), 0644); err != nil {
 			return fmt.Errorf("error reading file %s: %v", listFile, err)
 		}
 	}

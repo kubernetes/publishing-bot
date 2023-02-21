@@ -18,7 +18,6 @@ package golang
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -90,7 +89,7 @@ func installGoVersion(v, pth string) error {
 	}
 
 	glog.Infof("Installing go %s to %s", v, pth)
-	tmpPath, err := ioutil.TempDir(os.Getenv("GOPATH"), "go-tmp-")
+	tmpPath, err := os.MkdirTemp(os.Getenv("GOPATH"), "go-tmp-")
 	if err != nil {
 		return err
 	}

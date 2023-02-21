@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -60,7 +59,7 @@ func main() {
 
 	cfg := config.Config{}
 	if *configFilePath != "" {
-		bs, err := ioutil.ReadFile(*configFilePath)
+		bs, err := os.ReadFile(*configFilePath)
 		if err != nil {
 			glog.Fatalf("Failed to load config file from %q: %v", *configFilePath, err)
 		}

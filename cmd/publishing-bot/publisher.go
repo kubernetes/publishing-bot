@@ -19,7 +19,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -80,13 +79,13 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 			return nil, fmt.Errorf("creating .git/info: %v", err)
 		}
 
-		if err := ioutil.WriteFile(attrFile, []byte(`
+		if err := os.WriteFile(attrFile, []byte(`
 * -text
 `), 0644); err != nil {
 			return nil, fmt.Errorf("failed to create .git/info/attributes: %v", err)
 		}
 
-		fis, err := ioutil.ReadDir(repoDir)
+		fis, err := os.ReadDir(repoDir)
 		if err != nil {
 			return nil, err
 		}
@@ -294,7 +293,7 @@ func (p *PublisherMunger) construct() error {
 
 			// get old published hash to eventually skip cherry picking
 			var lastPublishedUpstreamHash string
-			bs, err := ioutil.ReadFile(path.Join(p.baseRepoPath, publishedFileName(repoRule.DestinationRepository, branchRule.Name)))
+			bs, err := os.ReadFile(path.Join(p.baseRepoPath, publishedFileName(repoRule.DestinationRepository, branchRule.Name)))
 			if err != nil && !os.IsNotExist(err) {
 				return err
 			}
@@ -407,7 +406,7 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 			if !ok {
 				return fmt.Errorf("no upstream branch %q found", branchRule.Source.Branch)
 			}
-			if err := ioutil.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(upstreamBranchHead.String()), 0644); err != nil {
+			if err := os.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(upstreamBranchHead.String()), 0644); err != nil {
 				return err
 			}
 		}

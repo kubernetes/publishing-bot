@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -186,7 +185,7 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	if err != nil {
 		return fmt.Errorf("error marshaling .info file for %s: %v", depPkg, err)
 	}
-	if err := ioutil.WriteFile(fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), moduleFile, 0644); err != nil {
+	if err := os.WriteFile(fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), moduleFile, 0644); err != nil {
 		return fmt.Errorf("failed to write %s file for %s: %v", fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), depPkg, err)
 	}
 

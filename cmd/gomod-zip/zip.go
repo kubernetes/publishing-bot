@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -82,7 +82,7 @@ func getModuleFile(packagePath, version string) (*modfile.File, error) {
 	}
 	defer file.Close()
 
-	moduleBytes, err := ioutil.ReadAll(file)
+	moduleBytes, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s: %v", goModPath, err)
 	}
@@ -107,7 +107,7 @@ func createZipArchive(packagePath string, moduleFile *modfile.File, outputDirect
 	if err := modzip.CreateFromDir(&zipContents, moduleFile.Module.Mod, packagePath); err != nil {
 		return fmt.Errorf("create zip from dir: %w", err)
 	}
-	if err := ioutil.WriteFile(zipFilePath, zipContents.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(zipFilePath, zipContents.Bytes(), 0644); err != nil {
 		return fmt.Errorf("writing zip file: %w", err)
 	}
 	return nil
