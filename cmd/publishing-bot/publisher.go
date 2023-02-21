@@ -74,14 +74,14 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	attrFile := filepath.Join(repoDir, ".git", "info", "attributes")
 	if _, err := os.Stat(attrFile); os.IsNotExist(err) {
 		glog.Infof("Disabling text conversion at %s.", repoDir)
-		err := os.MkdirAll(filepath.Join(repoDir, ".git", "info"), 0755)
+		err := os.MkdirAll(filepath.Join(repoDir, ".git", "info"), 0o755)
 		if err != nil {
 			return nil, fmt.Errorf("creating .git/info: %v", err)
 		}
 
 		if err := os.WriteFile(attrFile, []byte(`
 * -text
-`), 0644); err != nil {
+`), 0o644); err != nil {
 			return nil, fmt.Errorf("failed to create .git/info/attributes: %v", err)
 		}
 
@@ -273,8 +273,7 @@ func (p *PublisherMunger) construct() error {
 			}
 
 			// get old HEAD. Ignore errors as the branch might be non-existent
-			// nolint: errcheck
-			oldHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output()
+			oldHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output() //nolint: errcheck
 
 			goPath := os.Getenv("GOPATH")
 			branchEnv := append([]string(nil), os.Environ()...) // make mutable
@@ -328,8 +327,7 @@ func (p *PublisherMunger) construct() error {
 			}
 
 			// TODO(lint): Should we be checking errors here?
-			// nolint: errcheck
-			newHead, _ := exec.Command("git", "rev-parse", "HEAD").Output()
+			newHead, _ := exec.Command("git", "rev-parse", "HEAD").Output() //nolint: errcheck
 
 			p.plog.Infof("Running branch-specific smoke tests for branch %s", branchRule.Name)
 			if err := p.runSmokeTests(branchRule.SmokeTest, string(oldHead), string(newHead), branchEnv); err != nil {
@@ -406,7 +404,7 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 			if !ok {
 				return fmt.Errorf("no upstream branch %q found", branchRule.Source.Branch)
 			}
-			if err := os.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(upstreamBranchHead.String()), 0644); err != nil {
+			if err := os.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(upstreamBranchHead.String()), 0o644); err != nil {
 				return err
 			}
 		}

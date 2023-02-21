@@ -42,8 +42,7 @@ Command line flags override config values.
 }
 
 // TODO(lint): cyclomatic complexity 38 of func `main` is high (> 30)
-// nolint: gocyclo
-func main() {
+func main() { //nolint: gocyclo
 	configFilePath := flag.String("config", "", "the config file in yaml format")
 	githubHost := flag.String("github-host", "", "the address of github (defaults to github.com)")
 	basePackage := flag.String("base-package", "", "the name of the package base (defaults to k8s.io when source repo is kubernetes, "+

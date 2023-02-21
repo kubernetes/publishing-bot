@@ -65,8 +65,7 @@ var publishingBot = object.Signature{
 }
 
 // TODO(lint): cyclomatic complexity 63 of func `main` is high (> 30)
-// nolint: gocyclo
-func main() {
+func main() { //nolint: gocyclo
 	// repository flags used when the repository is not k8s.io/kubernetes
 	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
 	sourceRemote := flag.String("source-remote", "", "the source repo remote (e.g. upstream")
@@ -357,7 +356,7 @@ func main() {
 	// any existing releases which have only non-semver tags as no-ops
 	// and both semver and non-semver tags are targeted in a single operation
 	if *pushScriptPath != "" && len(createdTags) > 0 {
-		pushScript, err := os.OpenFile(*pushScriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+		pushScript, err := os.OpenFile(*pushScriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o755)
 		if err != nil {
 			glog.Fatalf("Failed to open push-script %q for appending: %v", *pushScriptPath, err)
 		}
@@ -403,8 +402,7 @@ func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 		for _, remote := range remotes {
 			if strings.HasPrefix(n, "refs/tags/"+remote+"/") {
 				// TODO(lint): Should we be checking errors here?
-				// nolint: errcheck
-				r.Storer.RemoveReference(ref.Name())
+				r.Storer.RemoveReference(ref.Name()) //nolint: errcheck
 				break
 			}
 		}
@@ -433,12 +431,10 @@ func tagExists(tag string) bool {
 	return cmd.Run() == nil
 
 	// TODO: Fix or remove
-	// nolint: gocritic
 	// the following does not work with go-git, for unknown reasons:
-	/*
-		_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag)))
-		return err == nil
-	*/
+	//	_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag))) 	//nolint: gocritic
+	//	return err == nil
+	//
 }
 
 func fetchTags(r *gogit.Repository, remote string) error {
@@ -585,7 +581,7 @@ func cleanCacheForTag(tag string) error {
 		}
 		output := strings.Join(newContent, "\n")
 
-		if err := os.WriteFile(listFile, []byte(output), 0644); err != nil {
+		if err := os.WriteFile(listFile, []byte(output), 0o644); err != nil {
 			return fmt.Errorf("error reading file %s: %v", listFile, err)
 		}
 	}

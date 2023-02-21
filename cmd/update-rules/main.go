@@ -24,8 +24,11 @@ import (
 
 	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
+
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
+
+const MainBranchName = "master"
 
 type options struct {
 	branch    string
@@ -101,7 +104,7 @@ func main() {
 			glog.Fatalf("error exporting the rules %v", err)
 		}
 	} else {
-		fmt.Fprintf(os.Stdout, string(data))
+		fmt.Fprintln(os.Stdout, string(data))
 	}
 }
 
@@ -125,7 +128,7 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string) {
 		var newBranchRule config.BranchRule
 		// find the mainBranch rules
 		for _, br := range r.Branches {
-			if br.Name == "master" {
+			if br.Name == MainBranchName {
 				cloneBranchRule(&br, &newBranchRule)
 				mainBranchRuleFound = true
 				break
@@ -134,7 +137,7 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string) {
 
 		// if mainBranch rules not found for repo, it means it's removed from master tree, log warning and skip updating the rules
 		if !mainBranchRuleFound {
-			glog.Warningf("master branch rules not found for repo %s, skipping to update branch %s rules", r.DestinationRepository, branch)
+			glog.Warningf("%s branch rules not found for repo %s, skipping to update branch %s rules", MainBranchName, r.DestinationRepository, branch)
 			continue
 		}
 
@@ -168,9 +171,7 @@ func cloneBranchRule(in, out *config.BranchRule) {
 	*out = *in
 	if in.Dependencies != nil {
 		out.Dependencies = make([]config.Dependency, len(in.Dependencies))
-		for i := range in.Dependencies {
-			out.Dependencies[i] = in.Dependencies[i]
-		}
+		copy(out.Dependencies, in.Dependencies)
 	}
 }
 
@@ -178,14 +179,14 @@ func updateBranchRules(br *config.BranchRule, branch, goVersion string) {
 	br.Name = branch
 	br.Source.Branch = branch
 	br.GoVersion = goVersion
-	for k, _ := range br.Dependencies {
+	for k := range br.Dependencies {
 		br.Dependencies[k].Branch = branch
 	}
 }
 
 func exportRules(fPath string, data []byte) error {
-	if err := os.MkdirAll(filepath.Dir(fPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(fPath), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(fPath, data, 0644)
+	return os.WriteFile(fPath, data, 0o644)
 }

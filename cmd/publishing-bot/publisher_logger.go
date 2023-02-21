@@ -54,16 +54,13 @@ func newPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
 
 func (p *plog) write(s string) {
 	// TODO(lint): Should we be checking errors here?
-	// nolint: errcheck
-	p.combinedBufAndFile.Write([]byte("[" + time.Now().Format(time.RFC822) + "]: "))
+	p.combinedBufAndFile.Write([]byte("[" + time.Now().Format(time.RFC822) + "]: ")) //nolint: errcheck
 
 	// TODO(lint): Should we be checking errors here?
-	// nolint: errcheck
-	p.combinedBufAndFile.Write([]byte(s))
+	p.combinedBufAndFile.Write([]byte(s)) //nolint: errcheck
 
 	// TODO(lint): Should we be checking errors here?
-	// nolint: errcheck
-	p.combinedBufAndFile.Write([]byte("\n"))
+	p.combinedBufAndFile.Write([]byte("\n")) //nolint: errcheck
 }
 
 func (p *plog) Errorf(format string, args ...interface{}) {
@@ -182,8 +179,7 @@ func (lw lineWriter) Write(b []byte) (int, error) {
 }
 
 // TODO(lint): result 0 (int) is never used
-// nolint: unparam
-func (lw lineWriter) Flush() (int, error) {
+func (lw lineWriter) Flush() (int, error) { //nolint: unparam
 	written, err := lw.buf.WriteTo(lw.writer)
 	lw.buf.Reset()
 	return int(written), err

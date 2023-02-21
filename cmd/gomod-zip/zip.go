@@ -107,7 +107,7 @@ func createZipArchive(packagePath string, moduleFile *modfile.File, outputDirect
 	if err := modzip.CreateFromDir(&zipContents, moduleFile.Module.Mod, packagePath); err != nil {
 		return fmt.Errorf("create zip from dir: %w", err)
 	}
-	if err := os.WriteFile(zipFilePath, zipContents.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(zipFilePath, zipContents.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("writing zip file: %w", err)
 	}
 	return nil
