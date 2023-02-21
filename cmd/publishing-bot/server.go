@@ -67,8 +67,7 @@ func (h *Server) SetHealth(healthy bool, hash string) {
 }
 
 // TODO(lint): result 0 (error) is always nil
-// nolint: unparam
-func (h *Server) Run(port int) error {
+func (h *Server) Run(port int) error { //nolint: unparam
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.healthzHandler)
 	mux.HandleFunc("/run", h.runHandler)
@@ -92,8 +91,7 @@ func (h *Server) runHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO(lint): Should we be checking errors here?
-	// nolint: errcheck
-	w.Write([]byte("OK"))
+	w.Write([]byte("OK")) //nolint: errcheck
 }
 
 func (h *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -113,6 +111,5 @@ func (h *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO(lint): Should we be checking errors here?
-	// nolint: errcheck
-	w.Write(bytes)
+	w.Write(bytes) //nolint: errcheck
 }

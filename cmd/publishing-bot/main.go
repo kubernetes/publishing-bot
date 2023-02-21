@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,8 +42,7 @@ Command line flags override config values.
 }
 
 // TODO(lint): cyclomatic complexity 38 of func `main` is high (> 30)
-// nolint: gocyclo
-func main() {
+func main() { //nolint: gocyclo
 	configFilePath := flag.String("config", "", "the config file in yaml format")
 	githubHost := flag.String("github-host", "", "the address of github (defaults to github.com)")
 	basePackage := flag.String("base-package", "", "the name of the package base (defaults to k8s.io when source repo is kubernetes, "+
@@ -65,7 +63,7 @@ func main() {
 
 	cfg := config.Config{}
 	if *configFilePath != "" {
-		bs, err := ioutil.ReadFile(*configFilePath)
+		bs, err := os.ReadFile(*configFilePath)
 		if err != nil {
 			glog.Fatalf("Failed to load config file from %q: %v", *configFilePath, err)
 		}
@@ -169,7 +167,7 @@ func main() {
 
 		if cfg.TokenFile != "" && cfg.GithubIssue != 0 && !cfg.DryRun {
 			// load token
-			bs, err := ioutil.ReadFile(cfg.TokenFile)
+			bs, err := os.ReadFile(cfg.TokenFile)
 			if err != nil {
 				glog.Fatalf("Failed to load token file from %q: %v", cfg.TokenFile, err)
 			}

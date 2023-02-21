@@ -21,7 +21,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - dupl
@@ -32,8 +31,7 @@ linters:
     - gocyclo
     - godox
     - gofmt
-    # TODO(lint): Enable once using newer version of golangci-lint
-    #- gofumpt
+    - gofumpt
     - goheader
     - goimports
     - gomoddirectives
@@ -53,16 +51,15 @@ linters:
     - predeclared
     - promlinter
     - revive
-    - rowserrcheck
-    - sqlclosecheck
+    # disabled because of generics. You can track the evolution of the generics support by following the https://github.com/golangci/golangci-lint/issues/2649
+    # - rowserrcheck
+    # - sqlclosecheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
     # - cyclop
     # - errorlint

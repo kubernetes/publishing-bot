@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -156,7 +155,7 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	fmt.Printf("Packaging up %s for %s into go mod cache.\n", pseudoVersionOrTag, depPkg)
 
 	// create the cache if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(goModFile), os.FileMode(0755)); err != nil {
+	if err := os.MkdirAll(filepath.Dir(goModFile), os.FileMode(0o755)); err != nil {
 		return fmt.Errorf("unable to create %s directory: %v", cacheDir, err)
 	}
 
@@ -186,7 +185,7 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	if err != nil {
 		return fmt.Errorf("error marshaling .info file for %s: %v", depPkg, err)
 	}
-	if err := ioutil.WriteFile(fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), moduleFile, 0644); err != nil {
+	if err := os.WriteFile(fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), moduleFile, 0o644); err != nil {
 		return fmt.Errorf("failed to write %s file for %s: %v", fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), depPkg, err)
 	}
 
@@ -200,7 +199,7 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	}
 
 	// append the pseudoVersion to the list file in the cache dir
-	listFile, err := os.OpenFile(fmt.Sprintf("%s/list", cacheDir), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	listFile, err := os.OpenFile(fmt.Sprintf("%s/list", cacheDir), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("unable to open list file in %s: %v", cacheDir, err)
 	}

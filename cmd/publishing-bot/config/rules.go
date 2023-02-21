@@ -4,9 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -95,7 +96,7 @@ func LoadRules(ruleFile string) (*RepositoryRules, error) {
 		}
 	} else {
 		glog.Infof("loading rules file : %s", ruleFile)
-		content, err = ioutil.ReadFile(ruleFile)
+		content, err = os.ReadFile(ruleFile)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +127,7 @@ func readFromURL(u *url.URL) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	return ioutil.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }
 
 func validateRepoOrder(rules *RepositoryRules) (errs []error) {

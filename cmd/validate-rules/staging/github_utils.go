@@ -19,7 +19,7 @@ package staging
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -67,7 +67,7 @@ func fetchKubernetesStagingDirectoryFiles(branch string) ([]File, error) {
 		}
 	}
 
-	body, readErr := ioutil.ReadAll(res.Body)
+	body, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
 		return nil, readErr
 	}

@@ -29,19 +29,19 @@ import (
 // to the corresponding dst commits after collapsing using "git filter-branch --sub-directory-filter":
 //
 // dst upstream
-//  |    |
-//  F'<--F
-//  z    |
-//  y    |
-//  E'<--E
-//  x   ,D
-//  |  / |
-//  C'<--C
-//  w    |
-//  v<-, |
-//     |-B
-//      `A - initial commit
 //
+//	|    |
+//	F'<--F
+//	z    |
+//	y    |
+//	E'<--E
+//	x   ,D
+//	|  / |
+//	C'<--C
+//	w    |
+//	v<-, |
+//	   |-B
+//	    `A - initial commit
 func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirstParents, srcFirstParents []*object.Commit) (map[plumbing.Hash]plumbing.Hash, error) {
 	// compute merge point table
 	kubeMergePoints, err := MergePoints(r, srcFirstParents)
