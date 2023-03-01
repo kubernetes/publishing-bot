@@ -518,8 +518,8 @@ sync_repo() {
 
     # create look-up file for collapsed upstream commits
     local repo=$(basename ${PWD})
-    echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch}"
-    /collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch}
+    echo "Writing k8s.io/kubernetes commit lookup table to ../kube-commits-${repo}-${dst_branch/\//_}"
+    /collapsed-kube-commit-mapper --commit-message-tag $(echo ${source_repo_name} | sed 's/^./\L\u&/')-commit --source-branch refs/heads/upstream-branch > ../kube-commits-${repo}-${dst_branch/\//_}
 }
 
 # for some PR branches cherry-picks fail. Put commits here where we only pick the whole merge as a single commit.
