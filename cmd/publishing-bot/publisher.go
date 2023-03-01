@@ -409,7 +409,9 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 					path.Dir(dstDir),
 					publishedFileName(repoRules.DestinationRepository, strings.Replace(branchRule.Name, "/", "_", 1)),
 				),
-				[]byte(upstreamBranchHead.String()), 0o644); err != nil {
+				[]byte(upstreamBranchHead.String()),
+				0o644,
+			); err != nil {
 				return err
 			}
 		}
