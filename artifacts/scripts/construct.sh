@@ -74,8 +74,10 @@ RECURSIVE_DELETE_PATTERN="${3}"
 SKIP_TAGS="${4}"
 # last published upstream hash of this branch
 LAST_PUBLISHED_UPSTREAM_HASH="${5}"
+# name of the main branch. master for k8s.io/kubernetes
+GIT_DEFAULT_BRANCH="${6}"
 
-readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG SUBDIR SOURCE_REPO_NAME BASE_PACKAGE IS_LIBRARY RECURSIVE_DELETE_PATTERN SKIP_TAGS LAST_PUBLISHED_UPSTREAM_HASH
+readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG SUBDIR SOURCE_REPO_NAME BASE_PACKAGE IS_LIBRARY RECURSIVE_DELETE_PATTERN SKIP_TAGS LAST_PUBLISHED_UPSTREAM_HASH GIT_DEFAULT_BRANCH
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 source "${SCRIPT_DIR}"/util.sh
@@ -130,7 +132,7 @@ if [ "${UPSTREAM_HASH}" != "${LAST_PUBLISHED_UPSTREAM_HASH}" ]; then
     echo "Upstream branch upstream/${SRC_BRANCH} moved from '${LAST_PUBLISHED_UPSTREAM_HASH}' to '${UPSTREAM_HASH}'. We have to sync."
     # sync_repo cherry-picks the commits that change
     # k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
-    sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}"
+    sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}" "${GIT_DEFAULT_BRANCH}"
 else
     echo "Skipping sync because upstream/${SRC_BRANCH} at ${UPSTREAM_HASH} did not change since last sync."
 fi

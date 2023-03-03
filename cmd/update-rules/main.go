@@ -28,7 +28,7 @@ import (
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
-const MainBranchName = "master"
+const GitDefaultBranch = "master"
 
 type options struct {
 	branch    string
@@ -128,7 +128,7 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string) {
 		var newBranchRule config.BranchRule
 		// find the mainBranch rules
 		for _, br := range r.Branches {
-			if br.Name == MainBranchName {
+			if br.Name == GitDefaultBranch {
 				cloneBranchRule(&br, &newBranchRule)
 				mainBranchRuleFound = true
 				break
@@ -137,7 +137,7 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string) {
 
 		// if mainBranch rules not found for repo, it means it's removed from master tree, log warning and skip updating the rules
 		if !mainBranchRuleFound {
-			glog.Warningf("%s branch rules not found for repo %s, skipping to update branch %s rules", MainBranchName, r.DestinationRepository, branch)
+			glog.Warningf("%s branch rules not found for repo %s, skipping to update branch %s rules", GitDefaultBranch, r.DestinationRepository, branch)
 			continue
 		}
 
