@@ -90,14 +90,14 @@ of the downloaded git repositories on the persistent volume. Occasionally if we 
 corrupted for some reason (say github flakiness), we may have to cleanup the pv/pvc. in other words, The volume is
 cache only. Wiping it is not harmful in general (other than for the time it takes to recreate all the data).
 
-### How do i clean up the pv/pvc?
+### How do i clean up the pvc?
 
-Step 1: Use the command about to find the pv, pvc and the pod then clean them up in one shot
+Step 1: Use the command about to find the pvc and the pod then clean them up in one shot
 ```shell
-kubectl delete -n publishing-bot pod/publisher-cdvwj persistentvolumeclaim/publisher-gopath persistentvolume/pvc-084a4d52-0a57-4f70-a76a-5d2d2667429d
+kubectl delete -n publishing-bot pod/publisher-cdvwj persistentvolumeclaim/publisher-gopath
 ```
 
-Step 2: Re-deploy the pv/pvc again
+Step 2: Re-deploy the pvc again
 ```shell
 kubectl apply -n publishing-bot -f artifacts/manifests/pvc.yaml
 ```
