@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,7 +32,7 @@ import (
 )
 
 // updateGomodWithTaggedDependencies gets the dependencies at the given tag and fills go.mod and go.sum.
-// If anything is changed, it commits the changes. Returns true if go.mod changed.
+// Returns true if go.mod has been successfully changed in root and any submodules if it exists.
 func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag bool) (bool, error) {
 	found := map[string]bool{}
 	changed := false
@@ -40,6 +41,17 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 	if err != nil {
 		return changed, err
 	}
+
+	// find all directories which have a go.mod including the current root directory which will be the root
+	// of the repository
+	var modulesList []string
+	findModule := func(path string, d fs.DirEntry, err error) error {
+		if d.Name() == "go.mod" {
+			modulesList = append(modulesList, "./"+strings.TrimSuffix(path, "go.mod"))
+		}
+		return nil
+	}
+	err = filepath.WalkDir(".", findModule)
 
 	for _, dep := range depsRepo {
 		depPath := filepath.Join("..", dep)
@@ -70,20 +82,25 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 			return changed, fmt.Errorf("failed to package %s dependency: %v", depPkg, err)
 		}
 
-		requireCommand := exec.Command("go", "mod", "edit", "-fmt", "-require", fmt.Sprintf("%s@%s", depPkg, pseudoVersionOrTag))
-		requireCommand.Env = append(os.Environ(), "GO111MODULE=on")
-		requireCommand.Stdout = os.Stdout
-		requireCommand.Stderr = os.Stderr
-		if err := requireCommand.Run(); err != nil {
-			return changed, fmt.Errorf("unable to pin %s in the require section of go.mod to %s: %v", depPkg, pseudoVersionOrTag, err)
-		}
+		// do the go mod fix in the root module as well as modules present in subdirectories
+		for _, modules := range modulesList {
+			requireCommand := exec.Command("go", "mod", "edit", "-fmt", "-require", fmt.Sprintf("%s@%s", depPkg, pseudoVersionOrTag))
+			requireCommand.Env = append(os.Environ(), "GO111MODULE=on")
+			requireCommand.Dir = modules
+			requireCommand.Stdout = os.Stdout
+			requireCommand.Stderr = os.Stderr
+			if err := requireCommand.Run(); err != nil {
+				return changed, fmt.Errorf("unable to pin %s in the require section of go.mod to %s: %v", depPkg, pseudoVersionOrTag, err)
+			}
 
-		replaceCommand := exec.Command("go", "mod", "edit", "-fmt", "-replace", fmt.Sprintf("%s=%s@%s", depPkg, depPkg, pseudoVersionOrTag))
-		replaceCommand.Env = append(os.Environ(), "GO111MODULE=on")
-		replaceCommand.Stdout = os.Stdout
-		replaceCommand.Stderr = os.Stderr
-		if err := replaceCommand.Run(); err != nil {
-			return changed, fmt.Errorf("unable to pin %s in the replace section of go.mod to %s: %v", depPkg, pseudoVersionOrTag, err)
+			replaceCommand := exec.Command("go", "mod", "edit", "-fmt", "-replace", fmt.Sprintf("%s=%s@%s", depPkg, depPkg, pseudoVersionOrTag))
+			replaceCommand.Env = append(os.Environ(), "GO111MODULE=on")
+			requireCommand.Dir = modules
+			replaceCommand.Stdout = os.Stdout
+			replaceCommand.Stderr = os.Stderr
+			if err := replaceCommand.Run(); err != nil {
+				return changed, fmt.Errorf("unable to pin %s in the replace section of go.mod to %s: %v", depPkg, pseudoVersionOrTag, err)
+			}
 		}
 
 		found[dep] = true
