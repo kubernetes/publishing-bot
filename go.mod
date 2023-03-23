@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/go-git/go-git/v5 v5.6.1
-	github.com/golang/glog v1.1.0
+	github.com/golang/glog v1.1.1
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/lithammer/dedent v1.1.0
 	github.com/shurcooL/go v0.0.0-20171108033853-004faa6b0118
