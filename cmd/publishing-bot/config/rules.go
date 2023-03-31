@@ -36,7 +36,11 @@ type Source struct {
 	Repository string `yaml:"repository,omitempty"`
 	Branch     string `yaml:"branch"`
 	// Dir from repo root
+	// It is preferred to use dirs instead of dir
 	Dir string `yaml:"dir,omitempty"`
+	// Directories from the repo root
+	// If Dirs is present, it is given preference over Dir
+	Dirs []string `yaml:"dirs,omitempty"`
 }
 
 func (c Source) String() string {
@@ -44,7 +48,7 @@ func (c Source) String() string {
 	if repo == "" {
 		repo = "<source>"
 	}
-	return fmt.Sprintf("[repository %s, branch %s, subdir %s]", repo, c.Branch, c.Dir)
+	return fmt.Sprintf("[repository %s, branch %s, subdir {%s}]", repo, c.Branch, c.Dir)
 }
 
 type BranchRule struct {
@@ -236,11 +240,27 @@ func ensureValidGoVersion(version string) error {
 	return nil
 }
 
+// this makes sure that old dir field values are copied over to new dirs field
+func fixDeprecatedFields(rules *RepositoryRules) {
+	for i, rule := range rules.Rules {
+		for j, branch := range rule.Branches {
+			if len(branch.Source.Dirs) == 0 && branch.Source.Dir != "" {
+				rules.Rules[i].Branches[j].Source.Dirs = append(rules.Rules[i].Branches[j].Source.Dirs, branch.Source.Dir)
+				// The Dir field is made empty so that it is not used later and only the Dirs
+				// field is used.
+				rules.Rules[i].Branches[j].Source.Dir = ""
+			}
+		}
+	}
+}
+
 func Validate(rules *RepositoryRules) error {
 	errs := []error{}
 
 	errs = append(errs, validateRepoOrder(rules)...)
 	errs = append(errs, validateGoVersions(rules)...)
+
+	fixDeprecatedFields(rules)
 
 	msgs := []string{}
 	for _, err := range errs {

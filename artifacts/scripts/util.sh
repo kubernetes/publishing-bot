@@ -36,7 +36,7 @@ set -o xtrace
 #
 # 1. Fetch the current level of k8s.io/kubernetes.
 # 2. Check out the ${src_branch} of k8s.io/kubernetes as branch filter-branch.
-# 3. Rewrite the history of branch filter-branch to *only* include code in ${subdirectory},
+# 3. Rewrite the history of branch filter-branch to *only* include code in ${subdirectories},
 #    keeping the original, corresponding k8s.io/kubernetes commit hashes
 #    via "Kubernetes-commit: <kube-sha>" lines in the commit messages.
 # 4. Locate all commits between the last time we sync'ed and now on the mainline, i.e. using
@@ -126,7 +126,7 @@ sync_repo() {
     # subdirectory in k8s.io/kubernetes, e.g., staging/src/k8s.io/apimachinery
     local source_repo_org="${1}"
     local source_repo_name="${2}"
-    local subdirectory="${3}"
+    local subdirectories="${3}"
     local src_branch="${4}"
     local dst_branch="${5}"
     local deps="${6:-""}"
@@ -140,7 +140,7 @@ sync_repo() {
     local git_default_branch="${2}"
 
     local commit_msg_tag="${source_repo_name^}-commit"
-    readonly subdirectory src_branch dst_branch deps is_library
+    readonly subdirectories src_branch dst_branch deps is_library
 
     local new_branch="false"
     local orphan="false"
@@ -163,7 +163,7 @@ sync_repo() {
     git checkout -q upstream-branch -b filtered-branch
     git reset -q --hard upstream-branch
 
-    # filter filtered-branch (= ${src_branch}) by ${subdirectory} modifying commits
+    # filter filtered-branch (= ${src_branch}) by ${subdirectories} modifying commits
     # and rewrite paths. Each filtered commit (which is not dropped), gets the
     # original k8s.io/kubernetes commit hash in the commit message as "Kubernetes-commit: <hash>".
     # Then select all new mainline commits on filtered-branch as ${f_mainline_commits}
@@ -171,7 +171,7 @@ sync_repo() {
     local f_mainline_commits=""
     if [ "${new_branch}" = "true" ] && [ "${src_branch}" = "${git_default_branch}" ]; then
         # new master branch
-        filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
+        filter-branch "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
         # the corresponding fast-forward merge and left the feature branch commits)
@@ -196,28 +196,36 @@ sync_repo() {
                 return 1
             fi
 
-            # does ${subdirectory} exist at ${k_branch_point_commit}? If not it was introduced to the branch via some fast-forward merge.
-            # we use the fast-forward merge commit's second parent (on master) as branch point.
-            if [ $(git ls-tree --name-only -r ${k_branch_point_commit} -- "${subdirectory}" | wc -l) = 0 ]; then
-                echo "Subdirectory ${subdirectory} did not exist at branch point ${k_branch_point_commit}. Looking for fast-forward merge introducing it."
-                last_with_subdir=$(git rev-list upstream/${src_branch} --first-parent --remove-empty -- "${subdirectory}" | tail -1)
-                if [ -z "${last_with_subdir}" ]; then
-                    echo "Couldn't find any commit introducing ${subdirectory} on branch upstream/${src_branch}"
-                    return 1
+            if [[ "${subdirectories}" != *":"* ]]; then
+                # if more than one subdirectory exist, this should not be done. if a new directory or directories is
+                # added into the repo and into the publishing rules, new branch creation should not be done until the
+                # bot completes one successful run on the newly added directories
+
+                # i.e The block is needed only when publishing for k8s.io/kubernetes repo
+
+                # does ${subdirectories} exist at ${k_branch_point_commit}? If not it was introduced to the branch via some fast-forward merge.
+                # we use the fast-forward merge commit's second parent (on master) as branch point.
+                if [ $(git ls-tree --name-only -r ${k_branch_point_commit} -- "${subdirectory}" | wc -l) = 0 ]; then
+                    echo "Subdirectory ${subdirectory} did not exist at branch point ${k_branch_point_commit}. Looking for fast-forward merge introducing it."
+                    last_with_subdir=$(git rev-list upstream/${src_branch} --first-parent --remove-empty -- "${subdirectory}" | tail -1)
+                    if [ -z "${last_with_subdir}" ]; then
+                        echo "Couldn't find any commit introducing ${subdirectory} on branch upstream/${src_branch}"
+                        return 1
+                    fi
+                    if ! is-merge ${last_with_subdir}; then
+                        echo "Subdirectory ${subdirectory} was introduced on non-merge branch commit ${last_with_subdir}. We don't support this."
+                        return 1
+                    fi
+                    k_branch_point_commit=$(git rev-parse ${last_with_subdir}^2)
+                    echo "Using second-parent ${k_branch_point_commit} of merge ${last_with_subdir} on upstream/${src_branch} as starting point for new branch"
                 fi
-                if ! is-merge ${last_with_subdir}; then
-                    echo "Subdirectory ${subdirectory} was introduced on non-merge branch commit ${last_with_subdir}. We don't support this."
-                    return 1
-                fi
-                k_branch_point_commit=$(git rev-parse ${last_with_subdir}^2)
-                echo "Using second-parent ${k_branch_point_commit} of merge ${last_with_subdir} on upstream/${src_branch} as starting point for new branch"
             fi
 
             echo "Using branch point ${k_branch_point_commit} as new starting point for new branch ${dst_branch}."
             git branch -f filtered-branch-base ${k_branch_point_commit} >/dev/null
 
-            echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
-            filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
+            echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectories}."
+            filter-branch "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
 
             # for a new branch that is not master: map filtered-branch-base to our ${dst_branch} as ${dst_branch_point_commit}
             local k_branch_point_commit=$(kube-commit ${commit_msg_tag} filtered-branch-base) # k_branch_point_commit will probably be different than the k_branch_point_commit
@@ -250,8 +258,8 @@ sync_repo() {
             fi
             git branch -f filtered-branch-base ${k_base_merge} >/dev/null
 
-            echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectory}."
-            filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
+            echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectories}."
+            filter-branch "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
         fi
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
@@ -595,12 +603,18 @@ function commit-subject() {
     git show --format="%s" -q ${1}
 }
 
-# rewrites git history to *only* include $subdirectory
+# rewrites git history to *only* include $subdirectories
 function filter-branch() {
     local commit_msg_tag="${1}"
-    local subdirectory="${2}"
+    local subdirectories="${2}"
     local recursive_delete_pattern="${3}"
     echo "Running git filter-branch ..."
+
+    if [[ "${subdirectories}" == *":"* ]]; then
+        echo "filter-branch cannot process multiple directories. Failing"
+        exit 1
+    fi
+
     local index_filter=""
     if [ -n "${recursive_delete_pattern}" ]; then
         local patterns=()
@@ -611,7 +625,7 @@ function filter-branch() {
             index_filter+=" '${p}'"
         done
     fi
-    git filter-branch -f --index-filter "${index_filter}" --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectory}" -- ${4} ${5} >/dev/null
+    git filter-branch -f --index-filter "${index_filter}" --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectories}" -- ${4} ${5} >/dev/null
 }
 
 function is-merge() {
