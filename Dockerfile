@@ -14,10 +14,12 @@
 
 FROM debian:bullseye
 MAINTAINER Stefan Schimanski <sttts@redhat.com>
+# debian backports are added so that git-filter-repo can be installed
+RUN echo deb http://deb.debian.org/debian bullseye-backports main >> /etc/apt/sources.list
 RUN apt-get update \
  && apt-get install -y -qq git=1:2.30.2-1+deb11u2 \
  && apt-get install -y -qq mercurial \
- && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig gcc zip \
+ && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig gcc zip git-filter-repo/bullseye-backports \
  && rm -rf /var/lib/apt/lists/*
 
 ENV GOPATH="/go-workspace"
