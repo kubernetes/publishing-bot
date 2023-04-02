@@ -7,7 +7,7 @@ timeout: 1200s
 options:
   substitution_option: ALLOW_LOOSE
   # TODO(image): Consider a smaller machine type
-  machineType: N1_HIGHCPU_32
+  machineType: E2_HIGHCPU_32
 
 steps:
 - name: 'gcr.io/k8s-staging-releng/k8s-ci-builder:latest-default'
