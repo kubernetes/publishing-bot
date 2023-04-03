@@ -51,6 +51,7 @@ set -o xtrace
 #            (by (ii) these are no merges).
 #       iv)  Commit the merge commit C as empty fast-forward merge of the latest branching point
 #            and the HEAD produced from of (ii) and (iii).
+#    TODO(akhilerm): maybe this can be removed, since filter-repo is not dropping fast forward merged
 #    b) If C is not a merge commit:
 #       i)   Find the corresponding k8s.io/kubernetes commit k_C and find its merge point k_M
 #            with the mainline in k8s.io/kubernetes.
@@ -171,7 +172,7 @@ sync_repo() {
     local f_mainline_commits=""
     if [ "${new_branch}" = "true" ] && [ "${src_branch}" = "${git_default_branch}" ]; then
         # new master branch
-        filter-branch "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
+        filter-repo "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
         # the corresponding fast-forward merge and left the feature branch commits)
@@ -225,7 +226,7 @@ sync_repo() {
             git branch -f filtered-branch-base ${k_branch_point_commit} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectories}."
-            filter-branch "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
+            filter-repo "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
 
             # for a new branch that is not master: map filtered-branch-base to our ${dst_branch} as ${dst_branch_point_commit}
             local k_branch_point_commit=$(kube-commit ${commit_msg_tag} filtered-branch-base) # k_branch_point_commit will probably be different than the k_branch_point_commit
@@ -259,7 +260,7 @@ sync_repo() {
             git branch -f filtered-branch-base ${k_base_merge} >/dev/null
 
             echo "Rewriting upstream branch ${src_branch} to only include commits for ${subdirectories}."
-            filter-branch "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
+            filter-repo "${commit_msg_tag}" "${subdirectories}" "${recursive_delete_pattern}" filtered-branch filtered-branch-base
         fi
 
         # find commits on the main line (will mostly be merges, but could be non-merges if filter-branch dropped
@@ -279,7 +280,7 @@ sync_repo() {
         git commit -q -m "sync: remove kubernetes-sha"
     fi
 
-    # remove existing recursive-delete-pattern files. After a first removal commit, the filter-branch command
+    # remove existing recursive-delete-pattern files. After a first removal commit, the filter-repo command
     # will filter them out from upstream commits.
     apply-recursive-delete-pattern "${recursive_delete_pattern}"
 
@@ -604,16 +605,19 @@ function commit-subject() {
 }
 
 # rewrites git history to *only* include $subdirectories
-function filter-branch() {
+function filter-repo() {
     local commit_msg_tag="${1}"
     local subdirectories="${2}"
     local recursive_delete_pattern="${3}"
     echo "Running git filter-branch ..."
 
-    if [[ "${subdirectories}" == *":"* ]]; then
-        echo "filter-branch cannot process multiple directories. Failing"
-        exit 1
-    fi
+    # create the --path <subdir> commands for all the required subdirectories
+    # convert subdirectory to an array by splitting the : separated string
+    IFS=':' read -r -a subdirectories <<< "$subdirectories"
+    local path_filter_command=""
+    for dir in "${subdirectories[@]}"; do
+        path_filter_command+=" --path ${dir}"
+    done
 
     local index_filter=""
     if [ -n "${recursive_delete_pattern}" ]; then
@@ -625,7 +629,16 @@ function filter-branch() {
             index_filter+=" '${p}'"
         done
     fi
-    git filter-branch -f --index-filter "${index_filter}" --msg-filter 'awk 1 && echo && echo "'"${commit_msg_tag}"': ${GIT_COMMIT}"' --subdirectory-filter "${subdirectories}" -- ${4} ${5} >/dev/null
+
+# TODO(akhilerm) make sure index filter is honored
+# TODO(akhilerm) make sure if only a single directory needs to be published, the directory acts as the root
+# TODO(akhilerm) nit if the commit message ends in a new line, we dont need new line here in commit callback, else add new line
+# TODO(akhilerm) instead of doing the --refs partial filter, we can apply the filter and then cherry pick only from the needed branches
+    git filter-repo \
+        --force \
+        --commit-callback 'commit.message = commit.message + b"\n'"${commit_msg_tag}"': " + commit.original_id' \
+        "${path_filter_command}" \
+        --refs ${4} ${5} > /dev/null
 }
 
 function is-merge() {
