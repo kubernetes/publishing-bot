@@ -29,12 +29,15 @@ mkdir "${BOT_CONFIG_DIRECTORY}"
 ## generate the required config
 # use the content from configmap in the data section
 sed -e '1,/config: |/d' configs/kubernetes-configmap.yaml > "${BOT_CONFIG_DIRECTORY}"/config
+# The additional .tmp extension is used after -i to make it portable across *BSD and GNU.
+#   Ref: https://unix.stackexchange.com/a/92907
+# Also \t is not recognized in non GNU sed implementation. Therefore a tab is used as is.
 # remove leading white spaces from the generated file
-sed "s/^[ \t]*//" -i "${BOT_CONFIG_DIRECTORY}"/config
+sed -i.tmp 's/^[     ]*//' "${BOT_CONFIG_DIRECTORY}"/config
 # remove the github-issue key
-sed -i '/github-issue/d' "${BOT_CONFIG_DIRECTORY}"/config
+sed -i.tmp '/github-issue/d' "${BOT_CONFIG_DIRECTORY}"/config
 # set dry run to true
-sed -i -e 's/dry-run: false/dry-run: true/g' "${BOT_CONFIG_DIRECTORY}"/config
+sed -i.tmp -e 's/dry-run: false/dry-run: true/g' "${BOT_CONFIG_DIRECTORY}"/config
 
 ## generate the required rules
 # get the rules file from the k/k repo
