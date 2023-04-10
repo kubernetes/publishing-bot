@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -160,6 +161,8 @@ func main() { //nolint: gocyclo
 		githubIssueErrorf = glog.Errorf
 	}
 
+	var publisherErr error
+
 	for {
 		waitfor := *interval
 		last := time.Now()
@@ -195,12 +198,24 @@ func main() { //nolint: gocyclo
 			}
 		} else {
 			// run
-			if _, _, err := publisher.Run(); err != nil {
-				glog.Infof("Failed to run publisher: %v", err)
+			if _, _, publisherErr = publisher.Run(); err != nil {
+				glog.Infof("Failed to run publisher: %v", publisherErr)
 			}
 		}
 
 		if *interval == 0 {
+			// This condition is specifically used by the CI to get the exit code
+			// of the bot on an unsuccessful run.
+			//
+			// In production, the bot will not exit with a non-zero exit code, since
+			// the interval will be always non-zero
+			if publisherErr != nil {
+				if exitErr, ok := publisherErr.(*exec.ExitError); ok {
+					os.Exit(exitErr.ExitCode())
+				} else {
+					os.Exit(1)
+				}
+			}
 			break
 		}
 
