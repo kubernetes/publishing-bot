@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM debian:stretch
+FROM debian:bullseye
 MAINTAINER Stefan Schimanski <sttts@redhat.com>
 RUN apt-get update \
- && apt-get install -y -qq git=1:2.11.0-3+deb9u7 \
+ && apt-get install -y -qq git=1:2.30.2-1+deb11u2 \
  && apt-get install -y -qq mercurial \
  && apt-get install -y -qq ca-certificates curl wget jq vim tmux bsdmainutils tig gcc zip \
  && rm -rf /var/lib/apt/lists/*
