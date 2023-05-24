@@ -404,7 +404,14 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 			if !ok {
 				return fmt.Errorf("no upstream branch %q found", branchRule.Source.Branch)
 			}
-			if err := os.WriteFile(path.Join(path.Dir(dstDir), publishedFileName(repoRules.DestinationRepository, branchRule.Name)), []byte(upstreamBranchHead.String()), 0o644); err != nil {
+			if err := os.WriteFile(
+				path.Join(
+					path.Dir(dstDir),
+					publishedFileName(repoRules.DestinationRepository, strings.Replace(branchRule.Name, "/", "_", 1)),
+				),
+				[]byte(upstreamBranchHead.String()),
+				0o644,
+			); err != nil {
 				return err
 			}
 		}

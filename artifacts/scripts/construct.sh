@@ -139,7 +139,8 @@ fi
 LAST_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 LAST_HEAD=$(git rev-parse HEAD)
 EXTRA_ARGS=()
-PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH}.sh
+# the separator is used to handle branches with / in name
+PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH/\//_}.sh
 echo "#!/bin/bash" > ${PUSH_SCRIPT}
 chmod +x ${PUSH_SCRIPT}
 
