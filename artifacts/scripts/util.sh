@@ -311,7 +311,7 @@ sync_repo() {
             if [ ${dst_branch} != master ] && is-merge-with-master "${k_pending_merge_commit}"; then
                 # it's a merge with master. Recreate this merge on ${dst_branch} with ${dst_parent2} as second parent on the master branch
                 local k_parent2="$(git rev-parse ${k_pending_merge_commit}^2)"
-                read k_parent2 dst_parent2 <<<$(look -b ${k_parent2} ../kube-commits-$(basename "${PWD}")-master)
+                read k_parent2 dst_parent2 <<<$(look ${k_parent2} ../kube-commits-$(basename "${PWD}")-master)
                 if [ -z "${dst_parent2}" ]; then
                     echo "Corresponding $(dirname ${PWD}) master branch commit not found for upstream master merge ${k_pending_merge_commit}. Odd."
                     return 1
@@ -889,7 +889,7 @@ checkout-deps-to-kube-commit() {
         echo "Looking up which commit in the ${branch} branch of k8s.io/${dep} corresponds to k8s.io/kubernetes commit ${k_last_kube_merge}."
         local k_commit=""
         local dep_commit=""
-        read k_commit dep_commit <<<$(look -b ${k_last_kube_merge} ../kube-commits-${dep}-${branch})
+        read k_commit dep_commit <<<$(look ${k_last_kube_merge} ../kube-commits-${dep}-${branch})
         if [ -z "${dep_commit}" ]; then
             echo "Could not find corresponding k8s.io/${dep} commit for kube commit ${k_last_kube_commit}."
             return 1
