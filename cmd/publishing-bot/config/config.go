@@ -51,4 +51,7 @@ type Config struct {
 	// BasePublishScriptPath determine the base path where we will look for a
 	// publishing scripts in the source repo. It defaults to ./publishing_scripts'.
 	BasePublishScriptPath string `yaml:"base-publish-script-path,omitempty"`
+
+	// name of the default git branch in the repo. defaults to master
+	GitDefaultBranch string `yaml:"git-default-branch,omitempty"`
 }

@@ -87,6 +87,11 @@ func main() {
 	if cfg.GithubHost == "" {
 		cfg.GithubHost = "github.com"
 	}
+
+	if cfg.GitDefaultBranch == "" {
+		cfg.GitDefaultBranch = "master"
+	}
+
 	// defaulting when base package is not specified
 	if cfg.BasePackage == "" {
 		if cfg.SourceRepo == "kubernetes" {

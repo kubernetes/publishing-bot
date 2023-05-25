@@ -147,11 +147,11 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 func (p *PublisherMunger) updateRules() error {
 	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
 
-	glog.Infof("Checking out master at %s.", repoDir)
-	cmd := exec.Command("git", "checkout", "master")
+	glog.Infof("Checking out %s at %s.", p.config.GitDefaultBranch, repoDir)
+	cmd := exec.Command("git", "checkout", p.config.GitDefaultBranch)
 	cmd.Dir = repoDir
 	if _, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to checkout master: %v", err)
+		return fmt.Errorf("failed to checkout %s: %v", p.config.GitDefaultBranch, err)
 	}
 
 	rules, err := config.LoadRules(p.config.RulesFile)
@@ -317,6 +317,7 @@ func (p *PublisherMunger) construct() error {
 				strings.Join(p.reposRules.RecursiveDeletePatterns, " "),
 				skipTags,
 				lastPublishedUpstreamHash,
+				p.config.GitDefaultBranch,
 			)
 			cmd.Env = append([]string(nil), branchEnv...) // make mutable
 			if p.reposRules.SkipGomod {

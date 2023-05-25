@@ -107,6 +107,10 @@ func main() { //nolint: gocyclo
 		cfg.GithubHost = "github.com"
 	}
 
+	if cfg.GitDefaultBranch == "" {
+		cfg.GitDefaultBranch = "master"
+	}
+
 	var err error
 	cfg.BasePublishScriptPath, err = filepath.Abs(cfg.BasePublishScriptPath)
 	if err != nil {

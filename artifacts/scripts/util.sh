@@ -137,6 +137,7 @@ sync_repo() {
     shift 9
 
     local recursive_delete_pattern="${1}"
+    local git_default_branch="${2}"
 
     local commit_msg_tag="${source_repo_name^}-commit"
     readonly subdirectory src_branch dst_branch deps is_library
@@ -168,7 +169,7 @@ sync_repo() {
     # Then select all new mainline commits on filtered-branch as ${f_mainline_commits}
     # to loop through them later.
     local f_mainline_commits=""
-    if [ "${new_branch}" = "true" ] && [ "${src_branch}" = master ]; then
+    if [ "${new_branch}" = "true" ] && [ "${src_branch}" = "${git_default_branch}" ]; then
         # new master branch
         filter-branch "${commit_msg_tag}" "${subdirectory}" "${recursive_delete_pattern}" ${src_branch} filtered-branch
 
@@ -189,9 +190,9 @@ sync_repo() {
         # - old branch which continue with the last old commit.
         if [ "${new_branch}" = "true" ]; then
             # new non-master branch
-            local k_branch_point_commit=$(git-fork-point upstream/${src_branch} upstream/master)
+            local k_branch_point_commit=$(git-fork-point upstream/${src_branch} upstream/${git_default_branch})
             if [ -z "${k_branch_point_commit}" ]; then
-                echo "Couldn't find a branch point of upstream/${src_branch} and upstream/master."
+                echo "Couldn't find a branch point of upstream/${src_branch} and upstream/${git_default_branch}."
                 return 1
             fi
 
@@ -228,9 +229,9 @@ sync_repo() {
                 echo "Considering only single destination branch point commit at ${k_branch_point_commit} for ${dst_branch}."
             fi
 
-            local dst_branch_point_commit=$(branch-commit ${commit_msg_tag} ${k_branch_point_commit} master ${pick_dst_branch_point_commit_args})
+            local dst_branch_point_commit=$(branch-commit ${commit_msg_tag} ${k_branch_point_commit} ${git_default_branch} ${pick_dst_branch_point_commit_args})
             if [ -z "${dst_branch_point_commit}" ]; then
-                echo "Couldn't find a corresponding branch point commit for ${k_branch_point_commit} as ascendent of origin/master."
+                echo "Couldn't find a corresponding branch point commit for ${k_branch_point_commit} as ascendent of origin/${git_default_branch}."
                 return 1
             fi
 
@@ -296,7 +297,7 @@ sync_repo() {
                 # it's on the mainline itself, no merge above it
                 k_new_pending_merge_commit=""
             fi
-            if [ ${dst_branch} != master ] && is-merge-with-master "${k_mainline_commit}"; then
+            if [ ${dst_branch} != ${git_default_branch} ] && is-merge-with-main "${git_default_branch}" "${k_mainline_commit}"; then
                 # merges with master on non-master branches we always handle as pending merge commit.
                 k_new_pending_merge_commit=${k_mainline_commit}
             fi
@@ -308,18 +309,18 @@ sync_repo() {
             #    (ii) it's dropped on the filtered-branch, i.e. fast-forward
             # b) it's another merge
             local dst_parent2="HEAD"
-            if [ ${dst_branch} != master ] && is-merge-with-master "${k_pending_merge_commit}"; then
+            if [ ${dst_branch} != ${git_default_branch} ] && is-merge-with-main "${git_default_branch}" "${k_pending_merge_commit}"; then
                 # it's a merge with master. Recreate this merge on ${dst_branch} with ${dst_parent2} as second parent on the master branch
                 local k_parent2="$(git rev-parse ${k_pending_merge_commit}^2)"
-                read k_parent2 dst_parent2 <<<$(look ${k_parent2} ../kube-commits-$(basename "${PWD}")-master)
+                read k_parent2 dst_parent2 <<<$(look ${k_parent2} ../kube-commits-$(basename "${PWD}")-${git_default_branch})
                 if [ -z "${dst_parent2}" ]; then
-                    echo "Corresponding $(dirname ${PWD}) master branch commit not found for upstream master merge ${k_pending_merge_commit}. Odd."
+                    echo "Corresponding $(dirname ${PWD}) ${git_default_branch} branch commit not found for upstream {git_default_branch} merge ${k_pending_merge_commit}. Odd."
                     return 1
                 fi
 
                 f_pending_merge_commit=$(branch-commit ${commit_msg_tag} ${k_pending_merge_commit} filtered-branch)
                 if [ -n "${f_pending_merge_commit}" ]; then
-                    echo "Cherry-picking source master-merge  ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
+                    echo "Cherry-picking source ${git_default_branch}-merge  ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
 
                     # cherry-pick the difference on the filtered mainline
                     reset-gomod ${f_pending_merge_commit}^1 # unconditionally reset go.mod
@@ -333,7 +334,7 @@ sync_repo() {
                 else
                     # the merge commit with master was dropped. This means it was a fast-forward merge,
                     # which means we can just re-use the tree on the dst master branch.
-                    echo "Cherry-picking source dropped-master-merge ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
+                    echo "Cherry-picking source dropped-${git_default_branch}-merge ${k_pending_merge_commit}: $(commit-subject ${k_pending_merge_commit})."
                     git reset -q --hard ${dst_parent2}
                 fi
             else
@@ -357,17 +358,17 @@ sync_repo() {
         fi
 
         # is it a merge or a single commit on the mainline to apply?
-        if [ ${dst_branch} != master ] && is-merge-with-master ${k_mainline_commit}; then
-            echo "Deferring master merge commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
-        elif [ ${dst_branch} != master ] && [ -n "${k_pending_merge_commit}" ] && is-merge-with-master "${k_pending_merge_commit}"; then
-            echo "Skipping master commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit}). Master merge commit ${k_pending_merge_commit} is pending."
+        if [ ${dst_branch} != ${git_default_branch} ] && is-merge-with-main "${git_default_branch}" ${k_mainline_commit}; then
+            echo "Deferring ${git_default_branch} merge commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
+        elif [ ${dst_branch} != ${git_default_branch} ] && [ -n "${k_pending_merge_commit}" ] && is-merge-with-main "${git_default_branch}" "${k_pending_merge_commit}"; then
+            echo "Skipping ${git_default_branch} commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit}). ${git_default_branch^} merge commit ${k_pending_merge_commit} is pending."
         elif ! is-merge ${f_mainline_commit} || pick-merge-as-single-commit ${k_mainline_commit}; then
             local pick_args=""
             if is-merge ${f_mainline_commit}; then
                 pick_args="-m 1"
-                echo "Cherry-picking k8s.io/kubernetes merge-commit  ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
+                echo "Cherry-picking ${source_repo_org}/${source_repo_name}  ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
             else
-                echo "Cherry-picking k8s.io/kubernetes single-commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
+                echo "Cherry-picking ${source_repo_org}/${source_repo_name} single-commit ${k_mainline_commit}: $(commit-subject ${f_mainline_commit})."
             fi
 
             # reset go.mod?
@@ -461,7 +462,7 @@ sync_repo() {
                     dst_needs_gomod_update=true
                 fi
 
-                echo "Cherry-picking k8s.io/kubernetes branch-commit $(kube-commit ${commit_msg_tag} ${f_commit}): $(commit-subject ${f_commit})."
+                echo "Cherry-picking ${source_repo_org}/${source_repo_name} branch-commit $(kube-commit ${commit_msg_tag} ${f_commit}): $(commit-subject ${f_commit})."
                 if ! GIT_COMMITTER_DATE="$(commit-date ${f_commit})" git cherry-pick --keep-redundant-commits ${f_commit} >/dev/null; then
                     echo
                     show-working-dir-status
@@ -619,8 +620,8 @@ function is-merge() {
     fi
 }
 
-function is-merge-with-master() {
-    if ! grep -q "^Merge remote-tracking branch 'origin/master'" <<<"$(short-commit-message ${1})"; then
+function is-merge-with-main() {
+    if ! grep -q "^Merge remote-tracking branch 'origin/${1}'" <<<"$(short-commit-message ${2})"; then
         return 1
     fi
 }
@@ -675,6 +676,7 @@ function kube-commit() {
 # find the rev when the given commit was merged into the branch
 function git-find-merge() {
     # taken from https://stackoverflow.com/a/38941227: intersection of both files, with the order of the second
+    # TODO replace master with main when k8s moves to main branch
     awk 'NR==FNR{a[$1]++;next} a[$1] ' \
         <(git rev-list ${1}^1..${2:-master} --first-parent) \
         <(git rev-list ${1}..${2:-master} --ancestry-path; git rev-parse ${1}) \
@@ -686,6 +688,7 @@ function git-find-merge() {
 # them in the search.
 function git-fork-point() {
     # taken from https://stackoverflow.com/a/38941227: intersection of both files, with the order of the second
+    # TODO replace master with main when k8s moves to main branch
     awk 'NR==FNR{a[$1]++;next} a[$1] ' \
         <(git rev-list ${2:-master} --first-parent) \
         <(git rev-list ${1:-HEAD} --first-parent) \
