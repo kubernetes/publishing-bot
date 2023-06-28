@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,6 +50,11 @@ func (c Source) String() string {
 type BranchRule struct {
 	Name string `yaml:"name"`
 	// a valid go version string like 1.10.2 or 1.10
+	//
+	// From go 1.21 onwards there is a change in the versioning format.
+	// The version displayed by `go version` should be used here:
+	// 1. 1.21.0 is valid and 1.21 is invalid
+	// 2. 1.21rc1 and 1.21.0rc1 are valid
 	GoVersion string `yaml:"go,omitempty"`
 	// k8s.io/* repos the branch rule depends on
 	Dependencies     []Dependency `yaml:"dependencies,omitempty"`
@@ -172,12 +178,61 @@ func validateGoVersions(rules *RepositoryRules) (errs []error) {
 // go versions don't follow semver. Examples:
 // 1. 1.15.0 is invalid, 1.15 is valid
 // 2. 1.15.0-rc.1 is invalid, 1.15rc1 is valid
-var goVerRegex = regexp.MustCompile(`^([0-9]+)\.([0-9]\w*)(\.[1-9]\d*\w*)*$`)
+//
+// From go 1.21 onwards there is a change in the versioning format
+// Ref: https://tip.golang.org/doc/toolchain#versions
+//
+// The version displayed by `go version` is what we care about and use in the config.
+// This is the version in the *name of the go tool chain* (of the form goV, V is what we
+// care about). For Go *language versions* >= 1.21, the following are the rules for versions
+// in the go tool chain name:
+// 1. 1.21 is invalid, and 1.21.0 is valid
+// 2. 1.21rc1 and 1.21.0rc1 are valid
+var goVerRegex = regexp.MustCompile(`^(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<patch>\d+))?(?:(?P<pre>alpha|beta|rc)\d+)?$`)
 
 func ensureValidGoVersion(version string) error {
-	if !goVerRegex.MatchString(version) {
+	match := goVerRegex.FindStringSubmatch(version)
+	if len(match) == 0 {
 		return fmt.Errorf("specified go version %s is invalid", version)
 	}
+
+	var majorVersion, minorVersion, patchVersion int
+	var preRelease string
+	patchVersionExists := false
+
+	majorVersion, err := strconv.Atoi(match[1])
+	if err != nil {
+		return fmt.Errorf("error parsing major version '%s' : %s", match[1], err)
+	}
+	minorVersion, err = strconv.Atoi(match[2])
+	if err != nil {
+		return fmt.Errorf("error parsing minor version '%s' : %s", match[2], err)
+	}
+	if match[3] != "" {
+		patchVersion, err = strconv.Atoi(match[3])
+		if err != nil {
+			return fmt.Errorf("error parsing patch version '%s' : %s", match[3], err)
+		}
+		patchVersionExists = true
+	}
+	preRelease = match[4]
+
+	// for go versions <= 1.20, patch version .0 should not exist
+	if majorVersion <= 1 && minorVersion <= 20 {
+		if patchVersionExists && patchVersion == 0 {
+			languageVersion := fmt.Sprintf("%d.%d", majorVersion, minorVersion)
+			return fmt.Errorf("go language version %s below 1.21; should not have a 0th patch release, got %s", languageVersion, version)
+		}
+	}
+
+	// for go versions >= 1.21.0, patch versions should exist. If there is no patch version,
+	// then it should be a prerelease
+	if (majorVersion == 1 && minorVersion >= 21) || majorVersion >= 2 {
+		if !patchVersionExists && preRelease == "" {
+			return fmt.Errorf("patch version should always be present for go language version >= 1.21")
+		}
+	}
+
 	return nil
 }
 
