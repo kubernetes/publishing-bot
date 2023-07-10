@@ -216,9 +216,9 @@ func main() { //nolint: gocyclo
 			if publisherErr != nil {
 				if exitErr, ok := publisherErr.(*exec.ExitError); ok {
 					os.Exit(exitErr.ExitCode())
-				} else {
-					os.Exit(1)
 				}
+
+				os.Exit(1)
 			}
 			break
 		}
