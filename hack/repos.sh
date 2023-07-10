@@ -35,6 +35,7 @@ repos=(
     cri-api
     csi-translation-lib
     dynamic-resource-allocation
+    endpointslice
     kms
     kube-aggregator
     kube-controller-manager
