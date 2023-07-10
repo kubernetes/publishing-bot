@@ -80,7 +80,7 @@ func (h *Server) Run(port int) error { //nolint: unparam
 	return nil
 }
 
-func (h *Server) runHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Server) runHandler(w http.ResponseWriter, _ *http.Request) {
 	if h.RunChan == nil {
 		http.Error(w, "run channel is closed", http.StatusInternalServerError)
 		return
@@ -94,7 +94,7 @@ func (h *Server) runHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK")) //nolint: errcheck
 }
 
-func (h *Server) healthzHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Server) healthzHandler(w http.ResponseWriter, _ *http.Request) {
 	h.mutex.RLock()
 	resp := h.response
 	if h.Issue != 0 {

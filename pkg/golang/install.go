@@ -102,9 +102,6 @@ func installGoVersion(v, pth string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("command %q failed: %v", strings.Join(cmd.Args, " "), err)
 	}
-	if err := os.Rename(tmpPath, pth); err != nil {
-		return err
-	}
 
-	return nil
+	return os.Rename(tmpPath, pth)
 }
