@@ -92,17 +92,33 @@ cache only. Wiping it is not harmful in general (other than for the time it take
 
 ### How do i clean up the pvc?
 
-Step 1: Use the command about to find the pvc and the pod then clean them up in one shot
+Step 1: Use the command to scale down the replicaset
 ```shell
-kubectl delete -n publishing-bot pod/publisher-cdvwj persistentvolumeclaim/publisher-gopath
+kubectl scale -n publishing-bot --replicas=0 replicaset publisher
 ```
 
-Step 2: Re-deploy the pvc again
+Step 2: Delete the PVC
+```shell
+kubectl delete -n publishing-bot persistentvolumeclaim/publisher-gopath
+```
+
+Step 3: Make sure the PVC is deleted and removed from the namespace
+```shell
+kubectl get -n publishing-bot pvc
+```
+should not list any PVCs
+
+Step 4: Re-deploy the pvc again
 ```shell
 kubectl apply -n publishing-bot -f artifacts/manifests/pvc.yaml
 ```
 
-Step 3: Watch the pod start back up from `Pending`
+Step 5: Scale up the replicaset
+```shell
+kubectl scale -n publishing-bot --replicas=1 replicaset publisher
+```
+
+Step 6: Watch the pod start back up from `Pending`
 ```shell
 kubectl -n publishing-bot get pods
 ```
