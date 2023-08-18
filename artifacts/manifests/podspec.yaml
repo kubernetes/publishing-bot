@@ -14,7 +14,7 @@ initContainers:
       memory: 200Mi
     limits:
       cpu: 2
-      memory: 1.6Gi
+      memory: 1639Mi
   volumeMounts:
   - mountPath: /etc/munge-config
     name: munge-config

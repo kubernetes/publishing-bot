@@ -36,7 +36,7 @@ INTERVAL ?= 86400
 CPU_LIMITS ?= 2
 CPU_REQUESTS ?= 300m
 MEMORY_REQUESTS ?= 200Mi
-MEMORY_LIMITS ?= 1.6Gi
+MEMORY_LIMITS ?= 1639Mi
 GOOS ?= linux
 
 build_cmd = GO111MODULE=on mkdir -p _output && GOOS=$(GOOS) go build -o _output/$(1) ./cmd/$(1)
