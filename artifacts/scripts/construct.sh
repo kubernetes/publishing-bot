@@ -38,7 +38,7 @@ set -o pipefail
 set -o xtrace
 
 if [ ! $# -eq 15 ]; then
-    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectory source_repo_org source_repo_name base_package is_library recursive_delete_pattern skip_tags last_published_upstream_hash git_default_branch"
+    echo "usage: $0 repo src_branch dst_branch dependent_k8s.io_repos required_packages kubernetes_remote subdirectories source_repo_org source_repo_name base_package is_library recursive_delete_pattern skip_tags last_published_upstream_hash git_default_branch"
     exit 1
 fi
 
@@ -55,8 +55,8 @@ REQUIRED="${5}"
 # Remote url for Kubernetes. If empty, will fetch kubernetes
 # from https://github.com/kubernetes/kubernetes.
 SOURCE_REMOTE="${6}"
-# maps to staging/k8s.io/src/${REPO}
-SUBDIR="${7}"
+# maps to staging/k8s.io/src/${REPO} or the subdirectories from which the repo needs to be published
+SUBDIRS="${7}"
 # source repository organization name (eg. kubernetes)
 SOURCE_REPO_ORG="${8}"
 # source repository name (eg. kubernetes) has to be set for the sync-tags
@@ -77,7 +77,7 @@ LAST_PUBLISHED_UPSTREAM_HASH="${5}"
 # name of the main branch. master for k8s.io/kubernetes
 GIT_DEFAULT_BRANCH="${6}"
 
-readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG SUBDIR SOURCE_REPO_NAME BASE_PACKAGE IS_LIBRARY RECURSIVE_DELETE_PATTERN SKIP_TAGS LAST_PUBLISHED_UPSTREAM_HASH GIT_DEFAULT_BRANCH
+readonly REPO SRC_BRANCH DST_BRANCH DEPS REQUIRED SOURCE_REMOTE SOURCE_REPO_ORG SUBDIRS SOURCE_REPO_NAME BASE_PACKAGE IS_LIBRARY RECURSIVE_DELETE_PATTERN SKIP_TAGS LAST_PUBLISHED_UPSTREAM_HASH GIT_DEFAULT_BRANCH
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE}")
 source "${SCRIPT_DIR}"/util.sh
@@ -132,7 +132,7 @@ if [ "${UPSTREAM_HASH}" != "${LAST_PUBLISHED_UPSTREAM_HASH}" ]; then
     echo "Upstream branch upstream/${SRC_BRANCH} moved from '${LAST_PUBLISHED_UPSTREAM_HASH}' to '${UPSTREAM_HASH}'. We have to sync."
     # sync_repo cherry-picks the commits that change
     # k8s.io/kubernetes/staging/src/k8s.io/${REPO} to the ${DST_BRANCH}
-    sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIR}" "${SRC_BRANCH}" "${DST_BRANCH}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}" "${GIT_DEFAULT_BRANCH}"
+    sync_repo "${SOURCE_REPO_ORG}" "${SOURCE_REPO_NAME}" "${SUBDIRS}" "${SRC_BRANCH}" "${DST_BRANCH}" "${DEPS}" "${REQUIRED}" "${BASE_PACKAGE}" "${IS_LIBRARY}" "${RECURSIVE_DELETE_PATTERN}" "${GIT_DEFAULT_BRANCH}"
 else
     echo "Skipping sync because upstream/${SRC_BRANCH} at ${UPSTREAM_HASH} did not change since last sync."
 fi

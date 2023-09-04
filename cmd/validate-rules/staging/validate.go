@@ -39,11 +39,15 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules) []error {
 	var errors []error
 	for _, rule := range rules.Rules {
 		for _, branchRule := range rule.Branches {
-			_, directory := filepath.Split(branchRule.Source.Dir)
-			err := checkDirectoryExistsInBranch(directory, branchRule.Source.Branch)
-			if err != nil {
-				errors = append(errors, err)
+			// ensure all the mentioned directories exist
+			for _, dir := range branchRule.Source.Dirs {
+				_, directory := filepath.Split(dir)
+				err := checkDirectoryExistsInBranch(directory, branchRule.Source.Branch)
+				if err != nil {
+					errors = append(errors, err)
+				}
 			}
+
 			for _, dependency := range branchRule.Dependencies {
 				err := checkDirectoryExistsInBranch(dependency.Repository, dependency.Branch)
 				if err != nil {

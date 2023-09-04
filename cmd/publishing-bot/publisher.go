@@ -267,8 +267,8 @@ func (p *PublisherMunger) construct() error {
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
 			}
-			if branchRule.Source.Dir == "" {
-				branchRule.Source.Dir = "."
+			if len(branchRule.Source.Dirs) == 0 {
+				branchRule.Source.Dirs = append(branchRule.Source.Dirs, ".")
 				p.plog.Infof("%v: 'dir' cannot be empty, defaulting to '.'", branchRule)
 			}
 
@@ -309,7 +309,7 @@ func (p *PublisherMunger) construct() error {
 				formatDeps(branchRule.Dependencies),
 				strings.Join(branchRule.RequiredPackages, ":"),
 				sourceRemote,
-				branchRule.Source.Dir,
+				strings.Join(branchRule.Source.Dirs, ":"),
 				p.config.SourceRepo,
 				p.config.SourceRepo,
 				p.config.BasePackage,
