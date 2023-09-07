@@ -84,7 +84,7 @@ This will not push to your org, but runs in dry-run mode. To run with a push, ad
 
 **Caution:** Make sure that the bot github user CANNOT close arbitrary issues in the upstream repo. Otherwise, github will close, them triggered by `Fixes kubernetes/kubernetes#123` patterns in published commits.
 
-**Note:**: Details about running the publishing-bot for the Kubernetes project can be found in [k8s-publishing-bot.md](k8s-publishing-bot.md).
+**Note:**: Details about running the publishing-bot for the Kubernetes project can be found in [production.md](production.md).
 
 
 ### Update rules
