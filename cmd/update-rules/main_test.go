@@ -109,7 +109,7 @@ func TestUpdateRules(t *testing.T) {
 			if err != nil {
 				t.Errorf("error loading test rules file %v", err)
 			}
-			UpdateRules(rules, tt.branch, tt.goVersion)
+			UpdateRules(rules, tt.branch, tt.goVersion, false)
 
 			for _, repoRule := range rules.Rules {
 				var masterRulePresent, branchRulePresent bool
@@ -158,6 +158,43 @@ func TestUpdateRules(t *testing.T) {
 
 				if repoRule.Branches[masterRuleIndex].SmokeTest != repoRule.Branches[branchRuleIndex].SmokeTest {
 					t.Errorf("incorrect update to branch %s rule smoke-test for repo %s", tt.branch, repoRule.DestinationRepository)
+				}
+			}
+		})
+	}
+}
+
+func TestRemoveRules(t *testing.T) {
+	tests := []struct {
+		name      string
+		branch    string
+		goVersion string
+	}{
+		{
+			"release-1.20",
+			"release-1.XY",
+			"1.17.1",
+		},
+		{
+			"release-1.19",
+			"release-1.XY",
+			"1.17.1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rules, err := load(testdataRules)
+			if err != nil {
+				t.Errorf("error loading test rules file %v", err)
+			}
+			UpdateRules(rules, tt.branch, tt.goVersion, true)
+
+			for _, repoRule := range rules.Rules {
+				for _, branchRule := range repoRule.Branches {
+					if branchRule.Name == tt.branch {
+						t.Errorf("Failed to delete %s branch rule from for repo %s", tt.name, repoRule.DestinationRepository)
+					}
 				}
 			}
 		})
