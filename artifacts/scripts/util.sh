@@ -611,13 +611,20 @@ function filter-repo() {
     local recursive_delete_pattern="${3}"
     echo "Running git filter-branch ..."
 
-    # create the --path <subdir> commands for all the required subdirectories
-    # convert subdirectory to an array by splitting the : separated string
-    IFS=':' read -r -a subdirectories <<< "$subdirectories"
     local path_filter_command=""
-    for dir in "${subdirectories[@]}"; do
-        path_filter_command+=" --path ${dir}"
-    done
+    if [[ "${subdirectories}" == *":"* ]]; then
+        # create the --path <subdir> commands for all the required subdirectories
+        # convert subdirectory to an array by splitting the : separated string
+        IFS=':' read -r -a subdirectories <<< "$subdirectories"
+        for dir in "${subdirectories[@]}"; do
+            path_filter_command+=" --path ${dir}"
+        done
+    else
+        # TODO (akhilerm): add a switch to decide, if single subdirectory should become root of the
+        #  project, or be a subdirectory itself
+        # if there is only one subdirectory, that will be converted to the root of the project
+        path_filter_command+=" --subdirectory-filter=${subdirectories}"
+    fi
 
     local index_filter=""
     if [ -n "${recursive_delete_pattern}" ]; then
@@ -631,7 +638,6 @@ function filter-repo() {
     fi
 
 # TODO(akhilerm) make sure index filter is honored
-# TODO(akhilerm) make sure if only a single directory needs to be published, the directory acts as the root
 # TODO(akhilerm) nit if the commit message ends in a new line, we dont need new line here in commit callback, else add new line
 # TODO(akhilerm) instead of doing the --refs partial filter, we can apply the filter and then cherry pick only from the needed branches
     git filter-repo \
