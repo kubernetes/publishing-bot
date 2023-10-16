@@ -32,7 +32,7 @@ const GitDefaultBranch = "master"
 
 type options struct {
 	branch    string
-	remove    bool
+	delete    bool
 	rulesFile string
 	goVersion string
 	out       string
@@ -42,7 +42,7 @@ func parseOptions() options {
 	var o options
 	flag.StringVar(&o.branch, "branch", "", "[required] Branch to update rules for, e.g. --branch release-x.yy")
 	flag.StringVar(&o.rulesFile, "rules", "", "[required] URL or Path of the rules file to update rules for, e.g. --rules path/or/url/to/rules/file.yaml")
-	flag.BoolVar(&o.remove, "remove", false, "Remove old rules to deprecated branch")
+	flag.BoolVar(&o.delete, "delete", false, "Remove old rules to deprecated branch")
 	flag.StringVar(&o.goVersion, "go", "", "Golang version to pin for this branch, e.g. --go 1.16.1")
 	flag.StringVar(&o.out, "o", "", "Path to export the updated rules to, e.g. -o /tmp/rules.yaml")
 
@@ -58,10 +58,10 @@ func parseOptions() options {
   update-rules -branch release-1.22 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml 
 
   # Update rules to remove deprecated branch and export to /tmp/rules.yaml
-  update-rules -branch release-1.22 -remove true -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml`
+  update-rules -branch release-1.22 -delete -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml`
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stdout, "\n  Usage:  update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH | -remove true/false]")
+		fmt.Fprintf(os.Stdout, "\n  Usage:  update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH | --delete ]")
 		fmt.Fprintf(os.Stdout, "\n  %s\n\n", examples)
 		flag.PrintDefaults()
 	}
@@ -91,7 +91,7 @@ func main() {
 	}
 
 	// update rules for all destination repos
-	UpdateRules(rules, o.branch, o.goVersion, o.remove)
+	UpdateRules(rules, o.branch, o.goVersion, o.delete)
 	// validate rules after update
 	if err := config.Validate(rules); err != nil {
 		glog.Fatalf("update failed, found invalid rules after update: %v", err)
@@ -145,19 +145,19 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string, removeRule
 			continue
 		}
 
+		var branchRuleExists bool
+		// if the target branch rules already exists, update it
 		// update the rules for branch and its dependencies
 		if !removeRules {
 			updateBranchRules(&newBranchRule, branch, goVer)
-		}
 
-		var branchRuleExists bool
-		// if the target branch rules already exists, update it
-		for i, br := range r.Branches {
-			if br.Name == branch {
-				glog.Infof("found branch %s rules for destination repo %s, updating it", branch, r.DestinationRepository)
-				r.Branches[i] = newBranchRule
-				branchRuleExists = true
-				break
+			for i, br := range r.Branches {
+				if br.Name == branch {
+					glog.Infof("found branch %s rules for destination repo %s, updating it", branch, r.DestinationRepository)
+					r.Branches[i] = newBranchRule
+					branchRuleExists = true
+					break
+				}
 			}
 		}
 		for i, br := range r.Branches {

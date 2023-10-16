@@ -50,7 +50,7 @@ Run the command line as:
 ```
   update-rules -h
 
-  Usage: update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH | -remove true/false]
+  Usage: update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH | -delete]
 
   Examples:
   # Update rules for branch release-1.23 with go version 1.16.4
@@ -62,8 +62,8 @@ Run the command line as:
   # Update rules and export to /tmp/rules.yaml
   update-rules -branch release-1.24 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml  
   
-  # Remove rules and export to /tmp/rules.yaml
-  update-rules -branch release-1.24 -remove true -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
+  # Delete rules and export to /tmp/rules.yaml
+  update-rules -branch release-1.24 -delete -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml
 
   -alsologtostderr
     	log to standard error as well as files
@@ -79,8 +79,8 @@ Run the command line as:
     	log to standard error instead of files
   -o string
     	Path to export the updated rules to, e.g. -o /tmp/rules.yaml
-  -remove
-        Remove old rules to deprecated branch
+  -delete
+        Delete old rules of deprecated branch
   -rules string
     	[required] URL or Path of the rules file to update rules for, e.g. --rules path/or/url/to/rules/file.yaml
   -stderrthreshold value
@@ -99,5 +99,5 @@ Run the command line as:
 #### Optional flags:
 
 - `-go` flag refers to golang version which should be pinned for given branch, if not given an empty string is set
-- `-remove` flag refers to removing the branch from rules, defaults to false 
+- `-delete` flag refers to removing the branch from rules, if not set defaults to false 
 - `-o` flag refers to output file where the processed rules should be exported, otherwise rules are printed on stdout
