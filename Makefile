@@ -24,7 +24,7 @@ GIT_TAG ?= $(shell git describe --tags --always --dirty)
 IMG_REGISTRY ?= gcr.io/k8s-staging-publishing-bot
 IMG_NAME = k8s-publishing-bot
 
-IMG_VERSION ?= v0.0.0-1
+IMG_VERSION ?= v0.0.0-2
 
 # TODO(image): Consider renaming this variable
 DOCKER_REPO ?= $(IMG_REGISTRY)/$(IMG_NAME)
