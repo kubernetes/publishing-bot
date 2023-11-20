@@ -50,7 +50,7 @@ Run the command line as:
 ```
   update-rules -h
 
-  Usage: update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH | -delete]
+  Usage: update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH | --delete]
 
   Examples:
   # Update rules for branch release-1.23 with go version 1.16.4
