@@ -31,18 +31,18 @@ import (
 const GitDefaultBranch = "master"
 
 type options struct {
-	branch    string
-	delete    bool
-	rulesFile string
-	goVersion string
-	out       string
+	branch     string
+	deleteRule bool
+	rulesFile  string
+	goVersion  string
+	out        string
 }
 
 func parseOptions() options {
 	var o options
 	flag.StringVar(&o.branch, "branch", "", "[required] Branch to update rules for, e.g. --branch release-x.yy")
 	flag.StringVar(&o.rulesFile, "rules", "", "[required] URL or Path of the rules file to update rules for, e.g. --rules path/or/url/to/rules/file.yaml")
-	flag.BoolVar(&o.delete, "delete", false, "Remove old rules to deprecated branch")
+	flag.BoolVar(&o.deleteRule, "delete", false, "Remove old rules of deprecated branch")
 	flag.StringVar(&o.goVersion, "go", "", "Golang version to pin for this branch, e.g. --go 1.16.1")
 	flag.StringVar(&o.out, "o", "", "Path to export the updated rules to, e.g. -o /tmp/rules.yaml")
 
@@ -91,7 +91,7 @@ func main() {
 	}
 
 	// update rules for all destination repos
-	UpdateRules(rules, o.branch, o.goVersion, o.delete)
+	UpdateRules(rules, o.branch, o.goVersion, o.deleteRule)
 	// validate rules after update
 	if err := config.Validate(rules); err != nil {
 		glog.Fatalf("update failed, found invalid rules after update: %v", err)
@@ -125,9 +125,26 @@ func load(rulesFile string) (*config.RepositoryRules, error) {
 	return rules, nil
 }
 
-func UpdateRules(rules *config.RepositoryRules, branch, goVer string, removeRules bool) {
+func UpdateRules(rules *config.RepositoryRules, branch, goVer string, deleteRule bool) {
 	// run the update per destination repo in the rules
 	for j, r := range rules.Rules {
+		var deletedBranch bool
+		// To Check and Remove the existing/deprecated branch
+		if deleteRule {
+			for i, br := range r.Branches {
+				if br.Name == branch {
+					glog.Infof("Remove rule %s for %s", branch, r.DestinationRepository)
+					r.Branches = append(r.Branches[:i], r.Branches[i+1:]...)
+					deletedBranch = true
+					break
+				}
+			}
+			if !deletedBranch {
+				glog.Infof("Trying to delete branch %s that doesn't exists for %s", branch, r.DestinationRepository)
+			}
+			continue
+		}
+
 		var mainBranchRuleFound bool
 		var newBranchRule config.BranchRule
 		// find the mainBranch rules
@@ -148,26 +165,17 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string, removeRule
 		var branchRuleExists bool
 		// if the target branch rules already exists, update it
 		// update the rules for branch and its dependencies
-		if !removeRules {
-			updateBranchRules(&newBranchRule, branch, goVer)
+		updateBranchRules(&newBranchRule, branch, goVer)
 
-			for i, br := range r.Branches {
-				if br.Name == branch {
-					glog.Infof("found branch %s rules for destination repo %s, updating it", branch, r.DestinationRepository)
-					r.Branches[i] = newBranchRule
-					branchRuleExists = true
-					break
-				}
-			}
-		}
 		for i, br := range r.Branches {
-			if removeRules && br.Name == branch {
-				glog.Infof("Will remove rule for %s %s", branch, r.DestinationRepository)
-				r.Branches = append(r.Branches[:i], r.Branches[i+1:]...)
+			if br.Name == branch {
+				glog.Infof("found branch %s rules for destination repo %s, updating it", branch, r.DestinationRepository)
+				r.Branches[i] = newBranchRule
 				branchRuleExists = true
 				break
 			}
 		}
+
 		// new rules, append to destination's branches
 		if !branchRuleExists {
 			r.Branches = append(r.Branches, newBranchRule)
