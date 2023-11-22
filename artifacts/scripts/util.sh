@@ -205,6 +205,7 @@ sync_repo() {
 
                 # does ${subdirectories} exist at ${k_branch_point_commit}? If not it was introduced to the branch via some fast-forward merge.
                 # we use the fast-forward merge commit's second parent (on master) as branch point.
+                subdirectory=${subdirectories}
                 if [ $(git ls-tree --name-only -r ${k_branch_point_commit} -- "${subdirectory}" | wc -l) = 0 ]; then
                     echo "Subdirectory ${subdirectory} did not exist at branch point ${k_branch_point_commit}. Looking for fast-forward merge introducing it."
                     last_with_subdir=$(git rev-list upstream/${src_branch} --first-parent --remove-empty -- "${subdirectory}" | tail -1)
