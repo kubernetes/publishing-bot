@@ -133,14 +133,14 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string, deleteRule
 		if deleteRule {
 			for i, br := range r.Branches {
 				if br.Name == branch {
-					glog.Infof("Remove rule %s for %s", branch, r.DestinationRepository)
-					r.Branches = append(r.Branches[:i], r.Branches[i+1:]...)
+					glog.Infof("remove rule %s for %s", branch, r.DestinationRepository)
+					rules.Rules[j].Branches = append(rules.Rules[j].Branches[:i], rules.Rules[j].Branches[i+1:]...)
 					deletedBranch = true
 					break
 				}
 			}
 			if !deletedBranch {
-				glog.Infof("Trying to delete branch %s that doesn't exists for %s", branch, r.DestinationRepository)
+				glog.Infof("skipping delete of branch rule %s that doesn't exists for %s", branch, r.DestinationRepository)
 			}
 			continue
 		}
@@ -162,11 +162,11 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string, deleteRule
 			continue
 		}
 
-		var branchRuleExists bool
-		// if the target branch rules already exists, update it
 		// update the rules for branch and its dependencies
 		updateBranchRules(&newBranchRule, branch, goVer)
 
+		var branchRuleExists bool
+		// if the target branch rules already exists, update it
 		for i, br := range r.Branches {
 			if br.Name == branch {
 				glog.Infof("found branch %s rules for destination repo %s, updating it", branch, r.DestinationRepository)
@@ -175,7 +175,6 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string, deleteRule
 				break
 			}
 		}
-
 		// new rules, append to destination's branches
 		if !branchRuleExists {
 			r.Branches = append(r.Branches, newBranchRule)
