@@ -164,20 +164,20 @@ func TestUpdateRules(t *testing.T) {
 	}
 }
 
-func TestRemoveRules(t *testing.T) {
+func TestDeleteRules(t *testing.T) {
 	tests := []struct {
 		name      string
 		branch    string
 		goVersion string
 	}{
 		{
+			"deleting rule for non existing branch",
 			"release-1.20",
-			"release-1.XY",
 			"1.17.1",
 		},
 		{
-			"release-1.19",
-			"release-1.XY",
+			"deleting rule for non existing branch",
+			"release-1.25",
 			"1.17.1",
 		},
 	}
@@ -193,7 +193,7 @@ func TestRemoveRules(t *testing.T) {
 			for _, repoRule := range rules.Rules {
 				for _, branchRule := range repoRule.Branches {
 					if branchRule.Name == tt.branch {
-						t.Errorf("Failed to delete %s branch rule from for repo %s", tt.name, repoRule.DestinationRepository)
+						t.Errorf("failed to delete %s branch rule from for repo %s", tt.name, repoRule.DestinationRepository)
 					}
 				}
 			}
