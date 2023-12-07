@@ -57,15 +57,18 @@ Usage: %s --source-remote <remote> --source-branch <source-branch>
 	flag.PrintDefaults()
 }
 
-const rfc2822 = "Mon Jan 02 15:04:05 -0700 2006"
+const (
+	rfc2822        = "Mon Jan 02 15:04:05 -0700 2006"
+	refsTagsPrefix = "refs/tags/"
+)
 
 var publishingBot = object.Signature{
 	Name:  os.Getenv("GIT_COMMITTER_NAME"),
 	Email: os.Getenv("GIT_COMMITTER_EMAIL"),
 }
 
-// TODO(lint): cyclomatic complexity 63 of func `main` is high (> 30)
-func main() { //nolint: gocyclo
+//nolint:gocyclo  // TODO(lint): cyclomatic complexity 63 of func `main` is high (> 30)
+func main() {
 	// repository flags used when the repository is not k8s.io/kubernetes
 	commitMsgTag := flag.String("commit-message-tag", "Kubernetes-commit", "the git commit message tag used to point back to source commits")
 	sourceRemote := flag.String("source-remote", "", "the source repo remote (e.g. upstream")
@@ -293,7 +296,7 @@ func main() { //nolint: gocyclo
 				if err := writeKubeCommitMapping(f, sourceCommitsToDstCommits, srcFirstParents); err != nil {
 					glog.Fatal(err)
 				}
-				defer f.Close()
+				f.Close()
 
 				mappingFilesWritten[fname] = true
 			}
@@ -361,7 +364,7 @@ func main() { //nolint: gocyclo
 			glog.Fatalf("Failed to open push-script %q for appending: %v", *pushScriptPath, err)
 		}
 		defer pushScript.Close()
-		_, err = pushScript.WriteString(fmt.Sprintf("git push --atomic origin %s\n", "refs/tags/"+strings.Join(createdTags, " refs/tags/")))
+		_, err = fmt.Fprintf(pushScript, "git push --atomic origin %s\n", refsTagsPrefix+strings.Join(createdTags, " "+refsTagsPrefix))
 		if err != nil {
 			glog.Fatalf("Failed to write to push-script %q: %q", *pushScriptPath, err)
 		}
@@ -380,7 +383,7 @@ func remoteTags(r *gogit.Repository, remote string) (map[string]plumbing.Hash, e
 			return nil
 		}
 		n := ref.Name().String()
-		if prefix := "refs/tags/" + remote + "/"; strings.HasPrefix(n, prefix) {
+		if prefix := refsTagsPrefix + remote + "/"; strings.HasPrefix(n, prefix) {
 			tagCommits[n[len(prefix):]] = ref.Hash()
 		}
 		return nil
@@ -400,9 +403,9 @@ func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 		}
 		n := ref.Name().String()
 		for _, remote := range remotes {
-			if strings.HasPrefix(n, "refs/tags/"+remote+"/") {
-				// TODO(lint): Should we be checking errors here?
-				r.Storer.RemoveReference(ref.Name()) //nolint: errcheck
+			if strings.HasPrefix(n, refsTagsPrefix+remote+"/") {
+				//nolint:errcheck  // TODO(lint): Should we be checking errors here?
+				r.Storer.RemoveReference(ref.Name())
 				break
 			}
 		}
@@ -432,7 +435,7 @@ func tagExists(tag string) bool {
 
 	// TODO: Fix or remove
 	// the following does not work with go-git, for unknown reasons:
-	//	_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag))) 	//nolint: gocritic
+	//	_, err := r.ResolveRevision(plumbing.Revision(fmt.Sprintf("refs/tags/%s", tag)))
 	//	return err == nil
 	//
 }

@@ -53,14 +53,14 @@ func newPublisherLog(buf *bytes.Buffer, logFileName string) (*plog, error) {
 }
 
 func (p *plog) write(s string) {
-	// TODO(lint): Should we be checking errors here?
-	p.combinedBufAndFile.Write([]byte("[" + time.Now().Format(time.RFC822) + "]: ")) //nolint: errcheck
+	//nolint:errcheck  // TODO(lint): Should we be checking errors here?
+	p.combinedBufAndFile.Write([]byte("[" + time.Now().Format(time.RFC822) + "]: "))
 
-	// TODO(lint): Should we be checking errors here?
-	p.combinedBufAndFile.Write([]byte(s)) //nolint: errcheck
+	//nolint:errcheck  // TODO(lint): Should we be checking errors here?
+	p.combinedBufAndFile.Write([]byte(s))
 
-	// TODO(lint): Should we be checking errors here?
-	p.combinedBufAndFile.Write([]byte("\n")) //nolint: errcheck
+	//nolint:errcheck  // TODO(lint): Should we be checking errors here?
+	p.combinedBufAndFile.Write([]byte("\n"))
 }
 
 func (p *plog) Errorf(format string, args ...interface{}) {
@@ -82,7 +82,7 @@ func (p *plog) Fatalf(format string, args ...interface{}) {
 }
 
 func (p *plog) Run(c *exec.Cmd) error {
-	p.Infof("%s", cmdStr(*c))
+	p.Infof("%s", cmdStr(c))
 
 	errBuf := &bytes.Buffer{}
 
@@ -123,9 +123,7 @@ func prefixFollowingLines(p, s string) string {
 	return strings.Join(lines, "\n")
 }
 
-type cmdStr exec.Cmd
-
-func (cs cmdStr) String() string {
+func cmdStr(cs *exec.Cmd) string {
 	args := make([]string, len(cs.Args))
 	for i, s := range cs.Args {
 		if strings.ContainsRune(s, ' ') {
@@ -178,8 +176,8 @@ func (lw lineWriter) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-// TODO(lint): result 0 (int) is never used
-func (lw lineWriter) Flush() (int, error) { //nolint: unparam
+//nolint:unparam  // TODO(lint): result 0 (int) is never used
+func (lw lineWriter) Flush() (int, error) {
 	written, err := lw.buf.WriteTo(lw.writer)
 	lw.buf.Reset()
 	return int(written), err

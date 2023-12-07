@@ -125,7 +125,7 @@ func readFromURL(u *url.URL) ([]byte, error) {
 	client := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequest("GET", u.String(), http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,8 @@ func validateRepoOrder(rules *RepositoryRules) (errs []error) {
 	}
 
 	for i, r := range rules.Rules {
-		for _, br := range r.Branches {
+		for bri := range r.Branches {
+			br := r.Branches[bri]
 			for _, d := range br.Dependencies {
 				if j, ok := indices[d.Repository]; !ok {
 					errs = append(errs, fmt.Errorf("unknown dependency %q in repository rules of %q", d.Repository, r.DestinationRepository))
@@ -168,8 +169,10 @@ func validateGoVersions(rules *RepositoryRules) (errs []error) {
 		errs = append(errs, ensureValidGoVersion(*rules.DefaultGoVersion))
 	}
 
-	for _, rule := range rules.Rules {
-		for _, branch := range rule.Branches {
+	for i := range rules.Rules {
+		rule := rules.Rules[i]
+		for j := range rule.Branches {
+			branch := rule.Branches[j]
 			if branch.GoVersion != "" {
 				errs = append(errs, ensureValidGoVersion(branch.GoVersion))
 			}
@@ -243,7 +246,8 @@ func ensureValidGoVersion(version string) error {
 // this makes sure that old dir field values are copied over to new dirs field
 func fixDeprecatedFields(rules *RepositoryRules) {
 	for i, rule := range rules.Rules {
-		for j, branch := range rule.Branches {
+		for j := range rule.Branches {
+			branch := rule.Branches[j]
 			if len(branch.Source.Dirs) == 0 && branch.Source.Dir != "" {
 				rules.Rules[i].Branches[j].Source.Dirs = append(rules.Rules[i].Branches[j].Source.Dirs, branch.Source.Dir)
 				// The Dir field is made empty so that it is not used later and only the Dirs

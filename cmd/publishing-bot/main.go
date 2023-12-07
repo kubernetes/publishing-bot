@@ -42,8 +42,8 @@ Command line flags override config values.
 	flag.PrintDefaults()
 }
 
-// TODO(lint): cyclomatic complexity 38 of func `main` is high (> 30)
-func main() { //nolint: gocyclo
+//nolint:gocyclo  // TODO(lint): cyclomatic complexity 38 of func `main` is high (> 30)
+func main() {
 	configFilePath := flag.String("config", "", "the config file in yaml format")
 	githubHost := flag.String("github-host", "", "the address of github (defaults to github.com)")
 	basePackage := flag.String("base-package", "", "the name of the package base (defaults to k8s.io when source repo is kubernetes, "+
@@ -155,9 +155,7 @@ func main() { //nolint: gocyclo
 		RunChan: runChan,
 	}
 	if *serverPort != 0 {
-		if err := server.Run(*serverPort); err != nil {
-			glog.Fatalf("Failed to run healthz server: %v", err)
-		}
+		server.Run(*serverPort)
 	}
 
 	githubIssueErrorf := glog.Fatalf
@@ -202,7 +200,7 @@ func main() { //nolint: gocyclo
 			}
 		} else {
 			// run
-			if _, _, publisherErr = publisher.Run(); err != nil {
+			if _, _, publisherErr = publisher.Run(); publisherErr != nil {
 				glog.Infof("Failed to run publisher: %v", publisherErr)
 			}
 		}

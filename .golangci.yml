@@ -101,77 +101,112 @@ linters-settings:
     check-blank: true
   gocritic:
     enabled-checks:
-      # Diagnostic
       - appendAssign
+      - appendCombine
       - argOrder
+      - assignOp
+      - badCall
       - badCond
+      - badLock
+      - badRegexp
+      - badSorting
+      - boolExprSimplify
+      - builtinShadow
+      - builtinShadowDecl
+      - captLocal
       - caseOrder
       - codegenComment
+      - commentFormatting
       - commentedOutCode
+      - commentedOutImport
+      - defaultCaseOrder
+      - deferInLoop
+      - deferUnlambda
       - deprecatedComment
+      - docStub
       - dupArg
       - dupBranchBody
       - dupCase
+      - dupImport
       - dupSubExpr
-      - exitAfterDefer
-      - flagDeref
-      - flagName
-      - nilValReturn
-      - offBy1
-      - sloppyReassign
-      - weakCond
-      # TODO(lint): Temporarily disabled for compat with older Golang versions
-      #- octalLiteral
-
-      # Performance
-      - appendCombine
-      - equalFold
-      # TODO(lint): Temporarily disabled to prevent pointer handling issues
-      #- hugeParam
-      - indexAlloc
-      - rangeExprCopy
-      # TODO(lint): Temporarily disabled to prevent pointer handling issues
-      #- rangeValCopy
-
-      # Style
-      - assignOp
-      - boolExprSimplify
-      - captLocal
-      - commentFormatting
-      - commentedOutImport
-      - defaultCaseOrder
-      - docStub
+      - dynamicFmtString
       - elseif
+      - emptyDecl
       - emptyFallthrough
       - emptyStringTest
+      - equalFold
+      - evalOrder
+      - exitAfterDefer
+      - exposedSyncMutex
+      - externalErrorReassign
+      - filepathJoin
+      - flagDeref
+      - flagName
       - hexLiteral
+      - httpNoBody
+      - hugeParam
+      - ifElseChain
+      - importShadow
+      - indexAlloc
+      - initClause
+      - mapKey
       - methodExprCall
+      - nestingReduce
+      - newDeref
+      - nilValReturn
+      - octalLiteral
+      - offBy1
+      - paramTypeCombine
+      - preferDecodeRune
+      - preferFilepathJoin
+      - preferFprint
+      - preferStringWriter
+      - preferWriteByte
+      - ptrToRefParam
+      - rangeExprCopy
+      - rangeValCopy
+      - redundantSprint
       - regexpMust
+      - regexpPattern
+      - regexpSimplify
+      - returnAfterHttpError
+      - ruleguard
       - singleCaseSwitch
+      - sliceClear
       - sloppyLen
+      - sloppyReassign
+      - sloppyTestFuncName
+      - sloppyTypeAssert
+      - sortSlice
+      - sprintfQuotedString
+      - sqlQuery
+      - stringConcatSimplify
       - stringXbytes
+      - stringsCompare
       - switchTrue
+      - syncMapLoadAndDelete
+      - timeCmpSimplify
+      - timeExprSimplify
+      - todoCommentWithoutDetail
+      - tooManyResultsChecker
+      - truncateCmp
       - typeAssertChain
+      - typeDefFirst
       - typeSwitchVar
+      - typeUnparen
+      - uncheckedInlineErr
       - underef
       - unlabelStmt
       - unlambda
-      - unslice
-      - valSwap
-      - wrapperFunc
-      - yodaStyleExpr
-      # - ifElseChain
-
-      # Opinionated
-      - builtinShadow
-      - importShadow
-      - initClause
-      - nestingReduce
-      - paramTypeCombine
-      - ptrToRefParam
-      - typeUnparen
       - unnamedResult
       - unnecessaryBlock
+      - unnecessaryDefer
+      - unslice
+      - valSwap
+      - weakCond
+      - whyNoLint
+      - wrapperFunc
+      - yodaStyleExpr
   nolintlint:
     # Enable to ensure that nolint directives are all used. Default is true.
     allow-unused: false

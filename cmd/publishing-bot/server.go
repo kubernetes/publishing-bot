@@ -66,8 +66,7 @@ func (h *Server) SetHealth(healthy bool, hash string) {
 	}
 }
 
-// TODO(lint): result 0 (error) is always nil
-func (h *Server) Run(port int) error { //nolint: unparam
+func (h *Server) Run(port int) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", h.healthzHandler)
 	mux.HandleFunc("/run", h.runHandler)
@@ -77,7 +76,6 @@ func (h *Server) Run(port int) error { //nolint: unparam
 		err := http.ListenAndServe(addr, mux)
 		glog.Fatalf("Failed ListenAndServer: %v", err)
 	}()
-	return nil
 }
 
 func (h *Server) runHandler(w http.ResponseWriter, _ *http.Request) {
@@ -90,8 +88,8 @@ func (h *Server) runHandler(w http.ResponseWriter, _ *http.Request) {
 	default:
 	}
 
-	// TODO(lint): Should we be checking errors here?
-	w.Write([]byte("OK")) //nolint: errcheck
+	//nolint:errcheck  // TODO(lint): Should we be checking errors here?
+	w.Write([]byte("OK"))
 }
 
 func (h *Server) healthzHandler(w http.ResponseWriter, _ *http.Request) {
@@ -110,6 +108,6 @@ func (h *Server) healthzHandler(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
-	// TODO(lint): Should we be checking errors here?
-	w.Write(bytes) //nolint: errcheck
+	//nolint:errcheck  // TODO(lint): Should we be checking errors here?
+	w.Write(bytes)
 }

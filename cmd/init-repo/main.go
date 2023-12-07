@@ -57,7 +57,7 @@ func main() {
 	flag.Usage = Usage
 	flag.Parse()
 
-	cfg := config.Config{}
+	cfg := &config.Config{}
 	if *configFilePath != "" {
 		bs, err := os.ReadFile(*configFilePath)
 		if err != nil {
@@ -141,7 +141,7 @@ func main() {
 	}
 }
 
-func cloneForkRepo(cfg config.Config, repoName string) {
+func cloneForkRepo(cfg *config.Config, repoName string) {
 	forkRepoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.TargetOrg, repoName)
 	repoDir := filepath.Join(BaseRepoPath, repoName)
 
@@ -178,7 +178,7 @@ func run(c *exec.Cmd) {
 	}
 }
 
-func cloneSourceRepo(cfg config.Config) {
+func cloneSourceRepo(cfg *config.Config) {
 	repoLocation := fmt.Sprintf("https://%s/%s/%s", cfg.GithubHost, cfg.SourceOrg, cfg.SourceRepo)
 
 	if _, err := os.Stat(filepath.Join(BaseRepoPath, cfg.SourceRepo)); err == nil {
