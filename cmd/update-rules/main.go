@@ -127,7 +127,8 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string) {
 		var mainBranchRuleFound bool
 		var newBranchRule config.BranchRule
 		// find the mainBranch rules
-		for _, br := range r.Branches {
+		for i := range r.Branches {
+			br := r.Branches[i]
 			if br.Name == GitDefaultBranch {
 				cloneBranchRule(&br, &newBranchRule)
 				mainBranchRuleFound = true
@@ -146,7 +147,8 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string) {
 
 		var branchRuleExists bool
 		// if the target branch rules already exists, update it
-		for i, br := range r.Branches {
+		for i := range r.Branches {
+			br := r.Branches[i]
 			if br.Name == branch {
 				glog.Infof("found branch %s rules for destination repo %s, updating it", branch, r.DestinationRepository)
 				r.Branches[i] = newBranchRule

@@ -263,7 +263,8 @@ func (p *PublisherMunger) construct() error {
 		}
 
 		// construct branches
-		for _, branchRule := range repoRule.Branches {
+		for i := range repoRule.Branches {
+			branchRule := repoRule.Branches[i]
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
 			}
@@ -272,8 +273,8 @@ func (p *PublisherMunger) construct() error {
 				p.plog.Infof("%v: 'dir' cannot be empty, defaulting to '.'", branchRule)
 			}
 
-			// get old HEAD. Ignore errors as the branch might be non-existent
-			oldHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output() //nolint: errcheck
+			//nolint:errcheck // get old HEAD. Ignore errors as the branch might be non-existent
+			oldHead, _ := exec.Command("git", "rev-parse", fmt.Sprintf("origin/%s", branchRule.Name)).Output()
 
 			goPath := os.Getenv("GOPATH")
 			branchEnv := append([]string(nil), os.Environ()...) // make mutable
@@ -327,8 +328,8 @@ func (p *PublisherMunger) construct() error {
 				return err
 			}
 
-			// TODO(lint): Should we be checking errors here?
-			newHead, _ := exec.Command("git", "rev-parse", "HEAD").Output() //nolint: errcheck
+			//nolint:errcheck  // TODO(lint): Should we be checking errors here?
+			newHead, _ := exec.Command("git", "rev-parse", "HEAD").Output()
 
 			p.plog.Infof("Running branch-specific smoke tests for branch %s", branchRule.Name)
 			if err := p.runSmokeTests(branchRule.SmokeTest, string(oldHead), string(newHead), branchEnv); err != nil {
@@ -391,7 +392,8 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 		}
 
 		p.plog.Infof("Pushing branches for %s", repoRules.DestinationRepository)
-		for _, branchRule := range repoRules.Branches {
+		for i := range repoRules.Branches {
+			branchRule := repoRules.Branches[i]
 			if p.skippedBranch(branchRule.Source.Branch) {
 				continue
 			}

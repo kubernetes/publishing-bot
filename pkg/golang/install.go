@@ -48,7 +48,8 @@ func InstallGoVersions(rules *config.RepositoryRules) error {
 
 	goVersions := []string{defaultGoVersion}
 	for _, rule := range rules.Rules {
-		for _, branch := range rule.Branches {
+		for i := range rule.Branches {
+			branch := rule.Branches[i]
 			if branch.GoVersion != "" {
 				found := false
 				for _, v := range goVersions {

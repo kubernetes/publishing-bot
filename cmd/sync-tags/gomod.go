@@ -205,7 +205,7 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	}
 	defer listFile.Close()
 
-	if _, err := listFile.WriteString(fmt.Sprintf("%s\n", pseudoVersionOrTag)); err != nil {
+	if _, err := fmt.Fprintf(listFile, "%s\n", pseudoVersionOrTag); err != nil {
 		return fmt.Errorf("unable to write to list file in %s: %v", cacheDir, err)
 	}
 

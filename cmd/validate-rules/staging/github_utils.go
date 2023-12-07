@@ -36,7 +36,7 @@ func fetchKubernetesStagingDirectoryFiles(branch string) ([]File, error) {
 	url := "https://api.github.com/repos/kubernetes/kubernetes/contents/staging/src/k8s.io?ref=" + branch
 
 	spaceClient := http.Client{}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -49,23 +49,22 @@ func fetchKubernetesStagingDirectoryFiles(branch string) ([]File, error) {
 			return nil, err
 		}
 
-		if res.Body != nil {
-			defer res.Body.Close()
-		}
-
 		if res.StatusCode == http.StatusForbidden {
+			res.Body.Close()
 			// try after some time as we hit GH API limit
 			time.Sleep(5 * time.Second)
 			count++
 		} else {
 			// try for 10 mins then give up!
 			if count == 120 {
+				res.Body.Close()
 				return nil, fmt.Errorf("hitting github API limits, bailing out")
 			}
 
 			break
 		}
 	}
+	defer res.Body.Close()
 
 	body, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
