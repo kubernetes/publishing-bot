@@ -71,7 +71,7 @@ func InstallGoVersions(rules *config.RepositoryRules) error {
 	goLink, target := filepath.Join(systemGoPath, "go"), filepath.Join(systemGoPath, "go-"+defaultGoVersion)
 	os.Remove(goLink)
 	if err := os.Symlink(target, goLink); err != nil {
-		return fmt.Errorf("failed to link %s to %s: %s", goLink, target, err)
+		return fmt.Errorf("failed to link %s to %s: %w", goLink, target, err)
 	}
 
 	return nil
@@ -100,7 +100,7 @@ func installGoVersion(v, pth string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("command %q failed: %v", strings.Join(cmd.Args, " "), err)
+		return fmt.Errorf("command %q failed: %w", strings.Join(cmd.Args, " "), err)
 	}
 
 	return os.Rename(tmpPath, pth)

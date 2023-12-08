@@ -18,6 +18,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -45,17 +46,17 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 		depPath := filepath.Join("..", dep)
 		dr, err := gogit.PlainOpen(depPath)
 		if err != nil {
-			return changed, fmt.Errorf("failed to open dependency repo at %q: %v", depPath, err)
+			return changed, fmt.Errorf("failed to open dependency repo at %q: %w", depPath, err)
 		}
 
 		depPkg, err := fullPackageName(depPath)
 		if err != nil {
-			return changed, fmt.Errorf("failed to get package at %s: %v", depPath, err)
+			return changed, fmt.Errorf("failed to get package at %s: %w", depPath, err)
 		}
 
 		commit, commitTime, err := localOrPublishedTaggedCommitHashAndTime(dr, tag)
 		if err != nil {
-			return changed, fmt.Errorf("failed to get tag %s for %q: %v", tag, depPkg, err)
+			return changed, fmt.Errorf("failed to get tag %s for %q: %w", tag, depPkg, err)
 		}
 		rev := commit.String()
 		pseudoVersionOrTag := fmt.Sprintf("v0.0.0-%s-%s", commitTime.UTC().Format("20060102150405"), rev[:12])
@@ -67,7 +68,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 		// check if we have the pseudoVersion/tag published already. if we don't, package it up
 		// and save to local mod download cache.
 		if err := packageDepToGoModCache(depPath, depPkg, rev, pseudoVersionOrTag, commitTime); err != nil {
-			return changed, fmt.Errorf("failed to package %s dependency: %v", depPkg, err)
+			return changed, fmt.Errorf("failed to package %s dependency: %w", depPkg, err)
 		}
 
 		requireCommand := exec.Command("go", "mod", "edit", "-fmt", "-require", fmt.Sprintf("%s@%s", depPkg, pseudoVersionOrTag))
@@ -75,7 +76,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 		requireCommand.Stdout = os.Stdout
 		requireCommand.Stderr = os.Stderr
 		if err := requireCommand.Run(); err != nil {
-			return changed, fmt.Errorf("unable to pin %s in the require section of go.mod to %s: %v", depPkg, pseudoVersionOrTag, err)
+			return changed, fmt.Errorf("unable to pin %s in the require section of go.mod to %s: %w", depPkg, pseudoVersionOrTag, err)
 		}
 
 		replaceCommand := exec.Command("go", "mod", "edit", "-fmt", "-replace", fmt.Sprintf("%s=%s@%s", depPkg, depPkg, pseudoVersionOrTag))
@@ -83,7 +84,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 		replaceCommand.Stdout = os.Stdout
 		replaceCommand.Stderr = os.Stderr
 		if err := replaceCommand.Run(); err != nil {
-			return changed, fmt.Errorf("unable to pin %s in the replace section of go.mod to %s: %v", depPkg, pseudoVersionOrTag, err)
+			return changed, fmt.Errorf("unable to pin %s in the replace section of go.mod to %s: %w", depPkg, pseudoVersionOrTag, err)
 		}
 
 		found[dep] = true
@@ -102,7 +103,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 	downloadCommand2.Stdout = os.Stdout
 	downloadCommand2.Stderr = os.Stderr
 	if err := downloadCommand2.Run(); err != nil {
-		return changed, fmt.Errorf("error running go mod download: %v", err)
+		return changed, fmt.Errorf("error running go mod download: %w", err)
 	}
 
 	tidyCommand := exec.Command("go", "mod", "tidy")
@@ -110,7 +111,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 	tidyCommand.Stdout = os.Stdout
 	tidyCommand.Stderr = os.Stderr
 	if err := tidyCommand.Run(); err != nil {
-		return changed, fmt.Errorf("unable to run go mod tidy: %v", err)
+		return changed, fmt.Errorf("unable to run go mod tidy: %w", err)
 	}
 	fmt.Printf("Completed running go mod tidy for %s.\n", tag)
 
@@ -122,7 +123,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 func depsImportPaths(depsRepo []string) (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("unable to get current working directory: %v", err)
+		return "", fmt.Errorf("unable to get current working directory: %w", err)
 	}
 	d := strings.Split(dir, "/")
 	basePackage := d[len(d)-2]
@@ -149,14 +150,14 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 		fmt.Printf("%s for %s is already packaged up.\n", pseudoVersionOrTag, depPkg)
 		return nil
 	} else if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("could not check if %s exists: %v", goModFile, err)
+		return fmt.Errorf("could not check if %s exists: %w", goModFile, err)
 	}
 
 	fmt.Printf("Packaging up %s for %s into go mod cache.\n", pseudoVersionOrTag, depPkg)
 
 	// create the cache if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(goModFile), os.FileMode(0o755)); err != nil {
-		return fmt.Errorf("unable to create %s directory: %v", cacheDir, err)
+		return fmt.Errorf("unable to create %s directory: %w", cacheDir, err)
 	}
 
 	// checkout the dep repo to the commit at the tag
@@ -165,12 +166,12 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	checkoutCommand.Stdout = os.Stdout
 	checkoutCommand.Stderr = os.Stderr
 	if err := checkoutCommand.Run(); err != nil {
-		return fmt.Errorf("failed to checkout %s at %s: %v", depPkg, commit, err)
+		return fmt.Errorf("failed to checkout %s at %s: %w", depPkg, commit, err)
 	}
 
 	// copy go.mod to the cache dir
 	if err := copyFile(fmt.Sprintf("%s/go.mod", depPath), goModFile); err != nil {
-		return fmt.Errorf("unable to copy %s file to %s to gomod cache for %s: %v", fmt.Sprintf("%s/go.mod", depPath), goModFile, depPkg, err)
+		return fmt.Errorf("unable to copy %s file to %s to gomod cache for %s: %w", fmt.Sprintf("%s/go.mod", depPath), goModFile, depPkg, err)
 	}
 
 	// create info file in the cache dir
@@ -183,10 +184,10 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 
 	moduleFile, err := json.Marshal(moduleInfo)
 	if err != nil {
-		return fmt.Errorf("error marshaling .info file for %s: %v", depPkg, err)
+		return fmt.Errorf("error marshaling .info file for %s: %w", depPkg, err)
 	}
 	if err := os.WriteFile(fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), moduleFile, 0o644); err != nil {
-		return fmt.Errorf("failed to write %s file for %s: %v", fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), depPkg, err)
+		return fmt.Errorf("failed to write %s file for %s: %w", fmt.Sprintf("%s/%s.info", cacheDir, pseudoVersionOrTag), depPkg, err)
 	}
 
 	// create the zip file in the cache dir. This zip file has the same hash
@@ -195,18 +196,18 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 	zipCommand.Stdout = os.Stdout
 	zipCommand.Stderr = os.Stderr
 	if err := zipCommand.Run(); err != nil {
-		return fmt.Errorf("failed to run gomod-zip for %s at %s: %v", depPkg, pseudoVersionOrTag, err)
+		return fmt.Errorf("failed to run gomod-zip for %s at %s: %w", depPkg, pseudoVersionOrTag, err)
 	}
 
 	// append the pseudoVersion to the list file in the cache dir
 	listFile, err := os.OpenFile(fmt.Sprintf("%s/list", cacheDir), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		return fmt.Errorf("unable to open list file in %s: %v", cacheDir, err)
+		return fmt.Errorf("unable to open list file in %s: %w", cacheDir, err)
 	}
 	defer listFile.Close()
 
 	if _, err := fmt.Fprintf(listFile, "%s\n", pseudoVersionOrTag); err != nil {
-		return fmt.Errorf("unable to write to list file in %s: %v", cacheDir, err)
+		return fmt.Errorf("unable to write to list file in %s: %w", cacheDir, err)
 	}
 
 	return nil
@@ -222,18 +223,18 @@ func localOrPublishedTaggedCommitHashAndTime(r *gogit.Repository, tag string) (p
 func taggedCommitHashAndTime(r *gogit.Repository, tag string) (plumbing.Hash, time.Time, error) {
 	ref, err := r.Reference(plumbing.ReferenceName(fmt.Sprintf("refs/tags/%s", tag)), true)
 	if err != nil {
-		return plumbing.ZeroHash, time.Time{}, fmt.Errorf("failed to get refs/tags/%s: %v", tag, err)
+		return plumbing.ZeroHash, time.Time{}, fmt.Errorf("failed to get refs/tags/%s: %w", tag, err)
 	}
 
 	tagObject, err := r.TagObject(ref.Hash())
 	if err != nil {
 		if err != nil {
-			return plumbing.ZeroHash, time.Time{}, fmt.Errorf("refs/tags/%s is invalid: %v", tag, err)
+			return plumbing.ZeroHash, time.Time{}, fmt.Errorf("refs/tags/%s is invalid: %w", tag, err)
 		}
 	}
 	commitAtTag, err := tagObject.Commit()
 	if err != nil {
-		return plumbing.ZeroHash, time.Time{}, fmt.Errorf("failed to get underlying commit for tag %s: %v", tag, err)
+		return plumbing.ZeroHash, time.Time{}, fmt.Errorf("failed to get underlying commit for tag %s: %w", tag, err)
 	}
 	return commitAtTag.Hash, commitAtTag.Committer.When, nil
 }
@@ -241,19 +242,19 @@ func taggedCommitHashAndTime(r *gogit.Repository, tag string) (plumbing.Hash, ti
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
-		return fmt.Errorf("unable to open %s: %v", src, err)
+		return fmt.Errorf("unable to open %s: %w", src, err)
 	}
 	defer in.Close()
 
 	out, err := os.Create(dst)
 	if err != nil {
-		return fmt.Errorf("unable to create %s: %v", dst, err)
+		return fmt.Errorf("unable to create %s: %w", dst, err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, in)
 	if err != nil {
-		return fmt.Errorf("unable to copy %s to %s: %v", src, dst, err)
+		return fmt.Errorf("unable to copy %s to %s: %w", src, dst, err)
 	}
 	return out.Close()
 }
@@ -262,17 +263,17 @@ func copyFile(src, dst string) error {
 func fullPackageName(dir string) (string, error) {
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
-		return "", fmt.Errorf("GOPATH is not set")
+		return "", errors.New("GOPATH is not set")
 	}
 
 	absGopath, err := filepath.Abs(gopath)
 	if err != nil {
-		return "", fmt.Errorf("failed to make GOPATH %q absolute: %v", gopath, err)
+		return "", fmt.Errorf("failed to make GOPATH %q absolute: %w", gopath, err)
 	}
 
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
-		return "", fmt.Errorf("failed to make %q absolute: %v", dir, err)
+		return "", fmt.Errorf("failed to make %q absolute: %w", dir, err)
 	}
 
 	if !strings.HasPrefix(filepath.ToSlash(absDir), filepath.ToSlash(absGopath)+"/src/") {

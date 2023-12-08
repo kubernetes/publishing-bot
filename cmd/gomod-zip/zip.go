@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -78,22 +79,22 @@ func getModuleFile(packagePath, version string) (*modfile.File, error) {
 	goModPath := filepath.Join(packagePath, "go.mod")
 	file, err := os.Open(goModPath)
 	if err != nil {
-		return nil, fmt.Errorf("error opening %s: %v", goModPath, err)
+		return nil, fmt.Errorf("error opening %s: %w", goModPath, err)
 	}
 	defer file.Close()
 
 	moduleBytes, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("error reading %s: %v", goModPath, err)
+		return nil, fmt.Errorf("error reading %s: %w", goModPath, err)
 	}
 
 	moduleFile, err := modfile.Parse(packagePath, moduleBytes, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing module file: %v", err)
+		return nil, fmt.Errorf("error parsing module file: %w", err)
 	}
 
 	if moduleFile.Module == nil {
-		return nil, fmt.Errorf("parsed module should not be nil")
+		return nil, errors.New("parsed module should not be nil")
 	}
 
 	moduleFile.Module.Mod.Version = version

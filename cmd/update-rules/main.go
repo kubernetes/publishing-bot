@@ -111,11 +111,11 @@ func main() {
 func load(rulesFile string) (*config.RepositoryRules, error) {
 	rules, err := config.LoadRules(rulesFile)
 	if err != nil {
-		return nil, fmt.Errorf("error loading rules file %q: %v", rulesFile, err)
+		return nil, fmt.Errorf("error loading rules file %q: %w", rulesFile, err)
 	}
 
 	if err := config.Validate(rules); err != nil {
-		return nil, fmt.Errorf("invalid rules file %q: %v", rulesFile, err)
+		return nil, fmt.Errorf("invalid rules file %q: %w", rulesFile, err)
 	}
 	return rules, nil
 }

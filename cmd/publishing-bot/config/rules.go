@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -209,16 +210,16 @@ func ensureValidGoVersion(version string) error {
 
 	majorVersion, err := strconv.Atoi(match[1])
 	if err != nil {
-		return fmt.Errorf("error parsing major version '%s' : %s", match[1], err)
+		return fmt.Errorf("error parsing major version '%s': %w", match[1], err)
 	}
 	minorVersion, err = strconv.Atoi(match[2])
 	if err != nil {
-		return fmt.Errorf("error parsing minor version '%s' : %s", match[2], err)
+		return fmt.Errorf("error parsing minor version '%s': %w", match[2], err)
 	}
 	if match[3] != "" {
 		patchVersion, err = strconv.Atoi(match[3])
 		if err != nil {
-			return fmt.Errorf("error parsing patch version '%s' : %s", match[3], err)
+			return fmt.Errorf("error parsing patch version '%s': %w", match[3], err)
 		}
 		patchVersionExists = true
 	}
@@ -236,7 +237,7 @@ func ensureValidGoVersion(version string) error {
 	// then it should be a prerelease
 	if (majorVersion == 1 && minorVersion >= 21) || majorVersion >= 2 {
 		if !patchVersionExists && preRelease == "" {
-			return fmt.Errorf("patch version should always be present for go language version >= 1.21")
+			return errors.New("patch version should always be present for go language version >= 1.21")
 		}
 	}
 

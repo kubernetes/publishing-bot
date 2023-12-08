@@ -17,12 +17,15 @@ limitations under the License.
 package staging
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"time"
 )
+
+const defaultTimeout = 5 * time.Minute
 
 type File struct {
 	Name string `json:"name"`
@@ -35,14 +38,17 @@ type File struct {
 func fetchKubernetesStagingDirectoryFiles(branch string) ([]File, error) {
 	url := "https://api.github.com/repos/kubernetes/kubernetes/contents/staging/src/k8s.io?ref=" + branch
 
-	spaceClient := http.Client{}
-	req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
 
 	var res *http.Response
 	count := 0
+	spaceClient := http.Client{}
 	for {
 		res, err = spaceClient.Do(req)
 		if err != nil {
@@ -58,7 +64,7 @@ func fetchKubernetesStagingDirectoryFiles(branch string) ([]File, error) {
 			// try for 10 mins then give up!
 			if count == 120 {
 				res.Body.Close()
-				return nil, fmt.Errorf("hitting github API limits, bailing out")
+				return nil, errors.New("hitting github API limits, bailing out")
 			}
 
 			break

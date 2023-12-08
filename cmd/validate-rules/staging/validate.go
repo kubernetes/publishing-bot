@@ -67,7 +67,7 @@ func checkDirectoryExistsInBranch(directory, branch string) error {
 		files, err = fetchKubernetesStagingDirectoryFiles(branch)
 		if err != nil {
 			globalMapBranchDirectories[branch] = []File{}
-			return fmt.Errorf("error fetching directories from branch %s : %w", branch, err)
+			return fmt.Errorf("error fetching directories from branch %s: %w", branch, err)
 		}
 		globalMapBranchDirectories[branch] = files
 	}
