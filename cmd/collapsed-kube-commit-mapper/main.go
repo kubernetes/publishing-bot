@@ -26,7 +26,6 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/golang/glog"
-
 	"k8s.io/publishing-bot/pkg/cache"
 	"k8s.io/publishing-bot/pkg/git"
 )

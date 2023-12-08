@@ -21,18 +21,17 @@ import (
 	"path/filepath"
 
 	"github.com/golang/glog"
-
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
 // globalMapBranchDirectories is a cache to avoid hitting GH limits
 // key is the branch (`master` or `release-1.23`) and the value
 // is the list of files/directories fetched using GH api in the
-// correct directory
+// correct directory.
 var globalMapBranchDirectories = make(map[string][]File)
 
 // EnsureStagingDirectoriesExist walks through the repository rules and checks
-// if the specified directories are present in the specific kubernetes branch
+// if the specified directories are present in the specific kubernetes branch.
 func EnsureStagingDirectoriesExist(rules *config.RepositoryRules) []error {
 	glog.Infof("validating directories exist in the kubernetes branch")
 

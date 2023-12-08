@@ -35,7 +35,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 	"github.com/golang/glog"
 	"github.com/lithammer/dedent"
-
 	"k8s.io/publishing-bot/pkg/cache"
 	"k8s.io/publishing-bot/pkg/git"
 )

@@ -23,12 +23,12 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/golang/glog"
-
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 	"k8s.io/publishing-bot/pkg/golang"
 )
@@ -143,7 +143,7 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	return heads, nil
 }
 
-// update the active rules
+// update the active rules.
 func (p *PublisherMunger) updateRules() error {
 	repoDir := filepath.Join(p.baseRepoPath, p.config.SourceRepo)
 
@@ -314,7 +314,7 @@ func (p *PublisherMunger) construct() error {
 				p.config.SourceRepo,
 				p.config.SourceRepo,
 				p.config.BasePackage,
-				fmt.Sprintf("%v", repoRule.Library),
+				strconv.FormatBool(repoRule.Library),
 				strings.Join(p.reposRules.RecursiveDeletePatterns, " "),
 				skipTags,
 				lastPublishedUpstreamHash,

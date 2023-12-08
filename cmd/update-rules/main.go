@@ -24,7 +24,6 @@ import (
 
 	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
-
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
@@ -108,7 +107,7 @@ func main() {
 	}
 }
 
-// load reads the input rules file and validates the rules
+// load reads the input rules file and validates the rules.
 func load(rulesFile string) (*config.RepositoryRules, error) {
 	rules, err := config.LoadRules(rulesFile)
 	if err != nil {

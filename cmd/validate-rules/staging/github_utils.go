@@ -31,7 +31,7 @@ type File struct {
 }
 
 // fetchKubernetesStagingDirectoryFiles uses the GH API to get the contents
-// of the contents/staging/src/k8s.io directory in a specified branch of kubernetes
+// of the contents/staging/src/k8s.io directory in a specified branch of kubernetes.
 func fetchKubernetesStagingDirectoryFiles(branch string) ([]File, error) {
 	url := "https://api.github.com/repos/kubernetes/kubernetes/contents/staging/src/k8s.io?ref=" + branch
 
