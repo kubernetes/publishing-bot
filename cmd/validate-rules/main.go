@@ -20,7 +20,6 @@ import (
 	"flag"
 
 	"github.com/golang/glog"
-
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 	"k8s.io/publishing-bot/cmd/validate-rules/staging"
 )

@@ -26,7 +26,7 @@ import (
 // SourceHash extracts kube commit from commit message
 // The baseRepoName default to "kubernetes".
 // TODO: Refactor so we take the commitMsgTag as argument and don't need to
-// construct the ancientSyncCommitSubjectPrefix or sourceCommitPrefix
+// construct the ancientSyncCommitSubjectPrefix or sourceCommitPrefix.
 func SourceHash(c *object.Commit, tag string) plumbing.Hash {
 	lines := strings.Split(c.Message, "\n")
 	sourceCommitPrefix := tag + ": "

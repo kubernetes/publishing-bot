@@ -26,7 +26,6 @@ import (
 
 	"github.com/golang/glog"
 	yaml "gopkg.in/yaml.v2"
-
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 

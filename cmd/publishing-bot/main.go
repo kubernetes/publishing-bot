@@ -28,7 +28,6 @@ import (
 	"github.com/go-git/go-git/v5/storage"
 	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
-
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 

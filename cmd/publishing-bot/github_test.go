@@ -18,6 +18,7 @@ package main
 import "testing"
 
 func TestGithubLogTransform(t *testing.T) {
+	//nolint:dupword // this is intentional for the test
 	originLog := `111111111111
 222222
 + hello
@@ -30,6 +31,7 @@ holla bar
 hi foo
 hi bar
 `
+	//nolint:dupword // this is intentional for the test
 	expected := "```" + `
 + hello
 hello foo

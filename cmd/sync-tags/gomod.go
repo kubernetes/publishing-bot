@@ -118,7 +118,7 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 }
 
 // depImportPaths returns a comma separated string with each dependencies' import path.
-// Eg. "k8s.io/api,k8s.io/apimachinery,k8s.io/client-go"
+// Eg. "k8s.io/api,k8s.io/apimachinery,k8s.io/client-go".
 func depsImportPaths(depsRepo []string) (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -135,10 +135,10 @@ func depsImportPaths(depsRepo []string) (string, error) {
 }
 
 type ModuleInfo struct {
-	Version string
-	Name    string
-	Short   string
-	Time    string
+	Version string `json:"Version,omitempty"`
+	Name    string `json:"Name,omitempty"`
+	Short   string `json:"Short,omitempty"`
+	Time    string `json:"Time,omitempty"`
 }
 
 func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, commitTime time.Time) error {

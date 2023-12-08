@@ -19,15 +19,33 @@ issues:
 linters:
   disable-all: true
   enable:
+    - asasalint
     - asciicheck
+    - bidichk
     - bodyclose
+    - containedctx
+    - contextcheck
+    - decorder
     - dogsled
     - dupl
+    - dupword
     - durationcheck
     - errcheck
+    - errchkjson
+    - errname
+    - execinquery
+    - exhaustive
+    - exportloopref
+    - forcetypeassert
+    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gochecksumtype
     - goconst
     - gocritic
     - gocyclo
+    - godot
     - godox
     - gofmt
     - gofumpt
@@ -36,58 +54,72 @@ linters:
     - gomoddirectives
     - gomodguard
     - goprintffuncname
-    # TODO(lint): Enable after fixing other lint warnings
-    #- gosec
     - gosimple
+    - gosmopolitan
     - govet
+    - grouper
     - importas
+    - inamedparam
     - ineffassign
+    - interfacebloat
+    - ireturn
+    - loggercheck
     - makezero
+    - mirror
     - misspell
+    - musttag
     - nakedret
+    - nilerr
     - nolintlint
+    - nosprintfhostport
+    - perfsprint
     - prealloc
     - predeclared
     - promlinter
+    - protogetter
+    - reassign
     - revive
-    # disabled because of generics. You can track the evolution of the generics support by following the https://github.com/golangci/golangci-lint/issues/2649
-    # - rowserrcheck
-    # - sqlclosecheck
+    - rowserrcheck
+    - sloglint
+    - sqlclosecheck
     - staticcheck
     - stylecheck
+    - tagalign
+    - tenv
+    - testableexamples
+    - testifylint
+    - thelper
+    - tparallel
     - typecheck
     - unconvert
     - unparam
     - unused
+    - usestdlibvars
+    - wastedassign
     - whitespace
+    - zerologlint
     # - cyclop
+    # - depguard
     # - errorlint
-    # - exhaustive
-    # - exhaustivestruct
-    # - exportloopref
+    # - exhaustruct
     # - forbidigo
-    # - forcetypeassert
     # - funlen
-    # - gci
     # - gochecknoglobals
-    # - gochecknoinits
     # - gocognit
-    # - godot
     # - goerr113
     # - gomnd
-    # - ifshort
+    # - gosec
     # - lll
+    # - maintidx
     # - nestif
-    # - nilerr
+    # - nilnil
     # - nlreturn
     # - noctx
+    # - nonamedreturns
     # - paralleltest
-    # - scopelint
     # - tagliatelle
     # - testpackage
-    # - thelper
-    # - tparallel
-    # - wastedassign
+    # - varnamelen
     # - wrapcheck
     # - wsl
 linters-settings:

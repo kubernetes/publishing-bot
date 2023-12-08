@@ -17,7 +17,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// Dependency of a piece of code
+// Dependency of a piece of code.
 type Dependency struct {
 	Repository string `yaml:"repository"`
 	Branch     string `yaml:"branch"`
@@ -31,7 +31,7 @@ func (c Dependency) String() string {
 	return fmt.Sprintf("[repository %s, branch %s]", repo, c.Branch)
 }
 
-// Source of a piece of code
+// Source of a piece of code.
 type Source struct {
 	Repository string `yaml:"repository,omitempty"`
 	Branch     string `yaml:"branch"`
@@ -68,7 +68,7 @@ type BranchRule struct {
 	SmokeTest string `yaml:"smoke-test,omitempty"` // a multiline bash script
 }
 
-// a collection of publishing rules for a single destination repo
+// a collection of publishing rules for a single destination repo.
 type RepositoryRule struct {
 	DestinationRepository string       `yaml:"destination"`
 	Branches              []BranchRule `yaml:"branches"`
@@ -125,7 +125,7 @@ func readFromURL(u *url.URL) ([]byte, error) {
 	client := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}}
-	req, err := http.NewRequest("GET", u.String(), http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, u.String(), http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func validateGoVersions(rules *RepositoryRules) (errs []error) {
 // care about). For Go *language versions* >= 1.21, the following are the rules for versions
 // in the go tool chain name:
 // 1. 1.21 is invalid, and 1.21.0 is valid
-// 2. 1.21rc1 and 1.21.0rc1 are valid
+// 2. 1.21rc1 and 1.21.0rc1 are valid.
 var goVerRegex = regexp.MustCompile(`^(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<patch>\d+))?(?:(?P<pre>alpha|beta|rc)\d+)?$`)
 
 func ensureValidGoVersion(version string) error {
@@ -243,7 +243,7 @@ func ensureValidGoVersion(version string) error {
 	return nil
 }
 
-// this makes sure that old dir field values are copied over to new dirs field
+// this makes sure that old dir field values are copied over to new dirs field.
 func fixDeprecatedFields(rules *RepositoryRules) {
 	for i, rule := range rules.Rules {
 		for j := range rule.Branches {
