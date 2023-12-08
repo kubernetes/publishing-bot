@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -211,7 +212,8 @@ func main() {
 			// In production, the bot will not exit with a non-zero exit code, since
 			// the interval will be always non-zero
 			if publisherErr != nil {
-				if exitErr, ok := publisherErr.(*exec.ExitError); ok {
+				var exitErr *exec.ExitError
+				if errors.As(publisherErr, &exitErr) {
 					os.Exit(exitErr.ExitCode())
 				}
 

@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -60,13 +61,13 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	glog.Infof("Fetching origin at %s.", repoDir)
 	r, err := gogit.PlainOpen(repoDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open repo at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to open repo at %s: %w", repoDir, err)
 	}
 	if err := r.Fetch(&gogit.FetchOptions{
 		Tags:     gogit.AllTags,
 		Progress: os.Stdout,
-	}); err != nil && err != gogit.NoErrAlreadyUpToDate {
-		return nil, fmt.Errorf("failed to fetch at %s: %v", repoDir, err)
+	}); err != nil && !errors.Is(err, gogit.NoErrAlreadyUpToDate) {
+		return nil, fmt.Errorf("failed to fetch at %s: %w", repoDir, err)
 	}
 
 	// disable text conversion
@@ -76,13 +77,13 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 		glog.Infof("Disabling text conversion at %s.", repoDir)
 		err := os.MkdirAll(filepath.Join(repoDir, ".git", "info"), 0o755)
 		if err != nil {
-			return nil, fmt.Errorf("creating .git/info: %v", err)
+			return nil, fmt.Errorf("creating .git/info: %w", err)
 		}
 
 		if err := os.WriteFile(attrFile, []byte(`
 * -text
 `), 0o644); err != nil {
-			return nil, fmt.Errorf("failed to create .git/info/attributes: %v", err)
+			return nil, fmt.Errorf("failed to create .git/info/attributes: %w", err)
 		}
 
 		fis, err := os.ReadDir(repoDir)
@@ -102,20 +103,20 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 	glog.Infof("Checking out HEAD at %s.", repoDir)
 	w, err := r.Worktree()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open worktree at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to open worktree at %s: %w", repoDir, err)
 	}
 	head, err := r.Head()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get head at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to get head at %s: %w", repoDir, err)
 	}
 	if err := w.Checkout(&gogit.CheckoutOptions{Hash: head.Hash(), Force: true}); err != nil {
-		return nil, fmt.Errorf("failed to checkout HEAD at %s: %v", repoDir, err)
+		return nil, fmt.Errorf("failed to checkout HEAD at %s: %w", repoDir, err)
 	}
 
 	// create/update local branch for all origin branches. Those are fetches into the destination repos later (as upstream/<branch>).
 	refs, err := r.Storer.IterReferences()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get branches: %v", err)
+		return nil, fmt.Errorf("failed to get branches: %w", err)
 	}
 	glog.Infof("Updating local branches at %s.", repoDir)
 	heads := map[string]plumbing.Hash{}
@@ -137,7 +138,7 @@ func (p *PublisherMunger) updateSourceRepo() (map[string]plumbing.Hash, error) {
 
 		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("failed to process branches: %v", err)
+		return nil, fmt.Errorf("failed to process branches: %w", err)
 	}
 
 	return heads, nil
@@ -151,7 +152,7 @@ func (p *PublisherMunger) updateRules() error {
 	cmd := exec.Command("git", "checkout", p.config.GitDefaultBranch)
 	cmd.Dir = repoDir
 	if _, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to checkout %s: %v", p.config.GitDefaultBranch, err)
+		return fmt.Errorf("failed to checkout %s: %w", p.config.GitDefaultBranch, err)
 	}
 
 	rules, err := config.LoadRules(p.config.RulesFile)
@@ -375,7 +376,7 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 	}
 
 	if p.config.TokenFile == "" {
-		return fmt.Errorf("token cannot be empty in non-dry-run mode")
+		return errors.New("token cannot be empty in non-dry-run mode")
 	}
 
 	// NOTE: because some repos depend on each other, e.g., client-go depends on

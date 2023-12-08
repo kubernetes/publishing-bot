@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -415,11 +416,11 @@ func removeRemoteTags(r *gogit.Repository, remotes ...string) error {
 func createAnnotatedTag(h plumbing.Hash, name string, date time.Time, message string) error {
 	setUsernameCmd := exec.Command("git", "config", "user.name", publishingBot.Name)
 	if err := setUsernameCmd.Run(); err != nil {
-		return fmt.Errorf("unable to set global configuration: %v", err)
+		return fmt.Errorf("unable to set global configuration: %w", err)
 	}
 	setEmailCmd := exec.Command("git", "config", "user.email", publishingBot.Email)
 	if err := setEmailCmd.Run(); err != nil {
-		return fmt.Errorf("unable to set global configuration: %v", err)
+		return fmt.Errorf("unable to set global configuration: %w", err)
 	}
 	cmd := exec.Command("git", "tag", "-a", "-m", message, name, h.String())
 	cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_COMMITTER_DATE=%s", date.Format(rfc2822)))
@@ -446,7 +447,7 @@ func fetchTags(r *gogit.Repository, remote string) error {
 		Progress:   sideband.Progress(os.Stderr),
 		Tags:       gogit.NoTags,
 	})
-	if err == gogit.NoErrAlreadyUpToDate {
+	if errors.Is(err, gogit.NoErrAlreadyUpToDate) {
 		return nil
 	}
 	return err
@@ -538,32 +539,32 @@ func deleteTag(tag string) error {
 func cleanCacheForTag(tag string) error {
 	dir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("unable to get current working directory: %v", err)
+		return fmt.Errorf("unable to get current working directory: %w", err)
 	}
 	pkg, err := fullPackageName(dir)
 	if err != nil {
-		return fmt.Errorf("failed to get package at %s: %v", dir, err)
+		return fmt.Errorf("failed to get package at %s: %w", dir, err)
 	}
 	cacheDir := fmt.Sprintf("%s/pkg/mod/cache/download/%s/@v", os.Getenv("GOPATH"), pkg)
 
 	goModFile := fmt.Sprintf("%s/%s.mod", cacheDir, tag)
 	if _, err := os.Stat(goModFile); err == nil {
 		if err2 := os.Remove(goModFile); err2 != nil {
-			return fmt.Errorf("error deleting file %s: %v", goModFile, err2)
+			return fmt.Errorf("error deleting file %s: %w", goModFile, err2)
 		}
 	}
 
 	infoFile := fmt.Sprintf("%s/%s.info", cacheDir, tag)
 	if _, err := os.Stat(infoFile); err == nil {
 		if err2 := os.Remove(infoFile); err2 != nil {
-			return fmt.Errorf("error deleting file %s: %v", infoFile, err2)
+			return fmt.Errorf("error deleting file %s: %w", infoFile, err2)
 		}
 	}
 
 	zipFile := fmt.Sprintf("%s/%s.zip", cacheDir, tag)
 	if _, err := os.Stat(zipFile); err == nil {
 		if err2 := os.Remove(zipFile); err2 != nil {
-			return fmt.Errorf("error deleting file %s: %v", zipFile, err2)
+			return fmt.Errorf("error deleting file %s: %w", zipFile, err2)
 		}
 	}
 
@@ -571,7 +572,7 @@ func cleanCacheForTag(tag string) error {
 	if _, err := os.Stat(listFile); err == nil {
 		oldContent, err2 := os.ReadFile(listFile)
 		if err2 != nil {
-			return fmt.Errorf("error reading file %s: %v", listFile, err2)
+			return fmt.Errorf("error reading file %s: %w", listFile, err2)
 		}
 
 		lines := strings.Split(string(oldContent), "\n")
@@ -584,7 +585,7 @@ func cleanCacheForTag(tag string) error {
 		output := strings.Join(newContent, "\n")
 
 		if err := os.WriteFile(listFile, []byte(output), 0o644); err != nil {
-			return fmt.Errorf("error reading file %s: %v", listFile, err)
+			return fmt.Errorf("error reading file %s: %w", listFile, err)
 		}
 	}
 

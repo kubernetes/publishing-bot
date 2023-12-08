@@ -46,7 +46,7 @@ func SourceCommitToDstCommits(r *gogit.Repository, commitMsgTag string, dstFirst
 	// compute merge point table
 	kubeMergePoints, err := MergePoints(r, srcFirstParents)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build merge point table: %v", err)
+		return nil, fmt.Errorf("failed to build merge point table: %w", err)
 	}
 
 	// convert dstFirstParents to HashesWithKubeHashes

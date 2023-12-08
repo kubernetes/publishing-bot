@@ -36,7 +36,7 @@ func FirstParent(r *gogit.Repository, c *object.Commit) (*object.Commit, error) 
 	}
 	p, err := cache.CommitObject(r, c.ParentHashes[0])
 	if err != nil {
-		return nil, fmt.Errorf("failed to get %v: %v", c.ParentHashes[0], err)
+		return nil, fmt.Errorf("failed to get %v: %w", c.ParentHashes[0], err)
 	}
 	return p, nil
 }
@@ -55,7 +55,7 @@ func FirstParentList(r *gogit.Repository, c *object.Commit) ([]*object.Commit, e
 		// continue with first parent if there is one
 		next, err := FirstParent(r, c)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get first parent of %s: %v", c.Hash, err)
+			return nil, fmt.Errorf("failed to get first parent of %s: %w", c.Hash, err)
 		}
 		c = next
 	}
@@ -96,7 +96,7 @@ func MergePoints(r *gogit.Repository, mainLine []*object.Commit) (map[plumbing.H
 			var err error
 			c, err = cache.CommitObject(r, h)
 			if err != nil {
-				return fmt.Errorf("failed to get %s: %v", h.String(), err)
+				return fmt.Errorf("failed to get %s: %w", h.String(), err)
 			}
 			seen[h] = c
 		}
