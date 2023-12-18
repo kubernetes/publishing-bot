@@ -131,8 +131,8 @@ func UpdateRules(rules *config.RepositoryRules, branch, goVer string, deleteRule
 		var deletedBranch bool
 		// To Check and Remove the existing/deprecated branch
 		if deleteRule {
-			for i, br := range r.Branches {
-				if br.Name == branch {
+			for i := range r.Branches {
+				if rules.Rules[j].Branches[i].Name == branch {
 					glog.Infof("remove rule %s for %s", branch, r.DestinationRepository)
 					rules.Rules[j].Branches = append(rules.Rules[j].Branches[:i], rules.Rules[j].Branches[i+1:]...)
 					deletedBranch = true
