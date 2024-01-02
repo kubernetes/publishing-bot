@@ -16,7 +16,10 @@ limitations under the License.
 
 package main
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 var (
 	testdataRules        = "testdata/rules.yaml"
@@ -109,7 +112,7 @@ func TestUpdateRules(t *testing.T) {
 			if err != nil {
 				t.Errorf("error loading test rules file %v", err)
 			}
-			UpdateRules(rules, tt.branch, tt.goVersion)
+			UpdateRules(rules, tt.branch, tt.goVersion, false)
 
 			for _, repoRule := range rules.Rules {
 				var masterRulePresent, branchRulePresent bool
@@ -158,6 +161,53 @@ func TestUpdateRules(t *testing.T) {
 
 				if repoRule.Branches[masterRuleIndex].SmokeTest != repoRule.Branches[branchRuleIndex].SmokeTest {
 					t.Errorf("incorrect update to branch %s rule smoke-test for repo %s", tt.branch, repoRule.DestinationRepository)
+				}
+			}
+		})
+	}
+}
+
+func TestDeleteRules(t *testing.T) {
+	tests := []struct {
+		name          string
+		branch        string
+		goVersion     string
+		isBranchExist bool
+	}{
+		{
+			"deleting rule for non existing branch",
+			"release-1.20",
+			"1.17.1",
+			true,
+		},
+		{
+			"deleting rule for non existing branch 1.25",
+			"release-1.25",
+			"1.17.1",
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rules, err := load(testdataRules)
+			if err != nil {
+				t.Errorf("error loading test rules file %v", err)
+			}
+			UpdateRules(rules, tt.branch, tt.goVersion, true)
+			if tt.isBranchExist {
+				for _, repoRule := range rules.Rules {
+					for _, branchRule := range repoRule.Branches {
+						if branchRule.Name == tt.branch {
+							t.Errorf("failed to delete %s branch rule from for repo %s", tt.name, repoRule.DestinationRepository)
+						}
+					}
+				}
+			} else {
+				if loadedRules, err := load(testdataRules); err != nil {
+					t.Errorf("error loading test rules file for comparison %v", err)
+				} else if !reflect.DeepEqual(loadedRules, rules) {
+					t.Errorf("rules changed after deleting a non existent branch %s", tt.branch)
 				}
 			}
 		})

@@ -30,16 +30,18 @@ import (
 const GitDefaultBranch = "master"
 
 type options struct {
-	branch    string
-	rulesFile string
-	goVersion string
-	out       string
+	branch     string
+	deleteRule bool
+	rulesFile  string
+	goVersion  string
+	out        string
 }
 
 func parseOptions() options {
 	var o options
 	flag.StringVar(&o.branch, "branch", "", "[required] Branch to update rules for, e.g. --branch release-x.yy")
 	flag.StringVar(&o.rulesFile, "rules", "", "[required] URL or Path of the rules file to update rules for, e.g. --rules path/or/url/to/rules/file.yaml")
+	flag.BoolVar(&o.deleteRule, "delete", false, "Remove old rules of deprecated branch")
 	flag.StringVar(&o.goVersion, "go", "", "Golang version to pin for this branch, e.g. --go 1.16.1")
 	flag.StringVar(&o.out, "o", "", "Path to export the updated rules to, e.g. -o /tmp/rules.yaml")
 
@@ -52,10 +54,13 @@ func parseOptions() options {
   update-rules -branch release-1.21 -go 1.16.4 -rules https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
 
   # Update rules and export to /tmp/rules.yaml
-  update-rules -branch release-1.22 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml`
+  update-rules -branch release-1.22 -go 1.17.1 -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml 
+
+  # Update rules to remove deprecated branch and export to /tmp/rules.yaml
+  update-rules -branch release-1.22 -delete -o /tmp/rules.yaml -rules /go/src/k8s.io/kubernetes/staging/publishing/rules.yaml`
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stdout, "\n  Usage:  update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH]")
+		fmt.Fprintf(os.Stdout, "\n  Usage:  update-rules --branch BRANCH --rules PATHorURL [--go VERSION | -o PATH | --delete ]")
 		fmt.Fprintf(os.Stdout, "\n  %s\n\n", examples)
 		flag.PrintDefaults()
 	}
@@ -85,8 +90,7 @@ func main() {
 	}
 
 	// update rules for all destination repos
-	UpdateRules(rules, o.branch, o.goVersion)
-
+	UpdateRules(rules, o.branch, o.goVersion, o.deleteRule)
 	// validate rules after update
 	if err := config.Validate(rules); err != nil {
 		glog.Fatalf("update failed, found invalid rules after update: %v", err)
@@ -120,9 +124,26 @@ func load(rulesFile string) (*config.RepositoryRules, error) {
 	return rules, nil
 }
 
-func UpdateRules(rules *config.RepositoryRules, branch, goVer string) {
+func UpdateRules(rules *config.RepositoryRules, branch, goVer string, deleteRule bool) {
 	// run the update per destination repo in the rules
 	for j, r := range rules.Rules {
+		var deletedBranch bool
+		// To Check and Remove the existing/deprecated branch
+		if deleteRule {
+			for i := range r.Branches {
+				if rules.Rules[j].Branches[i].Name == branch {
+					glog.Infof("remove rule %s for %s", branch, r.DestinationRepository)
+					rules.Rules[j].Branches = append(rules.Rules[j].Branches[:i], rules.Rules[j].Branches[i+1:]...)
+					deletedBranch = true
+					break
+				}
+			}
+			if !deletedBranch {
+				glog.Infof("skipping delete of branch rule %s that doesn't exists for %s", branch, r.DestinationRepository)
+			}
+			continue
+		}
+
 		var mainBranchRuleFound bool
 		var newBranchRule config.BranchRule
 		// find the mainBranch rules
