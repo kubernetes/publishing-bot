@@ -851,6 +851,14 @@ update-deps-in-gomod() {
     GO111MODULE=on GOPRIVATE="${dep_packages}" GOPROXY=https://proxy.golang.org go mod download
     GOPROXY="file://${GOPATH}/pkg/mod/cache/download,https://proxy.golang.org" GO111MODULE=on GOPRIVATE="${dep_packages}" go mod tidy
 
+    # prune replace directives that pin to the naturally selected version
+    GOPROXY="file://${GOPATH}/pkg/mod/cache/download,https://proxy.golang.org" GO111MODULE=on GOPRIVATE="${dep_packages}" go list -m -json all |
+      jq -r 'select(.Replace != null) |
+             select(.Path == .Replace.Path) |
+             select(.Version == .Replace.Version) |
+             "-dropreplace \(.Replace.Path)"' |
+      GO111MODULE=on xargs -L 100 go mod edit -fmt
+
     git add go.mod go.sum
 
     # double check that we got all dependencies
