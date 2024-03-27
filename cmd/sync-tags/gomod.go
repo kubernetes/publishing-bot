@@ -79,12 +79,22 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 			return changed, fmt.Errorf("unable to pin %s in the require section of go.mod to %s: %w", depPkg, pseudoVersionOrTag, err)
 		}
 
-		replaceCommand := exec.Command("go", "mod", "edit", "-fmt", "-replace", fmt.Sprintf("%s=%s@%s", depPkg, depPkg, pseudoVersionOrTag))
-		replaceCommand.Env = append(os.Environ(), "GO111MODULE=on")
-		replaceCommand.Stdout = os.Stdout
-		replaceCommand.Stderr = os.Stderr
-		if err := replaceCommand.Run(); err != nil {
-			return changed, fmt.Errorf("unable to pin %s in the replace section of go.mod to %s: %w", depPkg, pseudoVersionOrTag, err)
+		if semverTag {
+			dropReplaceCommand := exec.Command("go", "mod", "edit", "-fmt", "-dropreplace", depPkg)
+			dropReplaceCommand.Env = append(os.Environ(), "GO111MODULE=on")
+			dropReplaceCommand.Stdout = os.Stdout
+			dropReplaceCommand.Stderr = os.Stderr
+			if err := dropReplaceCommand.Run(); err != nil {
+				return changed, fmt.Errorf("unable to drop %s in the replace section of go.mod: %w", depPkg, err)
+			}
+		} else {
+			replaceCommand := exec.Command("go", "mod", "edit", "-fmt", "-replace", fmt.Sprintf("%s=%s@%s", depPkg, depPkg, pseudoVersionOrTag))
+			replaceCommand.Env = append(os.Environ(), "GO111MODULE=on")
+			replaceCommand.Stdout = os.Stdout
+			replaceCommand.Stderr = os.Stderr
+			if err := replaceCommand.Run(); err != nil {
+				return changed, fmt.Errorf("unable to pin %s in the replace section of go.mod to %s: %w", depPkg, pseudoVersionOrTag, err)
+			}
 		}
 
 		found[dep] = true
