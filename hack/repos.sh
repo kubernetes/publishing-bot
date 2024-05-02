@@ -33,6 +33,7 @@ repos=(
     component-helpers
     controller-manager
     cri-api
+    cri-client
     csi-translation-lib
     dynamic-resource-allocation
     endpointslice
