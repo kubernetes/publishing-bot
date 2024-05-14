@@ -18,11 +18,14 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"github.com/golang/glog"
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 	"k8s.io/publishing-bot/cmd/validate-rules/staging"
 )
+
+const baseRefEnvKey = "PULL_BASE_REF"
 
 func main() {
 	flag.Parse()
@@ -39,10 +42,10 @@ func main() {
 		if err := config.Validate(rules); err != nil {
 			glog.Fatalf("Invalid rules file %q: %v", f, err)
 		}
-		errors := staging.EnsureStagingDirectoriesExist(rules)
+		errors := staging.EnsureStagingDirectoriesExist(rules, os.Getenv(baseRefEnvKey))
 		if errors != nil {
 			for _, err := range errors {
-				glog.Errorf("Error : %s", err)
+				glog.Errorf("Error: %s", err)
 			}
 			glog.Fatalf("Invalid rules file %q", f)
 		}

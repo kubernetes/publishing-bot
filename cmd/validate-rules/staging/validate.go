@@ -30,10 +30,22 @@ import (
 // correct directory.
 var globalMapBranchDirectories = make(map[string][]File)
 
+const defaultBranch = "master"
+
 // EnsureStagingDirectoriesExist walks through the repository rules and checks
 // if the specified directories are present in the specific kubernetes branch.
-func EnsureStagingDirectoriesExist(rules *config.RepositoryRules) []error {
-	glog.Infof("validating directories exist in the kubernetes branch")
+func EnsureStagingDirectoriesExist(rules *config.RepositoryRules, baseBranch string) []error {
+	glog.Infof("Validating directories exist in the Kubernetes branches")
+
+	if baseBranch == "" {
+		baseBranch = defaultBranch
+	}
+
+	if baseBranch == defaultBranch {
+		glog.Infof("Testing all rules because the base branch is: %s", baseBranch)
+	} else {
+		glog.Infof("Testing only rules matching the base branch: %s", baseBranch)
+	}
 
 	var errors []error
 	for _, rule := range rules.Rules {
@@ -42,6 +54,10 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules) []error {
 			// ensure all the mentioned directories exist
 			for _, dir := range branchRule.Source.Dirs {
 				_, directory := filepath.Split(dir)
+				if !(baseBranch == defaultBranch || (baseBranch != defaultBranch && baseBranch == branchRule.Source.Branch)) {
+					glog.Infof("Skipping branch %q for repository %q", branchRule.Source.Branch, directory)
+					continue
+				}
 				err := checkDirectoryExistsInBranch(directory, branchRule.Source.Branch)
 				if err != nil {
 					errors = append(errors, err)
@@ -49,6 +65,10 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules) []error {
 			}
 
 			for _, dependency := range branchRule.Dependencies {
+				if !(baseBranch == defaultBranch || (baseBranch != defaultBranch && baseBranch == dependency.Branch)) {
+					glog.Infof("Skipping branch %q for dependency %q", dependency.Branch, dependency.Repository)
+					continue
+				}
 				err := checkDirectoryExistsInBranch(dependency.Repository, dependency.Branch)
 				if err != nil {
 					errors = append(errors, err)
@@ -60,6 +80,8 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules) []error {
 }
 
 func checkDirectoryExistsInBranch(directory, branch string) error {
+	glog.Infof("Check if directory %q exists in branch %q", directory, branch)
+
 	// Look in the cache first
 	files, ok := globalMapBranchDirectories[branch]
 	if !ok {
