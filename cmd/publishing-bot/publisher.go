@@ -411,7 +411,7 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 			if err := os.WriteFile(
 				path.Join(
 					path.Dir(dstDir),
-					publishedFileName(repoRules.DestinationRepository, strings.Replace(branchRule.Name, "/", "_", 1)),
+					publishedFileName(repoRules.DestinationRepository, branchRule.Name),
 				),
 				[]byte(upstreamBranchHead.String()),
 				0o644,
@@ -424,6 +424,7 @@ func (p *PublisherMunger) publish(newUpstreamHeads map[string]plumbing.Hash) err
 }
 
 func publishedFileName(repo, branch string) string {
+	branch = strings.ReplaceAll(branch, "/", "_")
 	return fmt.Sprintf("published-%s-%s", repo, branch)
 }
 
