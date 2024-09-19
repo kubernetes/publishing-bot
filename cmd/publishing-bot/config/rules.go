@@ -99,7 +99,7 @@ type RepositoryRules struct {
 func LoadRules(ruleFile string) (*RepositoryRules, error) {
 	var content []byte
 
-	if ruleURL, err := url.ParseRequestURI(ruleFile); err == nil && len(ruleURL.Host) > 0 {
+	if ruleURL, err := url.ParseRequestURI(ruleFile); err == nil && ruleURL.Host != "" {
 		glog.Infof("loading rules file from url : %s", ruleURL)
 		content, err = readFromURL(ruleURL)
 		if err != nil {
