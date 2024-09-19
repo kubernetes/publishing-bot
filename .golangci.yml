@@ -51,7 +51,6 @@ linters:
     - gocyclo
     - godot
     - godox
-    - goerr113
     - gofmt
     - gofumpt
     - goheader
@@ -78,7 +77,6 @@ linters:
     - noctx
     - nolintlint
     - nosprintfhostport
-    - perfsprint
     - prealloc
     - predeclared
     - promlinter
