@@ -197,7 +197,7 @@ func (p *PublisherMunger) ensureCloned(dst, dstURL string) error {
 }
 
 func (p *PublisherMunger) runSmokeTests(smokeTest, oldHead, newHead string, branchEnv []string) error {
-	if len(smokeTest) > 0 && oldHead != newHead {
+	if smokeTest != "" && oldHead != newHead {
 		cmd := exec.Command("/bin/bash", "-xec", smokeTest)
 		cmd.Env = append([]string(nil), branchEnv...) // make mutable
 		cmd.Env = append(

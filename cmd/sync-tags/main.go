@@ -92,7 +92,7 @@ func main() {
 	}
 
 	var dependentRepos []string
-	if len(*dependencies) > 0 {
+	if *dependencies != "" {
 		for _, pair := range strings.Split(*dependencies, ",") {
 			ps := strings.Split(pair, ":")
 			dependentRepos = append(dependentRepos, ps[0])

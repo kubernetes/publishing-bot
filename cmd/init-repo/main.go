@@ -115,7 +115,7 @@ func main() {
 	}
 
 	// If RULE_FILE_PATH is detected, check if the source repository include rules files.
-	if len(os.Getenv("RULE_FILE_PATH")) > 0 {
+	if os.Getenv("RULE_FILE_PATH") != "" {
 		cfg.RulesFile = filepath.Join(BaseRepoPath, cfg.SourceRepo, os.Getenv("RULE_FILE_PATH"))
 	}
 

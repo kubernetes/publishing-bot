@@ -116,7 +116,7 @@ func (p *plog) Flush() {
 func prefixFollowingLines(p, s string) string {
 	lines := strings.Split(s, "\n")
 	for i := range lines {
-		if i != 0 && len(lines[i]) > 0 {
+		if i != 0 && lines[i] != "" {
 			lines[i] = p + lines[i]
 		}
 	}
