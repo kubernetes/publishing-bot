@@ -36,6 +36,7 @@ repos=(
     cri-client
     csi-translation-lib
     dynamic-resource-allocation
+    externaljwt
     endpointslice
     kms
     kube-aggregator
