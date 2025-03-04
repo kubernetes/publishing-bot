@@ -10,7 +10,7 @@ require (
 	github.com/lithammer/dedent v1.1.0
 	github.com/shurcooL/go v0.0.0-20171108033853-004faa6b0118
 	golang.org/x/mod v0.23.0
-	golang.org/x/oauth2 v0.26.0
+	golang.org/x/oauth2 v0.27.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0
 )
