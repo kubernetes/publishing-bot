@@ -1,26 +1,8 @@
----
+version: "2"
 run:
   concurrency: 6
-  timeout: 5m
-issues:
-  exclude-rules:
-    # counterfeiter fakes are usually named 'fake_<something>.go'
-    - path: fake_.*\.go
-      linters:
-        - gocritic
-        - golint
-        - dupl
-    - linters:
-        - goerr113
-      text: do not define dynamic errors
-
-  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
-  max-issues-per-linter: 0
-
-  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
-  max-same-issues: 0
 linters:
-  disable-all: true
+  default: none
   enable:
     - asasalint
     - asciicheck
@@ -39,7 +21,6 @@ linters:
     - errorlint
     - exhaustive
     - forcetypeassert
-    - gci
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecknoinits
@@ -49,14 +30,10 @@ linters:
     - gocyclo
     - godot
     - godox
-    - gofmt
-    - gofumpt
     - goheader
-    - goimports
     - gomoddirectives
     - gomodguard
     - goprintffuncname
-    - gosimple
     - gosmopolitan
     - govet
     - grouper
@@ -85,14 +62,11 @@ linters:
     - sloglint
     - sqlclosecheck
     - staticcheck
-    - stylecheck
     - tagalign
-    - tenv
     - testableexamples
     - testifylint
     - thelper
     - tparallel
-    - typecheck
     - unconvert
     - unparam
     - unused
@@ -121,128 +95,164 @@ linters:
     # - varnamelen
     # - wrapcheck
     # - wsl
-linters-settings:
-  godox:
-    keywords:
-      - BUG
-      - FIXME
-      - HACK
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
-  gocritic:
-    enabled-checks:
-      - appendAssign
-      - appendCombine
-      - argOrder
-      - assignOp
-      - badCall
-      - badCond
-      - badLock
-      - badRegexp
-      - badSorting
-      - boolExprSimplify
-      - builtinShadow
-      - builtinShadowDecl
-      - captLocal
-      - caseOrder
-      - codegenComment
-      - commentFormatting
-      - commentedOutCode
-      - commentedOutImport
-      - defaultCaseOrder
-      - deferInLoop
-      - deferUnlambda
-      - deprecatedComment
-      - docStub
-      - dupArg
-      - dupBranchBody
-      - dupCase
-      - dupImport
-      - dupSubExpr
-      - dynamicFmtString
-      - elseif
-      - emptyDecl
-      - emptyFallthrough
-      - emptyStringTest
-      - equalFold
-      - evalOrder
-      - exitAfterDefer
-      - exposedSyncMutex
-      - externalErrorReassign
-      - filepathJoin
-      - flagDeref
-      - flagName
-      - hexLiteral
-      - httpNoBody
-      - hugeParam
-      - ifElseChain
-      - importShadow
-      - indexAlloc
-      - initClause
-      - mapKey
-      - methodExprCall
-      - nestingReduce
-      - newDeref
-      - nilValReturn
-      - octalLiteral
-      - offBy1
-      - paramTypeCombine
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferFprint
-      - preferStringWriter
-      - preferWriteByte
-      - ptrToRefParam
-      - rangeExprCopy
-      - rangeValCopy
-      - redundantSprint
-      - regexpMust
-      - regexpPattern
-      - regexpSimplify
-      - returnAfterHttpError
-      - ruleguard
-      - singleCaseSwitch
-      - sliceClear
-      - sloppyLen
-      - sloppyReassign
-      - sloppyTypeAssert
-      - sortSlice
-      - sprintfQuotedString
-      - sqlQuery
-      - stringConcatSimplify
-      - stringXbytes
-      - stringsCompare
-      - switchTrue
-      - syncMapLoadAndDelete
-      - timeExprSimplify
-      - todoCommentWithoutDetail
-      - tooManyResultsChecker
-      - truncateCmp
-      - typeAssertChain
-      - typeDefFirst
-      - typeSwitchVar
-      - typeUnparen
-      - uncheckedInlineErr
-      - underef
-      - unlabelStmt
-      - unlambda
-      - unnamedResult
-      - unnecessaryBlock
-      - unnecessaryDefer
-      - unslice
-      - valSwap
-      - weakCond
-      - whyNoLint
-      - wrapperFunc
-      - yodaStyleExpr
-  nolintlint:
-    # Enable to ensure that nolint directives are all used. Default is true.
-    allow-unused: false
-    # Exclude following linters from requiring an explanation.  Default is [].
-    allow-no-explanation: []
-    # Enable to require an explanation of nonzero length after each nolint directive. Default is false.
-    # TODO(lint): Enforce explanations for `nolint` directives
-    require-explanation: false
-    # Enable to require nolint directives to mention the specific linter being suppressed. Default is false.
-    require-specific: true
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    gocritic:
+      enabled-checks:
+        - appendAssign
+        - appendCombine
+        - argOrder
+        - assignOp
+        - badCall
+        - badCond
+        - badLock
+        - badRegexp
+        - badSorting
+        - boolExprSimplify
+        - builtinShadow
+        - builtinShadowDecl
+        - captLocal
+        - caseOrder
+        - codegenComment
+        - commentFormatting
+        - commentedOutCode
+        - commentedOutImport
+        - defaultCaseOrder
+        - deferInLoop
+        - deferUnlambda
+        - deprecatedComment
+        - docStub
+        - dupArg
+        - dupBranchBody
+        - dupCase
+        - dupImport
+        - dupSubExpr
+        - dynamicFmtString
+        - elseif
+        - emptyDecl
+        - emptyFallthrough
+        - emptyStringTest
+        - equalFold
+        - evalOrder
+        - exitAfterDefer
+        - exposedSyncMutex
+        - externalErrorReassign
+        - filepathJoin
+        - flagDeref
+        - flagName
+        - hexLiteral
+        - httpNoBody
+        - hugeParam
+        - ifElseChain
+        - importShadow
+        - indexAlloc
+        - initClause
+        - mapKey
+        - methodExprCall
+        - nestingReduce
+        - newDeref
+        - nilValReturn
+        - octalLiteral
+        - offBy1
+        - paramTypeCombine
+        - preferDecodeRune
+        - preferFilepathJoin
+        - preferFprint
+        - preferStringWriter
+        - preferWriteByte
+        - ptrToRefParam
+        - rangeExprCopy
+        - rangeValCopy
+        - redundantSprint
+        - regexpMust
+        - regexpPattern
+        - regexpSimplify
+        - returnAfterHttpError
+        - ruleguard
+        - singleCaseSwitch
+        - sliceClear
+        - sloppyLen
+        - sloppyReassign
+        - sloppyTypeAssert
+        - sortSlice
+        - sprintfQuotedString
+        - sqlQuery
+        - stringConcatSimplify
+        - stringXbytes
+        - stringsCompare
+        - switchTrue
+        - syncMapLoadAndDelete
+        - timeExprSimplify
+        - todoCommentWithoutDetail
+        - tooManyResultsChecker
+        - truncateCmp
+        - typeAssertChain
+        - typeDefFirst
+        - typeSwitchVar
+        - typeUnparen
+        - uncheckedInlineErr
+        - underef
+        - unlabelStmt
+        - unlambda
+        - unnamedResult
+        - unnecessaryBlock
+        - unnecessaryDefer
+        - unslice
+        - valSwap
+        - weakCond
+        - whyNoLint
+        - wrapperFunc
+        - yodaStyleExpr
+    godox:
+      keywords:
+        - BUG
+        - FIXME
+        - HACK
+    nolintlint:
+      require-explanation: false
+      require-specific: true
+      allow-unused: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+          - gocritic
+          - golint
+        # counterfeiter fakes are usually named 'fake_<something>.go'
+        path: fake_.*\.go
+      - linters:
+          - err113
+        text: do not define dynamic errors
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  # Maximum issues count per one linter.
+  # Set to 0 to disable.
+  # Default: 50
+  max-issues-per-linter: 0
+  # Maximum count of issues with the same text.
+  # Set to 0 to disable.
+  # Default: 3
+  max-same-issues: 0
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
