@@ -101,61 +101,38 @@ linters:
       check-blank: true
     gocritic:
       enabled-checks:
-        - appendAssign
         - appendCombine
-        - argOrder
-        - assignOp
-        - badCall
-        - badCond
         - badLock
         - badRegexp
         - badSorting
         - boolExprSimplify
         - builtinShadow
         - builtinShadowDecl
-        - captLocal
-        - caseOrder
-        - codegenComment
-        - commentFormatting
         - commentedOutCode
         - commentedOutImport
-        - defaultCaseOrder
         - deferInLoop
         - deferUnlambda
-        - deprecatedComment
         - docStub
-        - dupArg
-        - dupBranchBody
-        - dupCase
         - dupImport
-        - dupSubExpr
         - dynamicFmtString
-        - elseif
         - emptyDecl
         - emptyFallthrough
         - emptyStringTest
         - equalFold
         - evalOrder
-        - exitAfterDefer
         - exposedSyncMutex
         - externalErrorReassign
         - filepathJoin
-        - flagDeref
-        - flagName
         - hexLiteral
         - httpNoBody
         - hugeParam
-        - ifElseChain
         - importShadow
         - indexAlloc
         - initClause
-        - mapKey
         - methodExprCall
         - nestingReduce
-        - newDeref
         - nilValReturn
         - octalLiteral
-        - offBy1
         - paramTypeCombine
         - preferDecodeRune
         - preferFilepathJoin
@@ -166,23 +143,18 @@ linters:
         - rangeExprCopy
         - rangeValCopy
         - redundantSprint
-        - regexpMust
         - regexpPattern
         - regexpSimplify
         - returnAfterHttpError
         - ruleguard
-        - singleCaseSwitch
         - sliceClear
-        - sloppyLen
         - sloppyReassign
-        - sloppyTypeAssert
         - sortSlice
         - sprintfQuotedString
         - sqlQuery
         - stringConcatSimplify
         - stringXbytes
         - stringsCompare
-        - switchTrue
         - syncMapLoadAndDelete
         - timeExprSimplify
         - todoCommentWithoutDetail
@@ -190,21 +162,49 @@ linters:
         - truncateCmp
         - typeAssertChain
         - typeDefFirst
-        - typeSwitchVar
         - typeUnparen
         - uncheckedInlineErr
-        - underef
         - unlabelStmt
-        - unlambda
         - unnamedResult
         - unnecessaryBlock
         - unnecessaryDefer
-        - unslice
-        - valSwap
         - weakCond
         - whyNoLint
-        - wrapperFunc
         - yodaStyleExpr
+        # - appendAssign
+        # - argOrder
+        # - assignOp
+        # - badCall
+        # - badCond
+        # - captLocal
+        # - caseOrder
+        # - codegenComment
+        # - commentFormatting
+        # - defaultCaseOrder
+        # - deprecatedComment
+        # - dupArg
+        # - dupBranchBody
+        # - dupCase
+        # - dupSubExpr
+        # - elseif
+        # - exitAfterDefer
+        # - flagDeref
+        # - flagName
+        # - ifElseChain
+        # - mapKey
+        # - newDeref
+        # - offBy1
+        # - regexpMust
+        # - singleCaseSwitch
+        # - sloppyLen
+        # - sloppyTypeAssert
+        # - switchTrue
+        # - typeSwitchVar
+        # - underef
+        # - unlambda
+        # - unslice
+        # - valSwap
+        # - wrapperFunc
     godox:
       keywords:
         - BUG
