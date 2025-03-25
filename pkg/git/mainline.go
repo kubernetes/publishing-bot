@@ -45,11 +45,7 @@ func FirstParent(r *gogit.Repository, c *object.Commit) (*object.Commit, error) 
 // of visited commits.
 func FirstParentList(r *gogit.Repository, c *object.Commit) ([]*object.Commit, error) {
 	l := []*object.Commit{}
-	for {
-		if c == nil {
-			break
-		}
-
+	for c != nil {
 		l = append(l, c)
 
 		// continue with first parent if there is one
