@@ -54,7 +54,7 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules, baseBranch str
 			// ensure all the mentioned directories exist
 			for _, dir := range branchRule.Source.Dirs {
 				_, directory := filepath.Split(dir)
-				if !(baseBranch == defaultBranch || (baseBranch != defaultBranch && baseBranch == branchRule.Source.Branch)) {
+				if baseBranch != defaultBranch && baseBranch != branchRule.Source.Branch {
 					glog.Infof("Skipping branch %q for repository %q", branchRule.Source.Branch, directory)
 					continue
 				}
@@ -65,7 +65,7 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules, baseBranch str
 			}
 
 			for _, dependency := range branchRule.Dependencies {
-				if !(baseBranch == defaultBranch || (baseBranch != defaultBranch && baseBranch == dependency.Branch)) {
+				if baseBranch != defaultBranch && baseBranch != dependency.Branch {
 					glog.Infof("Skipping branch %q for dependency %q", dependency.Branch, dependency.Repository)
 					continue
 				}
