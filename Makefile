@@ -65,6 +65,7 @@ push-image:
 	docker push $(DOCKER_REPO):$(GIT_TAG)
 	docker push $(DOCKER_REPO):$(IMG_VERSION)
 	docker push $(DOCKER_REPO):latest
+.PHONY: push-image
 
 build-and-push-image: build-image push-image
 .PHONY: build-and-push-image
@@ -94,16 +95,20 @@ init-deploy: validate
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f $(CONFIG)-configmap.yaml
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f $(CONFIG)-rules-configmap.yaml; \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/pvc.yaml
+.PHONY: init-deploy
 
 run: init-deploy
 	{ cat artifacts/manifests/pod.yaml && sed 's/^/  /' artifacts/manifests/podspec.yaml; } | \
 	$(call prepare_spec) | $(KUBECTL) apply -n "$(NAMESPACE)" -f -
+.PHONY: run
 
 deploy: init-deploy
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f artifacts/manifests/service.yaml
 	{ cat artifacts/manifests/rs.yaml && sed 's/^/      /' artifacts/manifests/podspec.yaml; } | \
 	$(call prepare_spec) | sed 's/-interval=0/-interval=$(INTERVAL)/g' | \
 	$(KUBECTL) apply -n "$(NAMESPACE)" -f -
+.PHONY: deploy
 
 test: ## Run go tests
 	go test -v -coverprofile=coverage.out ./...
+.PHONY: test
