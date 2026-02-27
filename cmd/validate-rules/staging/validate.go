@@ -18,6 +18,7 @@ package staging
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/golang/glog"
@@ -34,18 +35,14 @@ const defaultBranch = "master"
 
 // EnsureStagingDirectoriesExist walks through the repository rules and checks
 // if the specified directories are present in the specific kubernetes branch.
-func EnsureStagingDirectoriesExist(rules *config.RepositoryRules, baseBranch string) []error {
+func EnsureStagingDirectoriesExist(rules *config.RepositoryRules, baseBranch, rulesFile string) []error {
 	glog.Infof("Validating directories exist in the Kubernetes branches")
 
 	if baseBranch == "" {
 		baseBranch = defaultBranch
 	}
-
-	if baseBranch == defaultBranch {
-		glog.Infof("Testing all rules because the base branch is: %s", baseBranch)
-	} else {
-		glog.Infof("Testing only rules matching the base branch: %s", baseBranch)
-	}
+	glog.Infof("Testing only rules matching the base branch: %s", baseBranch)
+	kubeRoot := filepath.Clean(filepath.Join(filepath.Dir(rulesFile), "..", ".."))
 
 	var errors []error
 	for _, rule := range rules.Rules {
@@ -54,22 +51,22 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules, baseBranch str
 			// ensure all the mentioned directories exist
 			for _, dir := range branchRule.Source.Dirs {
 				_, directory := filepath.Split(dir)
-				if baseBranch != defaultBranch && baseBranch != branchRule.Source.Branch {
+				if baseBranch != branchRule.Source.Branch {
 					glog.Infof("Skipping branch %q for repository %q", branchRule.Source.Branch, directory)
 					continue
 				}
-				err := checkDirectoryExistsInBranch(directory, branchRule.Source.Branch)
+				err := checkDirectoryExists(directory, branchRule.Source.Branch, baseBranch, kubeRoot)
 				if err != nil {
 					errors = append(errors, err)
 				}
 			}
 
 			for _, dependency := range branchRule.Dependencies {
-				if baseBranch != defaultBranch && baseBranch != dependency.Branch {
+				if baseBranch != dependency.Branch {
 					glog.Infof("Skipping branch %q for dependency %q", dependency.Branch, dependency.Repository)
 					continue
 				}
-				err := checkDirectoryExistsInBranch(dependency.Repository, dependency.Branch)
+				err := checkDirectoryExists(dependency.Repository, dependency.Branch, baseBranch, kubeRoot)
 				if err != nil {
 					errors = append(errors, err)
 				}
@@ -77,6 +74,16 @@ func EnsureStagingDirectoriesExist(rules *config.RepositoryRules, baseBranch str
 		}
 	}
 	return errors
+}
+
+func checkDirectoryExists(directory, branch, baseBranch, kubeRoot string) error {
+	if branch == baseBranch {
+		localPath := filepath.Join(kubeRoot, "staging", "src", "k8s.io", directory)
+		if info, err := os.Stat(localPath); err == nil && info.IsDir() {
+			return nil
+		}
+	}
+	return checkDirectoryExistsInBranch(directory, branch)
 }
 
 func checkDirectoryExistsInBranch(directory, branch string) error {
