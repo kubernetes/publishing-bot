@@ -42,7 +42,7 @@ func main() {
 		if err := config.Validate(rules); err != nil {
 			glog.Fatalf("Invalid rules file %q: %v", f, err)
 		}
-		errors := staging.EnsureStagingDirectoriesExist(rules, os.Getenv(baseRefEnvKey))
+		errors := staging.EnsureStagingDirectoriesExist(rules, os.Getenv(baseRefEnvKey), f)
 		if errors != nil {
 			for _, err := range errors {
 				glog.Errorf("Error: %s", err)
