@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -228,7 +229,7 @@ func (p *PublisherMunger) runSmokeTests(smokeTest, oldHead, newHead string, bran
 func (p *PublisherMunger) construct() error {
 	sourceRemote := filepath.Join(p.baseRepoPath, p.config.SourceRepo, ".git")
 
-	if err := golang.InstallGoVersions(&p.reposRules); err != nil {
+	if err := golang.InstallGoVersions(context.Background(), &p.reposRules); err != nil {
 		return err
 	}
 
