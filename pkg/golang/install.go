@@ -18,42 +18,30 @@ package golang
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/publishing-bot/cmd/publishing-bot/config"
 )
 
+// deprecatedDefaultGoVersion hardcodes the (old) default go version.
+// The right way to define the default go version today is to specify in rules.
+// TODO(nikhita): remove deprecatedDefaultGoVersion when go 1.16 is released.
+var deprecatedDefaultGoVersion = "1.14.4"
+
 // InstallGoVersions download and unpacks the specified Golang versions to $GOPATH/
-// If the DefaultGoVersion is not specfied in rules, it defaults to the current Go release.
+// If the DefaultGoVersion is not specfied in rules, it defaults to 1.14.4.
 func InstallGoVersions(rules *config.RepositoryRules) error {
 	if rules == nil {
 		return nil
 	}
-	// Respect the default go version if set, otherwise attempt to use current stable go
-	// with GOTOOLCHAIN we will fetch dynamically the branch / module specific version anyhow.
-	//
-	// Any version > 1.21 that supports GOTOOLCHAIN can automatically
-	// fetch the correct go version for a given module if not otherwise overridden.
-	defaultGoVersion := ""
+
+	defaultGoVersion := deprecatedDefaultGoVersion
 	if rules.DefaultGoVersion != nil {
 		defaultGoVersion = *rules.DefaultGoVersion
-	} else {
-		// NOTE: we only do this in the else block, so if the rules explicitly
-		// specify a default, they do not depend on this endpoint
-		// That means if we ever have issues with getCurrentGoRelease, a quick
-		// fix is just setting the default again.
-		v, err := getCurrentGoRelease()
-		if err != nil {
-			return err
-		}
-		defaultGoVersion = v
 	}
 	glog.Infof("Using %s as the default go version", defaultGoVersion)
 
@@ -116,38 +104,4 @@ func installGoVersion(v, pth string) error {
 	}
 
 	return os.Rename(tmpPath, pth)
-}
-
-func getCurrentGoRelease() (string, error) {
-	var resp *http.Response
-	var err error
-	for i := 0; i < 3; i++ {
-		resp, err = http.Get("https://go.dev/VERSION?m=text")
-		if err == nil && resp.StatusCode == http.StatusOK {
-			break
-		}
-		if resp != nil {
-			resp.Body.Close()
-		}
-		time.Sleep(time.Second)
-	}
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	// The response is usually multiple lines, with the first line being "goX.Y.Z"
-	// go1.26.0
-	// time 2026-02-10T01:22:00Z
-	lines := strings.Split(string(body), "\n")
-	if len(lines) == 0 {
-		return "", fmt.Errorf("empty response from go.dev")
-	}
-	return strings.TrimPrefix(lines[0], "go"), nil
 }
