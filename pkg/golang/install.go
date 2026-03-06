@@ -17,7 +17,6 @@ limitations under the License.
 package golang
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,7 +32,7 @@ import (
 
 // InstallGoVersions download and unpacks the specified Golang versions to $GOPATH/
 // If the DefaultGoVersion is not specfied in rules, it defaults to the current Go release.
-func InstallGoVersions(ctx context.Context, rules *config.RepositoryRules) error {
+func InstallGoVersions(rules *config.RepositoryRules) error {
 	if rules == nil {
 		return nil
 	}
@@ -42,7 +41,7 @@ func InstallGoVersions(ctx context.Context, rules *config.RepositoryRules) error
 	//
 	// Any version > 1.21 that supports GOTOOLCHAIN can automatically
 	// fetch the correct go version for a given module if not otherwise overridden.
-	var defaultGoVersion string
+	defaultGoVersion := ""
 	if rules.DefaultGoVersion != nil {
 		defaultGoVersion = *rules.DefaultGoVersion
 	} else {
@@ -50,7 +49,7 @@ func InstallGoVersions(ctx context.Context, rules *config.RepositoryRules) error
 		// specify a default, they do not depend on this endpoint
 		// That means if we ever have issues with getCurrentGoRelease, a quick
 		// fix is just setting the default again.
-		v, err := getCurrentGoRelease(ctx)
+		v, err := getCurrentGoRelease()
 		if err != nil {
 			return err
 		}
@@ -119,26 +118,18 @@ func installGoVersion(v, pth string) error {
 	return os.Rename(tmpPath, pth)
 }
 
-func getCurrentGoRelease(ctx context.Context) (string, error) {
+func getCurrentGoRelease() (string, error) {
 	var resp *http.Response
 	var err error
 	for i := 0; i < 3; i++ {
-		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, "https://go.dev/VERSION?m=text", http.NoBody)
-		if reqErr != nil {
-			return "", reqErr
-		}
-		resp, err = http.DefaultClient.Do(req)
+		resp, err = http.Get("https://go.dev/VERSION?m=text")
 		if err == nil && resp.StatusCode == http.StatusOK {
 			break
 		}
 		if resp != nil {
 			resp.Body.Close()
 		}
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		case <-time.After(time.Second):
-		}
+		time.Sleep(time.Second)
 	}
 	if err != nil {
 		return "", err
