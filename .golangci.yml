@@ -231,6 +231,9 @@ linters:
       - linters:
           - err113
         text: do not define dynamic errors
+      - linters:
+          - noctx
+        text: "exec.CommandContext|http.NewRequestWithContext"
     paths:
       - third_party$
       - builtin$
