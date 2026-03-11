@@ -54,7 +54,7 @@ func (builder *logBuilder) AddTailing(lines ...string) *logBuilder {
 }
 
 func (builder *logBuilder) Split(sep string) *logBuilder {
-	var splittedLogs []string
+	splittedLogs := make([]string, 0, len(builder.logs))
 	for _, log := range builder.logs {
 		splittedLogs = append(splittedLogs, strings.Split(log, sep)...)
 	}

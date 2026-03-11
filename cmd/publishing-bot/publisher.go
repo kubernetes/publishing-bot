@@ -256,7 +256,7 @@ func (p *PublisherMunger) construct() error {
 		}
 
 		formatDeps := func(deps []config.Dependency) string {
-			var depStrings []string
+			depStrings := make([]string, 0, len(deps))
 			for _, dep := range deps {
 				depStrings = append(depStrings, fmt.Sprintf("%s:%s", dep.Repository, dep.Branch))
 			}

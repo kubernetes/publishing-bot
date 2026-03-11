@@ -260,14 +260,14 @@ func fixDeprecatedFields(rules *RepositoryRules) {
 }
 
 func Validate(rules *RepositoryRules) error {
-	errs := []error{}
+	errs := make([]error, 0, 2)
 
 	errs = append(errs, validateRepoOrder(rules)...)
 	errs = append(errs, validateGoVersions(rules)...)
 
 	fixDeprecatedFields(rules)
 
-	msgs := []string{}
+	msgs := make([]string, 0, len(errs))
 	for _, err := range errs {
 		if err != nil {
 			msgs = append(msgs, err.Error())
