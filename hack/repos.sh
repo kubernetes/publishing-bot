@@ -34,6 +34,7 @@ repos=(
     controller-manager
     cri-api
     cri-client
+    cri-streaming
     csi-translation-lib
     dynamic-resource-allocation
     externaljwt
@@ -52,4 +53,5 @@ repos=(
     sample-apiserver
     sample-cli-plugin
     sample-controller
+    streaming
 )
