@@ -929,7 +929,9 @@ checkout-deps-to-kube-commit() {
 
             local pseudo_version=$(gomod-pseudo-version)
             local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
-            if [ -f "${cache_dir}/list" ] && grep -q "${pseudo_version}" "${cache_dir}/list"; then
+            if ! [ -f go.mod ]; then
+                echo "No go.mod found in k8s.io/${dep} at ${dep_commit}, skipping."
+            elif [ -f "${cache_dir}/list" ] && grep -q "${pseudo_version}" "${cache_dir}/list"; then
             	echo "Pseudo version ${pseudo_version} is already packaged up."
             else
             	echo "Packaging up pseudo version ${pseudo_version} into go mod cache..."
