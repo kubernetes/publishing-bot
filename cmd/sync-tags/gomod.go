@@ -179,9 +179,14 @@ func packageDepToGoModCache(depPath, depPkg, commit, pseudoVersionOrTag string, 
 		return fmt.Errorf("failed to checkout %s at %s: %w", depPkg, commit, err)
 	}
 
-	// copy go.mod to the cache dir
-	if err := copyFile(fmt.Sprintf("%s/go.mod", depPath), goModFile); err != nil {
-		return fmt.Errorf("unable to copy %s file to %s to gomod cache for %s: %w", fmt.Sprintf("%s/go.mod", depPath), goModFile, depPkg, err)
+	// copy go.mod to the cache dir, skipping if go.mod doesn't exist (e.g., new staging repo at early commits)
+	goModSrc := fmt.Sprintf("%s/go.mod", depPath)
+	if _, err := os.Stat(goModSrc); os.IsNotExist(err) {
+		fmt.Printf("No go.mod found in %s at %s, skipping packaging.\n", depPkg, commit)
+		return nil
+	}
+	if err := copyFile(goModSrc, goModFile); err != nil {
+		return fmt.Errorf("unable to copy %s file to %s to gomod cache for %s: %w", goModSrc, goModFile, depPkg, err)
 	}
 
 	// create info file in the cache dir

@@ -828,6 +828,11 @@ update-deps-in-gomod() {
     for (( i=0; i<${dep_count}; i++ )); do
         local dep="${deps_array[i]%%:*}"
         local dep_commit=$(cd ../${dep}; gomod-pseudo-version)
+        local dep_cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
+        if ! [ -f "${dep_cache_dir}/list" ] || ! grep -q "${dep_commit}" "${dep_cache_dir}/list"; then
+            echo "Skipping ${base_package}/${dep}: pseudo-version ${dep_commit} not in module cache"
+            continue
+        fi
         echo "Updating ${base_package}/${dep} to point to ${dep_commit}"
         GO111MODULE=on go mod edit -fmt -require "${base_package}/${dep}@${dep_commit}"
         GO111MODULE=on go mod edit -fmt -replace "${base_package}/${dep}=${base_package}/${dep}@${dep_commit}"
