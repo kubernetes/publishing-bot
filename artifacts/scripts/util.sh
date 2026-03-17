@@ -551,6 +551,7 @@ function skip-gomod-update() {
     grep -F -q -x "$1" <<EOF
 e2a017327c1af628f4f0069cbd49865ad1e81975
 fd0df59f5ba786cb25329e3a9d2793ad4227ed87
+2bd6c7fe3cb8663804dc6e7672ff01aeebc97274
 EOF
 }
 
@@ -827,6 +828,11 @@ update-deps-in-gomod() {
     for (( i=0; i<${dep_count}; i++ )); do
         local dep="${deps_array[i]%%:*}"
         local dep_commit=$(cd ../${dep}; gomod-pseudo-version)
+        local dep_cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
+        if ! [ -f "${dep_cache_dir}/list" ] || ! grep -q "${dep_commit}" "${dep_cache_dir}/list"; then
+            echo "Skipping ${base_package}/${dep}: pseudo-version ${dep_commit} not in module cache"
+            continue
+        fi
         echo "Updating ${base_package}/${dep} to point to ${dep_commit}"
         GO111MODULE=on go mod edit -fmt -require "${base_package}/${dep}@${dep_commit}"
         GO111MODULE=on go mod edit -fmt -replace "${base_package}/${dep}=${base_package}/${dep}@${dep_commit}"
@@ -928,7 +934,9 @@ checkout-deps-to-kube-commit() {
 
             local pseudo_version=$(gomod-pseudo-version)
             local cache_dir="${GOPATH}/pkg/mod/cache/download/${base_package}/${dep}/@v"
-            if [ -f "${cache_dir}/list" ] && grep -q "${pseudo_version}" "${cache_dir}/list"; then
+            if ! [ -f go.mod ]; then
+                echo "No go.mod found in k8s.io/${dep} at ${dep_commit}, skipping."
+            elif [ -f "${cache_dir}/list" ] && grep -q "${pseudo_version}" "${cache_dir}/list"; then
             	echo "Pseudo version ${pseudo_version} is already packaged up."
             else
             	echo "Packaging up pseudo version ${pseudo_version} into go mod cache..."
