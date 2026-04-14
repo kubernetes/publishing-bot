@@ -687,7 +687,7 @@ function last-kube-commit() {
 
 function kube-commit() {
     local commit_msg_tag="${1}"
-    commit-message ${2:-HEAD} | grep "^${commit_msg_tag}: " | sed "s/^${commit_msg_tag}: //g"
+    commit-message ${2:-HEAD} | grep "^${commit_msg_tag}: " | tail -1 | sed "s/^${commit_msg_tag}: //g"
 }
 
 # find the rev when the given commit was merged into the branch
