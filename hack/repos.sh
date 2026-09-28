@@ -37,8 +37,8 @@ repos=(
     cri-streaming
     csi-translation-lib
     dynamic-resource-allocation
-    externaljwt
     endpointslice
+    externaljwt
     kms
     ktesting
     kube-aggregator
