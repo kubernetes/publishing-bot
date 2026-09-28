@@ -40,6 +40,7 @@ repos=(
     externaljwt
     endpointslice
     kms
+    ktesting
     kube-aggregator
     kube-controller-manager
     kube-proxy
