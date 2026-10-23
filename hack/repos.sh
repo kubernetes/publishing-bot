@@ -21,6 +21,7 @@ set -o pipefail
 # shellcheck disable=SC2034
 repos=(
     api
+    apiextensions-api
     apiextensions-apiserver
     apimachinery
     apiserver
