@@ -71,6 +71,14 @@ func updateGomodWithTaggedDependencies(tag string, depsRepo []string, semverTag 
 			return changed, fmt.Errorf("failed to package %s dependency: %w", depPkg, err)
 		}
 
+		// packaging is skipped when the dep has no go.mod at this commit (new staging repo tagged before it
+		// existed); pinning to a version that is neither cached nor at origin makes go mod download fail.
+		goModInCache := fmt.Sprintf("%s/pkg/mod/cache/download/%s/@v/%s.mod", os.Getenv("GOPATH"), depPkg, pseudoVersionOrTag)
+		if _, err := os.Stat(goModInCache); err != nil {
+			fmt.Printf("Skipping %s: %s not in module cache.\n", depPkg, pseudoVersionOrTag)
+			continue
+		}
+
 		requireCommand := exec.Command("go", "mod", "edit", "-fmt", "-require", fmt.Sprintf("%s@%s", depPkg, pseudoVersionOrTag))
 		requireCommand.Env = append(os.Environ(), "GO111MODULE=on")
 		requireCommand.Stdout = os.Stdout
